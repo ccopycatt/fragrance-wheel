@@ -158,6 +158,42 @@
   .m-note{margin:4px 34px 20px;padding:11px 14px;background:rgba(201,169,106,0.08);border:1px solid rgba(201,169,106,0.3);border-radius:10px;font-size:11px;color:var(--gold-lt);line-height:1.7;}
   footer{max-width:1320px;margin:54px auto 0;padding-top:22px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-muted);line-height:2;}
   footer b{color:var(--gold);font-weight:600;letter-spacing:1px;}
+  /* 今日香氛 */
+  .today{max-width:720px;margin:0 auto 30px;background:linear-gradient(180deg,rgba(29,24,17,0.92),rgba(20,16,11,0.92));
+    border:1px solid var(--border-strong);border-radius:18px;padding:20px 22px;}
+  .today-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .today-label{font-family:var(--serif);font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;}
+  .today-place{color:var(--text);font-size:17px;margin-top:6px;font-weight:600;}
+  .today-time{color:var(--text-muted);font-size:12px;font-weight:400;margin-left:10px;}
+  .today-btn{background:transparent;border:1px solid var(--border-strong);color:var(--text-2);border-radius:20px;padding:5px 14px;font-size:12px;font-family:inherit;cursor:pointer;flex-shrink:0;}
+  .today-btn:hover,.today-btn:focus-visible{color:var(--gold);border-color:var(--gold);outline:none;}
+  .today-msg{color:var(--text-2);font-size:13.5px;margin-top:10px;line-height:1.7;}
+  .wx-row{display:flex;align-items:center;gap:22px;margin:16px 0 18px;flex-wrap:wrap;}
+  .wx-big{font-family:var(--serif);font-size:46px;color:var(--text);line-height:1;display:flex;align-items:baseline;gap:10px;}
+  .wx-big span{font-family:var(--sans);font-size:14px;color:var(--gold-lt);}
+  .wx-stats{display:grid;grid-template-columns:repeat(4,auto);gap:4px 18px;flex:1;min-width:0;}
+  .wx-stats div{display:flex;flex-direction:column;gap:2px;}
+  .wx-stats span{font-size:11px;color:var(--text-muted);letter-spacing:.5px;}
+  .wx-stats b{font-size:15px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
+  @media (max-width:480px){.wx-stats{grid-template-columns:repeat(2,auto);}}
+  .picks{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;}
+  @media (max-width:700px){.picks{grid-template-columns:1fr;}}
+  .pick{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:12px;
+    background:var(--surface);border:1px solid var(--border);transition:border-color .2s;min-width:0;}
+  .pick:hover,.pick:focus-visible{border-color:var(--gold);}
+  .pick-main{border-color:var(--border-strong);background:linear-gradient(160deg,rgba(201,169,106,0.14),var(--surface) 60%);}
+  .pick-rank{font-size:10.5px;letter-spacing:2px;color:var(--gold);}
+  .pick-brand{font-size:11px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;}
+  .pick-name{font-family:var(--serif);font-size:17px;color:var(--text);line-height:1.3;}
+  .pick-main .pick-name{font-size:20px;}
+  .pick-zh{font-family:var(--sans);font-size:12.5px;color:var(--text-2);}
+  .pick-why{font-size:12.5px;color:var(--text-2);line-height:1.65;margin-top:4px;}
+  .pick-why b{color:var(--gold-lt);font-weight:500;}
+  .today-src{font-size:11px;color:var(--text-muted);margin-top:14px;line-height:1.7;}
+  .city-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+  .city{background:var(--surface);border:1px solid var(--border);color:var(--text-2);border-radius:16px;padding:5px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;}
+  .city:hover,.city:focus-visible{border-color:var(--gold);color:var(--gold);outline:none;}
+  .city-picker[hidden]{display:none;}
 </style>
 </head>
 <body>
@@ -168,6 +204,8 @@
     <div class="flourish"></div>
     <div class="subtitle">27 支收藏，依主香調排成一圈；點節點瀏覽，點卡片看瓶身、香調金字塔與香材圖鑑</div>
   </header>
+
+  <section class="today" id="today" aria-live="polite"></section>
 
   <div class="toolbar">
     <div class="modeswitch" style="display:none">
@@ -406,6 +444,182 @@ document.getElementById('footer').innerHTML=`
   <div>· 一支香水可同時歸屬多個香調。　·　資料整理日期：2026-10-17</div>`;
 
 renderFamily(categories[0]);
+// ===== 今日香氛：依所在地即時天氣推薦 =====
+(function(){
+  const box = document.getElementById('today');
+  if(!box) return;
+
+  // 收藏去重（一支香水可能在多個香調）
+  const uniq = Object.values(perfIndex).filter(e=>!e.is_sample);
+
+  // 香調「重量」：負值清爽、正值厚重
+  const WARMTH = {
+    'citrus':-2,'aquatic':-2,'marine':-2,'ozonic':-1.8,'salty':-1.5,'fresh':-1.5,'green':-1.2,'herbal':-1,
+    'tropical':-0.6,'aromatic':-0.6,'lavender':-0.5,'soapy':-0.5,'fruity':-0.3,'aldehydic':-0.3,'fresh spicy':-0.3,
+    'white floral':0,'floral':0,'yellow floral':0.2,'rose':0.2,'musky':0.2,'iris':0.3,'conifer':0.3,
+    'mossy':0.5,'powdery':0.6,'earthy':0.6,'woody':0.7,'soft spicy':0.8,'patchouli':1,'animalic':1.2,'sweet':1.2,
+    'nutty':1.3,'warm spicy':1.3,'leather':1.3,'smoky':1.4,'cinnamon':1.5,'amber':1.6,'balsamic':1.6,
+    'oud':1.8,'vanilla':1.8,'chocolate':2,'cacao':2
+  };
+  const RAINY = {'earthy':1,'mossy':1,'woody':0.6,'smoky':0.8,'conifer':0.8,'patchouli':0.6};
+  const HEAVY_SWEET = {'sweet':1,'vanilla':1,'chocolate':1,'cacao':1,'amber':0.6,'oud':0.6,'balsamic':0.6};
+  const ZH = {'citrus':'柑橘','aquatic':'水生','marine':'海洋','ozonic':'臭氧','salty':'鹹','fresh':'清新','green':'綠葉',
+    'herbal':'草本','tropical':'熱帶','aromatic':'芳香','lavender':'薰衣草','soapy':'皂感','fruity':'果香','aldehydic':'醛香',
+    'fresh spicy':'清爽辛香','white floral':'白花','floral':'花香','yellow floral':'黃花','rose':'玫瑰','musky':'麝香',
+    'iris':'鳶尾','conifer':'針葉','mossy':'苔蘚','powdery':'粉感','earthy':'土壤','woody':'木質','soft spicy':'柔和辛香',
+    'patchouli':'廣藿香','animalic':'動物','sweet':'甜感','nutty':'堅果','warm spicy':'溫暖辛香','leather':'皮革',
+    'smoky':'煙燻','cinnamon':'肉桂','amber':'琥珀','balsamic':'香脂','oud':'沉香','vanilla':'香草','chocolate':'巧克力','cacao':'可可'};
+
+  const CITIES = [
+    ['台北',25.04,121.56],['新北',25.01,121.46],['基隆',25.13,121.74],['桃園',24.99,121.31],['新竹',24.80,120.97],
+    ['台中',24.15,120.67],['彰化',24.08,120.54],['嘉義',23.48,120.45],['台南',22.99,120.21],['高雄',22.63,120.30],
+    ['屏東',22.67,120.49],['宜蘭',24.76,121.75],['花蓮',23.99,121.60],['台東',22.76,121.14],['澎湖',23.57,119.58],['金門',24.43,118.32]
+  ];
+
+  function wcode(c){
+    if(c===0) return '晴朗'; if(c<=2) return '晴時多雲'; if(c===3) return '陰天';
+    if(c===45||c===48) return '有霧'; if(c>=51&&c<=57) return '毛毛雨'; if(c>=61&&c<=67) return '下雨';
+    if(c>=71&&c<=77) return '下雪'; if(c>=80&&c<=82) return '陣雨'; if(c>=95) return '雷雨'; return '多雲';
+  }
+  const isRainCode = c => (c>=51&&c<=67)||(c>=80&&c<=82)||c>=95;
+
+  function perfWarmth(p){
+    let s=0,w=0; (p.accords||[]).forEach((a,i)=>{ const v=WARMTH[a]; if(v===undefined) return; const k=1/(1+i*0.35); s+=v*k; w+=k; });
+    return w? s/w : 0;
+  }
+  function accordSum(p,map){
+    let s=0; (p.accords||[]).forEach((a,i)=>{ if(map[a]) s+=map[a]/(1+i*0.35); }); return s;
+  }
+  const hasTea = p => flatNotes(p.notes).some(n=>/tea/i.test(n));
+
+  function season(m){ return m<=1||m===11?'冬':m<=4?'春':m<=7?'夏':'秋'; }
+
+  function recommend(wx){
+    const feel = wx.isDay ? Math.max(wx.feels, wx.feelsMax ?? wx.feels) : wx.feels;
+    const target = Math.max(-1.6, Math.min(1.6, (24 - feel) / 5));   // 32°C → -1.6、24°C → 0、16°C → +1.6
+    const rainy = wx.rainNow || wx.rainProb >= 60;
+    const muggy = wx.humidity >= 80 && feel >= 26;
+    const nowSeason = season(new Date().getMonth());
+    return uniq.map(({p})=>{
+      const pw = perfWarmth(p);
+      let score = 3 - Math.abs(pw - target) * 1.6;
+      if(rainy){ score += accordSum(p,RAINY)*0.5 + (hasTea(p)?0.4:0); }
+      if(muggy){ score -= accordSum(p,HEAVY_SWEET)*0.6; }
+      if(p.day_night) score += (p.day_night==='日間') === wx.isDay ? 0.3 : -0.2;
+      if(p.season_tags && p.season_tags.includes(nowSeason)) score += 0.2;
+      return {p, score, pw};
+    }).sort((a,b)=>b.score-a.score);
+  }
+
+  function reason(r, wx){
+    const top = (r.p.accords||[]).slice(0,3).map(a=>ZH[a]||a).join('、');
+    const feel = Math.round(wx.isDay ? Math.max(wx.feels, wx.feelsMax ?? wx.feels) : wx.feels);
+    const rainy = wx.rainNow || wx.rainProb >= 60;
+    let why;
+    if(feel>=28) why = r.pw<0 ? '天氣熱，清爽的調性不悶' : '天氣熱，這支相對輕盈';
+    else if(feel>=22) why = r.pw<0.4 ? '溫度舒適，清新到中性的調性剛好' : '溫度舒適，木質感穩重不厚重';
+    else if(feel>=16) why = '天氣微涼，木質辛香更有存在感';
+    else why = '天冷，溫暖厚重的調性擴散得開';
+    if(rainy && accordSum(r.p,RAINY)>0.5) why += '；雨天的潮濕感跟土壤、木質很搭';
+    else if(rainy && hasTea(r.p)) why += '；雨天配茶香很安靜';
+    if(wx.humidity>=80 && feel>=26) why += '；濕度高，避開甜膩';
+    return `<b>${top}</b>，${why}。`;
+  }
+
+  function pickCard(r, wx, rank){
+    const p=r.p; const key=p.brand+'|'+p.name_en;
+    return `<button class="pick ${rank===0?'pick-main':''}" data-pkey="${key}">
+      <span class="pick-rank">${rank===0?'今日首選':'也適合'}</span>
+      <span class="pick-brand">${p.brand}</span>
+      <span class="pick-name">${p.name_en}${p.name_zh?` <span class="pick-zh">${p.name_zh}</span>`:''}</span>
+      <span class="pick-why">${reason(r,wx)}</span>
+    </button>`;
+  }
+
+  function render(wx, place){
+    const recs = recommend(wx).slice(0,3);
+    const feel = Math.round(wx.feels);
+    box.innerHTML = `
+      <div class="today-head">
+        <div>
+          <div class="today-label">今日香氛 · Today's Scent</div>
+          <div class="today-place">${place}<span class="today-time">${wx.isDay?'白天':'夜晚'} ${new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</span></div>
+        </div>
+        <button class="today-btn" id="today-change" type="button">換地點</button>
+      </div>
+      <div class="wx-row">
+        <div class="wx-big">${Math.round(wx.temp)}°<span>${wcode(wx.code)}</span></div>
+        <div class="wx-stats">
+          <div><span>體感</span><b>${feel}°</b></div>
+          <div><span>今日</span><b>${Math.round(wx.min)}–${Math.round(wx.max)}°</b></div>
+          <div><span>濕度</span><b>${Math.round(wx.humidity)}%</b></div>
+          <div><span>降雨機率</span><b>${wx.rainProb ?? '–'}%</b></div>
+        </div>
+      </div>
+      <div class="picks">${recs.map((r,i)=>pickCard(r,wx,i)).join('')}</div>
+      <div class="today-src">天氣：Open-Meteo（整合各國氣象模式，每次打開即時更新）· 推薦依主香調輕重、體感溫度、濕度、降雨與日夜計算</div>
+      <div class="city-picker" id="city-picker" hidden>
+        <button class="city" type="button" data-geo="1">目前位置</button>
+        ${CITIES.map(c=>`<button class="city" type="button" data-city="${c[0]}">${c[0]}</button>`).join('')}
+      </div>`;
+    box.querySelectorAll('.pick').forEach(b=>b.addEventListener('click',()=>openModal(b.dataset.pkey)));
+    document.getElementById('today-change').addEventListener('click',()=>{ const cp=document.getElementById('city-picker'); cp.hidden=!cp.hidden; });
+    box.querySelectorAll('.city').forEach(b=>b.addEventListener('click',()=>{
+      if(b.dataset.geo){ save(null); locate(); return; }
+      const c=CITIES.find(x=>x[0]===b.dataset.city); save(c[0]); load(c[1],c[2],c[0]);
+    }));
+  }
+
+  function msg(t){ box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">${t}</div>
+    <div class="city-picker">${CITIES.map(c=>`<button class="city" type="button" data-city="${c[0]}">${c[0]}</button>`).join('')}</div>`;
+    box.querySelectorAll('.city').forEach(b=>b.addEventListener('click',()=>{ const c=CITIES.find(x=>x[0]===b.dataset.city); save(c[0]); load(c[1],c[2],c[0]); }));
+  }
+
+  function save(v){ try{ v?localStorage.setItem('fw-city',v):localStorage.removeItem('fw-city'); }catch(e){} }
+  function saved(){ try{ return localStorage.getItem('fw-city'); }catch(e){ return null; } }
+
+  async function placeName(lat,lon){
+    try{
+      const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh-Hant`);
+      const j = await r.json(); return [j.principalSubdivision, j.city||j.locality].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(' ') || '目前位置';
+    }catch(e){ return '目前位置'; }
+  }
+
+  async function load(lat,lon,label){
+    box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">正在讀取${label||'所在地'}的天氣…</div>`;
+    try{
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`+
+        `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day`+
+        `&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max&timezone=auto&forecast_days=1`;
+      const [res, place] = await Promise.all([fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }), label?Promise.resolve(label):placeName(lat,lon)]);
+      const c=res.current, d=res.daily;
+      render({
+        temp:c.temperature_2m, feels:c.apparent_temperature, humidity:c.relative_humidity_2m, code:c.weather_code,
+        isDay:c.is_day===1, rainNow:c.precipitation>0.1 || isRainCode(c.weather_code),
+        min:d.temperature_2m_min[0], max:d.temperature_2m_max[0], feelsMax:d.apparent_temperature_max[0],
+        rainProb:d.precipitation_probability_max[0]
+      }, place);
+    }catch(e){
+      msg('天氣資料暫時讀不到，請確認網路後重新整理，或直接選城市。');
+    }
+  }
+
+  function locate(){
+    const city = saved();
+    if(city){ const c=CITIES.find(x=>x[0]===city); if(c) return load(c[1],c[2],c[0]); }
+    if(!navigator.geolocation){ return msg('這個瀏覽器無法定位，請選城市：'); }
+    box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">正在取得你的位置…（請允許瀏覽器使用位置）</div>`;
+    navigator.geolocation.getCurrentPosition(
+      pos=>load(pos.coords.latitude.toFixed(3), pos.coords.longitude.toFixed(3)),
+      ()=>msg('沒有取得位置權限，請選城市：'),
+      {timeout:10000, maximumAge:600000}
+    );
+  }
+
+  window.__fwRecommend = recommend; // 供測試
+  locate();
+})();
+
 </script>
 </body>
 </html>
