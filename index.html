@@ -548,16 +548,16 @@ renderFamily(categories[0]);
         <button class="today-btn" id="today-change" type="button">換地點</button>
       </div>
       <div class="wx-row">
-        <div class="wx-big">${Math.round(wx.temp)}°<span>${wcode(wx.code)}</span></div>
+        <div class="wx-big">${Math.round(wx.temp)}°<span>${wx.desc}</span></div>
         <div class="wx-stats">
           <div><span>體感</span><b>${feel}°</b></div>
           <div><span>今日</span><b>${Math.round(wx.min)}–${Math.round(wx.max)}°</b></div>
           <div><span>濕度</span><b>${Math.round(wx.humidity)}%</b></div>
-          <div><span>降雨機率</span><b>${wx.rainProb ?? '–'}%</b></div>
+          <div><span>${wx.rainLabel}</span><b>${wx.rainText}</b></div>
         </div>
       </div>
       <div class="picks">${recs.map((r,i)=>pickCard(r,wx,i)).join('')}</div>
-      <div class="today-src">天氣：Open-Meteo（整合各國氣象模式，每次打開即時更新）· 推薦依主香調輕重、體感溫度、濕度、降雨與日夜計算</div>
+      <div class="today-src">天氣：${wx.src}（每次打開即時更新）· 推薦依主香調輕重、體感溫度、濕度、降雨與日夜計算</div>
       <div class="city-picker" id="city-picker" hidden>
         <button class="city" type="button" data-geo="1">目前位置</button>
         ${CITIES.map(c=>`<button class="city" type="button" data-city="${c[0]}">${c[0]}</button>`).join('')}
@@ -585,23 +585,58 @@ renderFamily(categories[0]);
     }catch(e){ return '目前位置'; }
   }
 
+  function getJSON(url, ms){
+    const ctl = new AbortController(); const t = setTimeout(()=>ctl.abort(), ms);
+    return fetch(url,{signal:ctl.signal}).then(r=>{ clearTimeout(t); if(!r.ok) throw new Error(r.status); return r.json(); });
+  }
+
+  // 主要來源：Open-Meteo
+  async function fromOpenMeteo(lat,lon){
+    const res = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`+
+      `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day`+
+      `&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max&timezone=auto&forecast_days=1`, 6000);
+    const c=res.current, d=res.daily;
+    return { src:'Open-Meteo',
+      temp:c.temperature_2m, feels:c.apparent_temperature, humidity:c.relative_humidity_2m, desc:wcode(c.weather_code),
+      isDay:c.is_day===1, rainNow:c.precipitation>0.1 || isRainCode(c.weather_code),
+      min:d.temperature_2m_min[0], max:d.temperature_2m_max[0], feelsMax:d.apparent_temperature_max[0],
+      rainProb:d.precipitation_probability_max[0], rainLabel:'降雨機率', rainText:(d.precipitation_probability_max[0] ?? '–')+'%' };
+  }
+
+  // 備援來源：挪威氣象局 MET Norway
+  const MET_ZH = [['thunder','雷雨'],['sleet','雨夾雪'],['snow','下雪'],['heavyrainshowers','大陣雨'],['rainshowers','陣雨'],
+    ['lightrain','小雨'],['heavyrain','大雨'],['rain','下雨'],['fog','有霧'],['partlycloudy','多雲時晴'],['fair','晴時多雲'],
+    ['clearsky','晴朗'],['cloudy','陰天']];
+  function feelsLike(t, rh, ws){ const e = rh/100*6.105*Math.exp(17.27*t/(237.7+t)); return t + 0.33*e - 0.70*ws - 4.00; }
+  async function fromMet(lat,lon){
+    const res = await getJSON(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${(+lat).toFixed(2)}&lon=${(+lon).toFixed(2)}`, 10000);
+    const ts = res.properties.timeseries;
+    const now = ts[0], d = now.data.instant.details;
+    const sym = (now.data.next_1_hours||now.data.next_6_hours||{}).summary?.symbol_code || 'cloudy';
+    const today = new Date().toDateString();
+    const todays = ts.filter(x=>new Date(x.time).toDateString()===today).map(x=>x.data.instant.details);
+    const temps = (todays.length?todays:[d]).map(x=>x.air_temperature);
+    const feelsAll = (todays.length?todays:[d]).map(x=>feelsLike(x.air_temperature,x.relative_humidity,x.wind_speed));
+    const next12 = ts.slice(0,12).map(x=>x.data.next_1_hours?.details?.precipitation_amount ?? 0);
+    const rain12 = next12.reduce((a,b)=>a+b,0);
+    const hr = new Date().getHours();
+    return { src:'挪威氣象局 MET Norway',
+      temp:d.air_temperature, feels:feelsLike(d.air_temperature,d.relative_humidity,d.wind_speed), humidity:d.relative_humidity,
+      desc:(MET_ZH.find(([k])=>sym.includes(k))||[,'多雲'])[1],
+      isDay: sym.includes('_night') ? false : sym.includes('_day') ? true : (hr>=6 && hr<18),
+      rainNow:/rain|sleet|thunder|snow/.test(sym) || (next12[0]||0)>0.1,
+      min:Math.min(...temps), max:Math.max(...temps), feelsMax:Math.max(...feelsAll),
+      rainProb: Math.round(next12.filter(v=>v>0.1).length/12*100), rainLabel:'12 小時雨量', rainText:rain12.toFixed(1)+' mm' };
+  }
+
   async function load(lat,lon,label){
     box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">正在讀取${label||'所在地'}的天氣…</div>`;
-    try{
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`+
-        `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day`+
-        `&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max&timezone=auto&forecast_days=1`;
-      const [res, place] = await Promise.all([fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }), label?Promise.resolve(label):placeName(lat,lon)]);
-      const c=res.current, d=res.daily;
-      render({
-        temp:c.temperature_2m, feels:c.apparent_temperature, humidity:c.relative_humidity_2m, code:c.weather_code,
-        isDay:c.is_day===1, rainNow:c.precipitation>0.1 || isRainCode(c.weather_code),
-        min:d.temperature_2m_min[0], max:d.temperature_2m_max[0], feelsMax:d.apparent_temperature_max[0],
-        rainProb:d.precipitation_probability_max[0]
-      }, place);
-    }catch(e){
-      msg('天氣資料暫時讀不到，請確認網路後重新整理，或直接選城市。');
-    }
+    const placeP = label?Promise.resolve(label):placeName(lat,lon);
+    let wx=null;
+    try{ wx = await fromOpenMeteo(lat,lon); }catch(e){}
+    if(!wx){ try{ wx = await fromMet(lat,lon); }catch(e){} }
+    if(!wx){ msg('天氣資料暫時讀不到，請確認網路後重新整理，或直接選城市。'); return; }
+    render(wx, await placeP);
   }
 
   function locate(){
