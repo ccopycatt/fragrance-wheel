@@ -2,7 +2,7 @@
 
 網站：https://ccopycatt.github.io/fragrance-wheel/（GitHub Pages，main 分支根目錄）
 
-- `index.html`：香調環主頁（28 支收藏、搜尋、依天氣推薦）
+- `index.html`：香調環主頁（30 支收藏、搜尋、依天氣推薦）
 - `summer-bcn-3d.html`：Summer BCN 的 3D 詳細頁（建好的單檔，貼圖已內嵌）
 - `src/summer-bcn-3d.src.html`：3D 頁原始碼（`__TEX_*__` 為貼圖佔位，建置時換成 data URI）
 - `src/tex_label50*.jpg`：50ml 標籤貼圖（取自官方去背照）
