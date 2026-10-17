@@ -57,6 +57,7 @@
 - 打開網站預設顯示「全部收藏」。手機保留香調環。清單上方是展開的排序列（排序依據、順序、詳細／總覽）；排序列捲到畫面上方後，出現浮動快捷列（一層膠囊，內部按鈕無框，中間一條細分隔線）：「香調 ▾」打開香調環選取（電腦版香調環就在旁邊，所以只有「排序」），「排序」打開排序與顯示面板。面板放在 body 層，電腦是下拉、手機是離底 14px 的浮動抽屜；順序寫明方向（「持久 → 短暫」），不用圖示。
 - iOS 26 Safari 狀態列／網址列染色：Safari 在畫面頂端往內約 4px、底端往內約 3px 的中央取樣，若落在寬度 ≥ 畫面 90% 的 fixed／sticky 元素（含尚未黏住、正經過畫面邊緣的 sticky），就把列塗成它的顏色，而且之後不會恢復。對策：主頁的浮動快捷列離頂端 14px、最寬 82vw；遮罩一律用 absolute 蓋滿整份文件（`#sort-scrim`，排序抽屜與詳細彈窗共用），詳細彈窗的 fixed 容器上下各留 14px，排序抽屜離底 14px；關閉的元素要 display:none。香境頁完全不用 fixed：觸控裝置上畫布上下各多畫一段（`RUNWAY`，上 110px、下 150px，相機用 setViewOffset 保持原構圖），開場捲到上方那段，HUD 用 absolute 加 `--bt`／`--bb` 定位，狀態列與網址列底下就是真正的場景。檢查方法：每個捲動位置用 elementFromPoint(中央, 4) 與 (中央, 高−3) 確認沒有落在寬度 ≥ 90% 的 fixed／sticky 元素上。
 - 頁面不可左右拖動：`.page{overflow-x:clip}`（不要加在 html／body，iOS Safari 的狀態列與網址列會變成一塊黑底，也別讓常駐的 position:fixed 元素貼著畫面邊緣，彈窗遮罩關閉時要 display:none），寬度用 `calc(100vw - 40px)` 這類算式，別用會超出的固定 min 寬。
+- 香水詳細彈窗：高度鎖在畫面內（fixed 容器上下各留 14px、卡片 max-height:100%），內容在 `.modal-scroll` 裡捲動，按鈕放 `.modal-actions`（主要：走進香境；次要外框：查看 Fragrantica）。
 - 3D 世界對外稱「香境」（不說「3D 模型」）。詳細彈窗可切換「香境／商品照」，點香境圖就走進香境頁。
-- 從香境返回：香境頁的返回鈕用 history.back()；主頁在 pagehide 把分類、搜尋、捲動錨點、開著的香水、今日香氛那一組存進 sessionStorage `fw-state`，返回時還原。
+- 從香境返回：香境頁的返回鈕用 history.back()（inline onclick 裡不要寫 `new URL(...)`：inline 事件的作用域裡 `URL` 會解析成 `document.URL` 字串而報錯，改用 `document.referrer.indexOf(location.origin+'/')===0`）；從 bfcache 還原時用 pageshow(persisted) 補回捲動位置；主頁在 pagehide 把分類、搜尋、捲動錨點、開著的香水、今日香氛那一組存進 sessionStorage `fw-state`，返回時還原。
 - 今日香氛的隨機性：每次打開都重抽，`localStorage fw-hist` 記最近 8 次看過的推薦，上次的首選這次幾乎不會再當首選。

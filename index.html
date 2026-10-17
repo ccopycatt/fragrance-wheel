@@ -160,17 +160,20 @@
   .season-cell.on{background:color-mix(in srgb,var(--gold) 30%,var(--surface-2));color:var(--gold-lt);border-color:var(--gold-dk);font-weight:700;}
   .season-cell.voted{background:color-mix(in srgb,var(--gold) calc(var(--sv) * 0.34),var(--surface-2));flex-direction:column;line-height:1.05;}
   .season-cell small{font-size:var(--fs-xs);font-weight:400;color:var(--text-muted);}
-  .modal-card .season-cell.voted{width:38px;height:34px;}
+  .modal-card .season-cell.voted{width:auto;min-width:38px;padding:0 5px;height:34px;}
   .dn-num{margin-left:6px;font-size:var(--fs-xs);color:var(--text-muted);}
   .daynight{font-size:var(--fs-xs);color:var(--text-muted);letter-spacing:0.5px;}
   .card-note{margin-top:11px;padding:9px 11px;background:rgba(201,169,106,0.07);border:1px solid rgba(201,169,106,0.28);border-radius:calc(var(--R,14px) - var(--p,8px) - 1px);font-size:var(--fs-xs);color:var(--gold-lt);line-height:1.65;}
   .card-cta{margin-top:12px;font-size:var(--fs-xs);color:var(--gold);letter-spacing:1px;display:flex;align-items:center;gap:6px;}
   .empty-state{display:flex;align-items:center;justify-content:center;height:320px;color:var(--text-muted);font-size:var(--fs-base);text-align:center;line-height:1.9;}
 
-  .modal-backdrop{position:fixed;inset:14px 0;z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:26px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .modal-backdrop{position:fixed;inset:14px 0;z-index:100;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;opacity:0;pointer-events:none;transition:opacity .25s;}
   .modal-backdrop.open{opacity:1;pointer-events:auto;}
   .modal-backdrop:not(.show){display:none;}
-  .modal-card{background:linear-gradient(180deg,#191309,#0d0a06);border:1px solid var(--border-strong);border-radius:30px;max-width:900px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.7);position:relative;overflow:hidden;transform:translateY(14px) scale(0.985);transition:transform .28s;}
+  .modal-card{background:linear-gradient(180deg,#191309,#0d0a06);border:1px solid var(--border-strong);border-radius:30px;max-width:900px;width:100%;max-height:100%;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,0.7);position:relative;overflow:hidden;transform:translateY(14px) scale(0.985);transition:transform .28s;}
+  .modal-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  .modal-actions{display:flex;flex-wrap:wrap;gap:10px;padding:10px 34px 34px;}
+  @media (max-width:720px){.modal-actions{padding:10px 26px 28px;}}
   .modal-backdrop.open .modal-card{transform:none;}
   .modal-close{position:absolute;top:10px;right:10px;z-index:5;width:40px;height:40px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(10,8,6,0.6);color:var(--gold);font-size:var(--fs-lg);cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .modal-close:hover{background:var(--gold);color:#120d07;}
@@ -191,9 +194,10 @@
   @media (max-width:720px){.modal-block{padding:0 26px 8px;}}
   .modal-perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
   @media (max-width:500px){.modal-perf-grid{grid-template-columns:1fr;gap:10px;}}
-  .m-3d{margin-right:0;background:transparent;color:var(--gold-lt);border:1px solid var(--gold);}
-  .m-link{display:inline-flex;align-items:center;gap:8px;margin:8px 34px 34px;padding:11px 22px;background:var(--gold-grad);color:#150f06;font-weight:700;font-size:var(--fs-sm);letter-spacing:1px;border-radius:30px;text-decoration:none;}
+  .m-link{display:inline-flex;align-items:center;gap:8px;margin:0;padding:11px 22px;background:var(--gold-grad);color:#150f06;font-weight:700;font-size:var(--fs-sm);letter-spacing:1px;border-radius:30px;text-decoration:none;}
   .m-link:hover{filter:brightness(1.07);}
+  .m-link.m-ext{background:transparent;color:var(--gold-lt);border:1px solid var(--border-strong);padding:10px 20px;}
+  .m-link.m-ext:hover{border-color:var(--gold);filter:none;}
   .m-note{margin:4px 34px 20px;padding:11px 14px;background:rgba(201,169,106,0.08);border:1px solid rgba(201,169,106,0.3);border-radius:10px;font-size:var(--fs-xs);color:var(--gold-lt);line-height:1.7;}
   footer{max-width:1320px;margin:54px auto 0;padding-top:22px;border-top:1px solid var(--border);font-size:var(--fs-xs);color:var(--text-muted);line-height:2;}
   footer b{color:var(--gold);font-weight:600;letter-spacing:1px;}
@@ -673,8 +677,9 @@ function openModal(pkey){
   const dn=p.day_night?`<span class="daynight" style="margin-left:10px">${dayNightText(p,true)}</span>`:'';
   const perfSec = isv?'':`<div class="modal-block"><div class="m-section-label">表現 · Performance</div><div class="modal-perf-grid"><div>${perfRowHtml('持香度',p.longevity,'longevity',p.longevity_votes,p.perf_note)}${perfDistHtml('longevity',p.longevity_votes)}</div><div>${perfRowHtml('擴香度',p.sillage,'sillage',p.sillage_votes)}${perfDistHtml('sillage',p.sillage_votes)}</div></div>${srcText?`<div class="perf-source">來源：${srcText}${perfVotesText(p)}</div>`:''}</div>`;
   const seasonSec = isv?'':`<div class="modal-block"><div class="m-section-label">適用季節 · Season（Fragrantica 投票）</div><div class="season-block">${p.season_votes?`<div class="season-cells">${seasonCellsHtml(p.season_tags,p.season_votes,true)}</div>${dn}`:'<div class="perf-na">沒有投票資料</div>'}</div></div>`;
-  modal.innerHTML=`<div class="modal-card" style="--fam-color:${famColor}">
+  modal.innerHTML=`<div class="modal-card" style="--fam-color:${famColor}" role="dialog" aria-modal="true" aria-label="${p.name_en}">
     <button class="modal-close" aria-label="關閉">${ICON.close}</button>
+    <div class="modal-scroll">
     <div class="modal-top">
       <div class="modal-bottle">${bottle}</div>
       <div class="modal-info">
@@ -690,7 +695,8 @@ function openModal(pkey){
     ${perfSec}${seasonSec}
     <div class="modal-block"><div class="m-section-label">主香調 · Accords${p.accords_note?`（${p.accords_note}）`:''}</div><div class="accord-tags">${accords||'<span class="perf-na">資料缺漏</span>'}</div></div>
     ${p.note?`<div class="m-note">${ICON.note}<span>${p.note}</span></div>`:''}
-    ${p.model3d?`<a class="m-link m-3d" href="${p.model3d}">走進香境 ${ICON.arrow}</a>`:''}${p.url?`<a class="m-link" href="${p.url}" target="_blank" rel="noopener">查看 ${p.url_label||'Fragrantica 原文'} ${ICON.ext}</a>`:''}
+    <div class="modal-actions">${p.model3d?`<a class="m-link" href="${p.model3d}">走進香境 ${ICON.arrow}</a>`:''}${p.url?`<a class="m-link m-ext" href="${p.url}" target="_blank" rel="noopener">查看 ${p.url_label||'Fragrantica 原文'} ${ICON.ext}</a>`:''}</div>
+    </div>
   </div>`;
   clearTimeout(modal._hideT); modal.classList.add('show'); void modal.offsetWidth; modal.classList.add('open'); showDim(); document.body.style.overflow='hidden';
 }
@@ -878,15 +884,20 @@ document.getElementById('footer').innerHTML=`
   <div>· 一支香水可同時歸屬多個香調。　·　資料整理日期：2026-10-17</div>`;
 
 // 預設顯示全部收藏；從香境（或其他頁）按返回時，還原原本的分類、搜尋、捲動位置與開著的香水
-if('scrollRestoration' in history) history.scrollRestoration='manual';
 function saveState(){ try{
   let anchor=null; for(const c of detail.querySelectorAll('.card[data-pkey]')){ const r=c.getBoundingClientRect(); if(r.bottom>90){ anchor={k:c.dataset.pkey,y:r.top}; break; } }
   const open=modal.classList.contains('open')?modal.dataset.pkey:null;
-  sessionStorage.setItem('fw-state',JSON.stringify({mode,fam:activeFamily,q:searchInput.value,modal:open,mScroll:modal.scrollTop,anchor,sy:window.scrollY,t:Date.now(),visit:window.fwVisit||null}));
+  sessionStorage.setItem('fw-state',JSON.stringify({mode,fam:activeFamily,q:searchInput.value,modal:open,mScroll:(modal.querySelector('.modal-scroll')||{}).scrollTop||0,anchor,sy:window.scrollY,t:Date.now(),visit:window.fwVisit||null}));
 }catch(e){} }
 window.addEventListener('pagehide',saveState);
+// iOS Safari 從快取直接還原頁面（bfcache）時，捲動位置可能被重設：用離開前記下的位置補回去
+let leaveState=null;
+window.addEventListener('pagehide',()=>{ const ms=modal.querySelector('.modal-scroll'); leaveState={sy:window.scrollY, ms:ms?ms.scrollTop:0}; });
+window.addEventListener('pageshow',e=>{ if(!e.persisted||!leaveState) return; const st=leaveState;
+  const go=()=>{ if(Math.abs(window.scrollY-st.sy)>2) window.scrollTo(0,st.sy); const ms=modal.querySelector('.modal-scroll'); if(ms&&Math.abs(ms.scrollTop-st.ms)>2) ms.scrollTop=st.ms; syncCollapsed(); };
+  go(); requestAnimationFrame(go); [80,250,600].forEach(t=>setTimeout(go,t)); });
 const navType=(performance.getEntriesByType&&performance.getEntriesByType('navigation')[0]||{}).type;
-let fwRestore=null; try{ const st=JSON.parse(sessionStorage.getItem('fw-state')||'null'); if(st&&navType==='back_forward'&&Date.now()-st.t<12*3600e3) fwRestore=st; }catch(e){}
+let fwRestore=null; try{ const st=JSON.parse(sessionStorage.getItem('fw-state')||'null'); if(st&&((navType==='back_forward'&&Date.now()-st.t<12*3600e3)||(/-3d\.html/.test(document.referrer)&&Date.now()-st.t<30*60e3))) fwRestore=st; }catch(e){}
 window.fwRestore=fwRestore;
 if(fwRestore){
   if(fwRestore.q){ searchInput.value=fwRestore.q; runSearch(fwRestore.q); }
@@ -898,7 +909,7 @@ if(fwRestore){
   apply(); syncCollapsed();
   ['wheel','touchstart','keydown'].forEach(ev=>window.addEventListener(ev,()=>{ userMoved=true; },{once:true,passive:true}));
   const ro=new ResizeObserver(apply); ro.observe(document.body); setTimeout(()=>ro.disconnect(),5000);
-  if(st.modal&&perfIndex[st.modal]){ openModal(st.modal); modal.scrollTop=st.mScroll||0; }
+  if(st.modal&&perfIndex[st.modal]){ openModal(st.modal); const ms=modal.querySelector('.modal-scroll'); if(ms){ ms.scrollTop=st.mScroll||0; requestAnimationFrame(()=>{ ms.scrollTop=st.mScroll||0; }); } }
 } else renderAll();
 // ===== 今日香氛：依所在地即時天氣推薦 =====
 (function(){
