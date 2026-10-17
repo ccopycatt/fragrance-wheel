@@ -112,7 +112,7 @@ const SCENE_CFG = {
   zenith: C('#86a9c6'), horizon: C('#efe2cf'), sunGlow: C('#ffd2a0'),
   haze: C('#d3d8d2'),
   glassAbsorb: new THREE.Vector3(.05,.025,.03),          // 透明水晶玻璃本身幾乎不吸收
-  coatAbsorb: new THREE.Vector3(2.05,.52,.44),            // 漸層噴塗：上深藍綠、往下漸淡到透明
+  coatAbsorb: new THREE.Vector3(2.6,.78,.68),            // 漸層噴塗：上深藍綠、往下漸淡到透明
 };
 
 // ---------- 基礎 ----------
@@ -489,6 +489,8 @@ function buildWorld(target, detailed){
 
 // 反射與照明用的環境
 const envScene = new THREE.Scene(); buildWorld(envScene, false);
+// 反射探針的場景也要打光，不然地面、茶行在鍍鉻蓋與玻璃的倒影裡會是黑的
+{ const l=new THREE.DirectionalLight(SCENE_CFG.sunColor, SCENE_CFG.sunIntensity); l.position.copy(SCENE_CFG.sunDir).multiplyScalar(100); envScene.add(l, new THREE.HemisphereLight(C('#d4dfe6'), C('#4a3c2a'), 1.1)); }
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(envScene, .02, .1, 3000).texture;
 const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type:THREE.HalfFloatType, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter });
@@ -592,7 +594,7 @@ const flakes = (()=>{
     [[ -4.2,.03,1.7, .4],[ -3.4,.04,2.4, 1.6]].forEach(([x,y,z,a])=>{ const l=new THREE.Mesh(lg,lm); l.position.set(x,y,z); l.rotation.set(0,a,0); l.castShadow=true; scene.add(l); }); }
   // 空中緩緩飄著的金箔碎片（也有幾片落在箱蓋上）
   const N=150, fg=(()=>{ const g=new THREE.PlaneGeometry(1,1,3,3); const p=g.attributes.position; const r=rng(9); for(let i=0;i<p.count;i++) p.setZ(i,(r()-.5)*.35); g.computeVertexNormals(); return g; })();
-  const fm=new THREE.MeshPhysicalMaterial({ color:C('#e8c477'), metalness:1, roughness:.22, side:THREE.DoubleSide, envMapIntensity:1.6 });
+  const fm=new THREE.MeshPhysicalMaterial({ color:C('#f0cc80'), metalness:.85, roughness:.3, emissive:C('#6a4a18'), emissiveIntensity:.55, side:THREE.DoubleSide, envMapIntensity:1.6 });
   const im=new THREE.InstancedMesh(fg,fm,N); const r=rng(42); const data=[];
   for(let i=0;i<N;i++){ const resting=i<18; const a=r()*6.28, d=resting? 2.2+r()*2.6 : 3+Math.sqrt(r())*12;
     data.push({ x:Math.cos(a)*d, z:Math.sin(a)*d*(resting?.65:1), y: resting? .012 : .5+r()*14, s:.05+r()*.11, rx:r()*6, ry:r()*6, rz:r()*6, sp:.3+r()*.6, ph:r()*6.28, resting }); }
@@ -1054,7 +1056,7 @@ const BUILD_GL = {
   // 麝香：一團柔軟潔白的雲（像曬過太陽的棉布），裡面有幾點微光
   musk(){
     const g=new THREE.Group(); const r=rng(251);
-    const mat=new THREE.MeshPhysicalMaterial({ color:C('#f6f4f0'), roughness:1, sheen:1, sheenRoughness:.8, sheenColor:C('#ffffff') });
+    const mat=new THREE.MeshPhysicalMaterial({ color:C('#efe6da'), roughness:1, sheen:1, sheenRoughness:.6, sheenColor:C('#ffe6c0') });
     const parts=[];
     const blobs=[[0,0,0,.62],[.55,-.1,.1,.5],[-.55,-.12,0,.48],[.25,.32,-.05,.46],[-.25,.3,.1,.44],[.9,-.25,-.1,.34],[-.88,-.28,.12,.33],[0,-.25,.35,.42],[.1,-.2,-.38,.4],[.5,.15,.32,.32],[-.45,.12,-.3,.3],[.05,.62,0,.3]];
     blobs.forEach(([x,y,z,s],i)=>{ const b=mergeVertices(new THREE.IcosahedronGeometry(s,4)); b.deleteAttribute('normal'); b.deleteAttribute('uv'); displace(b,s*.12,3/s,4,i*1.7); b.translate(x,y,z); b.deleteAttribute('normal'); parts.push(b); });
