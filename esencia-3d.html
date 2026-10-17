@@ -626,14 +626,17 @@ interface_.position.copy(liquid.position); bottle.add(interface_);
 
 // 玻璃：自訂著色器（取樣無玻璃的畫面做第二層折射＋色散），這支是有色的深橄欖綠玻璃
 const MSAA = Math.min(4, renderer.capabilities.maxSamples||4);
+// 香水水體改由玻璃著色器計算（雙層折射＋吸收），內建透射材質會把前景物件也折射進來，所以不直接畫
+const LIQK = (()=>{ const m=liquid.material, c=m.attenuationColor, d=m.attenuationDistance; return new THREE.Vector3(-Math.log(Math.max(c.r,1e-3))/d, -Math.log(Math.max(c.g,1e-3))/d, -Math.log(Math.max(c.b,1e-3))/d); })();
+liquid.visible = false;
 const sceneRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA, depthTexture:new THREE.DepthTexture(2,2) });
 const uViewProj = { value:new THREE.Matrix4() };
 const glassMat = new THREE.ShaderMaterial({
   uniforms:{ tScene:{value:sceneRT.texture}, tEnv:{value:cubeRT.texture}, uViewProj, uSunDir:{value:SCENE_CFG.sunDir}, uSunCol:{value:SCENE_CFG.sunColor},
-    uHalf:{value:new THREE.Vector3(W/2,GH/2,D/2)}, uWall:{value:WALL}, uBase:{value:BASE}, uLiqTop:{value:LIQ_TOP}, uTopG:{value:TOPG},
+    uHalf:{value:new THREE.Vector3(W/2,GH/2,D/2)}, uWall:{value:WALL}, uBase:{value:BASE}, uLiqTop:{value:LIQ_TOP}, tDepth:{value:sceneRT.depthTexture}, uLiqK:{value:LIQK}, uTopG:{value:TOPG},
     uAbs:{value:SCENE_CFG.glassAbsorb} },
   vertexShader:`varying vec3 vW, vN, vL; void main(){ vL=position; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`,
-  fragmentShader:`uniform sampler2D tScene; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform vec3 uSunDir, uSunCol, uHalf, uAbs; uniform float uWall, uBase, uLiqTop, uTopG;
+  fragmentShader:`uniform sampler2D tScene, tDepth; uniform vec3 uLiqK; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform vec3 uSunDir, uSunCol, uHalf, uAbs; uniform float uWall, uBase, uLiqTop, uTopG;
     varying vec3 vW, vN, vL;
     float h3(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
     float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
@@ -664,8 +667,19 @@ const glassMat = new THREE.ShaderMaterial({
       thick = mix(thick, 2.*uWall, inHead*(1.-inWallBand));
       vec3 col;
       float iors[3]; iors[0]=1.48; iors[1]=1.50; iors[2]=1.525;
-      for(int k=0;k<3;k++){ vec3 r = refract(-v, n, 1./iors[k]); vec3 exitP = vW + r*thick; vec2 uv = toUV(exitP);
+      // 香水水體區：不是瓶壁、厚瓶底與液面上方的空氣
+      float inLiq = (1.-clamp(inWallBand+inBase,0.,1.)) * (1.-smoothstep(uLiqTop-.05, uLiqTop+.02, y)) * max(frontFace, sideFace);
+      float liqLen = mix((uHalf.x-uWall)*2., (uHalf.z-uWall)*2., frontFace);
+      vec2 uv0 = toUV(vW); float fz = gl_FragCoord.z; float Lpath = 0.;
+      float liqIor[3]; liqIor[0]=1.352; liqIor[1]=1.36; liqIor[2]=1.371;
+      for(int k=0;k<3;k++){ vec3 r = refract(-v, n, 1./iors[k]);
+        // 雙層折射：玻璃 → 香水（不同折射率、三色略有差異）→ 穿過水體
+        vec3 r2 = refract(r, n, iors[k]/liqIor[k]); float L = liqLen / max(dot(-r2, n), .35); if(k==1) Lpath = L;
+        vec3 exitP = mix(vW + r*thick, vW + r*(2.*uWall) + r2*L, inLiq); vec2 uv = toUV(exitP);
         uv = clamp(uv, vec2(.001), vec2(.999));
+        // 只取玻璃後方的景物：取樣點比玻璃表面更靠近鏡頭（前景）時，沿原路往回找
+        for(int j=0;j<4;j++){ if(texture2D(tDepth, uv).x >= fz - 1e-6) break; uv = mix(uv0, uv, .55); }
+        if(texture2D(tDepth, uv).x < fz - 1e-6) uv = uv0;
         vec3 s = texture2D(tScene, uv).rgb;
         vec2 o=vec2(.02*rough); s = s*.4 + (texture2D(tScene,uv+o).rgb + texture2D(tScene,uv-o).rgb + texture2D(tScene,uv+vec2(o.x,-o.y)).rgb + texture2D(tScene,uv+vec2(-o.x,o.y)).rgb)*.15;
         col[k] = s[k]; }
@@ -673,6 +687,7 @@ const glassMat = new THREE.ShaderMaterial({
       float cosT = max(dot(n,v), .2);
       vec3 absorb = exp(-uAbs * min(thick/cosT, 1.25));
       col *= absorb;
+      col *= mix(vec3(1.), exp(-uLiqK * Lpath), inLiq); // 香水的顏色：依光在水體中走的距離吸收
       // 厚瓶底與瓶肩把光導進玻璃，帶一點黃綠的亮
       col += vec3(.05,.065,.012) * (inBase+inTop*.6) * max(dot(uSunDir, vec3(0,1,0)),0.);
       vec3 R = reflect(-v, n);
@@ -1028,7 +1043,7 @@ NOTES.forEach((n)=>{
   items.push({ n, holder, spin, el, phase:Math.random()*6.28, focus:1 });
 });
 TIERS.forEach((T)=>{
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(T.r, .014, 6, 220), new THREE.MeshBasicMaterial({ color:C(T.color), transparent:true, opacity:.35, depthWrite:false, fog:false }));
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(T.r, .014, 6, 220), new THREE.MeshBasicMaterial({ color:C(T.color), transparent:true, opacity:.35, depthWrite:true, fog:false }));
   ring.rotation.x=Math.PI/2; ring.position.y=T.y; scene.add(ring); T.ringMesh=ring;
 });
 // 材質的環境反射強度微調
