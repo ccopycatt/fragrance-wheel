@@ -6,6 +6,7 @@
 - `summer-bcn-3d.html`：Summer BCN 的 3D 詳細頁（建好的單檔，貼圖已內嵌）
 - `src/summer-bcn-3d.src.html`：3D 頁原始碼（`__TEX_*__` 為貼圖佔位，建置時換成 data URI）
 - `src/tex_label50*.jpg`：50ml 標籤貼圖（取自官方去背照）
+- `esencia-3d.html`：LOEWE Esencia（100ml）的 3D 詳細頁；原始碼 `src/esencia-3d.src.html`，標籤貼圖 `src/tex_esencia_label*.jpg`
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
 
@@ -40,4 +41,4 @@
 
 ## 技術要點（3D 頁）
 - Three.js 0.160（jsDelivr importmap）。玻璃用自訂 ShaderMaterial：先把不含玻璃的畫面（含香水自身的 transmission 折射）渲染到 render target，再由玻璃取樣做第二層折射。玻璃放在 layer 1。
-- 場景設定集中在 `SCENE_CFG`（太陽方向、天空、海、草色），換香水時從這裡改。
+- 場景設定集中在 `SCENE_CFG`（太陽方向、天空、霧、有色玻璃吸收 `glassAbsorb`），換香水時從這裡改。
