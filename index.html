@@ -167,7 +167,8 @@
   .card-cta{margin-top:12px;font-size:var(--fs-xs);color:var(--gold);letter-spacing:1px;display:flex;align-items:center;gap:6px;}
   .empty-state{display:flex;align-items:center;justify-content:center;height:320px;color:var(--text-muted);font-size:var(--fs-base);text-align:center;line-height:1.9;}
 
-  .modal-backdrop{position:fixed;inset:0;background:rgba(3,2,1,0.82);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .modal-backdrop::before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(3,2,1,0.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
   .modal-backdrop.open{opacity:1;pointer-events:auto;}
   .modal-backdrop:not(.show){display:none;}
   .modal-card{background:linear-gradient(180deg,#191309,#0d0a06);border:1px solid var(--border-strong);border-radius:30px;max-width:900px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.7);position:relative;overflow:hidden;transform:translateY(14px) scale(0.985);transition:transform .28s;}
@@ -306,8 +307,8 @@
   .sort-btn .sb-dot{display:none;position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--gold);}
   .sort-btn:hover,.sort-btn[aria-expanded="true"]{border-color:var(--gold);}
   @media (max-width:1000px){
-    .tabbar{height:auto;margin:0 calc(50% - 50vw);padding:10px 0;background:rgba(10,8,6,.84);-webkit-backdrop-filter:blur(14px) saturate(1.15);backdrop-filter:blur(14px) saturate(1.15);border-bottom:1px solid var(--border);}
-    .tabbar::before{display:none;}
+    .tabbar{height:auto;margin:0 calc(50% - 50vw);padding:10px 0;}
+    .tabbar::before{display:block;inset:0;height:auto;opacity:1;z-index:-1;background:rgba(10,8,6,.84);-webkit-backdrop-filter:blur(14px) saturate(1.15);backdrop-filter:blur(14px) saturate(1.15);}
     .tabbar .fam-strip{display:flex;flex:1;min-width:0;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:0 20px;transition:padding .2s;}
     .tabbar .fam-strip::-webkit-scrollbar{display:none;}
     .sort-wrap{position:static;display:none;padding:0 20px 0 6px;}
@@ -323,8 +324,8 @@
   .detail-header{flex-wrap:wrap;row-gap:4px;}
 
   /* 排序面板：電腦是下拉面板，手機是底部抽屜（單手好按） */
-  .sort-panel{--R:20px;--p:14px;--ir:calc(var(--R) - var(--p) - 1px);position:absolute;top:0;left:0;z-index:95;width:380px;max-width:calc(100vw - 32px);padding:var(--p);border-radius:var(--R);
-    background:#17120b;border:1px solid var(--border-strong);box-shadow:0 18px 44px rgba(0,0,0,.65);}
+  .sort-panel{--R:20px;--p:14px;--ir:calc(var(--R) - var(--p) - 1px);position:absolute;top:0;left:0;z-index:95;width:380px;max-width:calc(100vw - 32px);}
+  .sp-body{padding:var(--p);border-radius:var(--R);background:#17120b;border:1px solid var(--border-strong);box-shadow:0 18px 44px rgba(0,0,0,.65);}
   .sort-panel[hidden],.sort-scrim[hidden]{display:none;}
   .sp-title{font-family:var(--serif);font-size:var(--fs-md);color:var(--text);margin:2px 2px 12px;font-weight:600;}
   .sp-label{font-size:var(--fs-sm);color:var(--text-muted);margin:14px 2px 8px;}
@@ -343,10 +344,11 @@
   .sp-seg button small{font-size:var(--fs-xs);font-weight:400;color:var(--text-muted);}
   .sp-none{font-size:var(--fs-sm);color:var(--text-muted);padding:10px 2px;}
   .sp-done{all:unset;box-sizing:border-box;display:none;width:100%;margin-top:16px;min-height:48px;border-radius:var(--ir);background:var(--gold-grad);color:var(--ink-on-gold);font-weight:700;font-size:var(--fs-base);text-align:center;line-height:48px;cursor:pointer;letter-spacing:1px;}
-  .sort-scrim{position:fixed;inset:0;z-index:90;background:rgba(3,2,1,.6);}
+  .sort-scrim{position:fixed;inset:0;z-index:90;}
+  .sort-scrim::before{content:"";position:absolute;inset:0;background:rgba(3,2,1,.6);}
   @media (max-width:640px){
-    .sort-panel{--R:24px;--p:16px;position:fixed;top:auto !important;left:0 !important;right:0;bottom:0;width:auto;max-width:none;z-index:95;border-radius:var(--R) var(--R) 0 0;border-bottom:none;
-      padding:18px var(--p) calc(var(--p) + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;overscroll-behavior:contain;}
+    .sort-panel{--R:24px;--p:16px;position:fixed;top:auto !important;left:0 !important;right:0;bottom:0;width:auto;max-width:none;z-index:95;}
+    .sp-body{border-radius:var(--R) var(--R) 0 0;border-bottom:none;padding:18px var(--p) calc(var(--p) + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;overscroll-behavior:contain;}
     .sp-done{display:block;}
     .sp-opt,.sp-seg button{min-height:40px;}
   }
@@ -803,14 +805,14 @@ function panelHtml(){
       <button type="button" role="radio" data-view="grid" aria-checked="${viewMode==='grid'}">總覽<small>一列三支</small></button></div>
     <button type="button" class="sp-done">完成</button>`;
 }
-function refreshPanel(){ const f=document.activeElement, k=f&&(f.dataset.k||f.dataset.rev||f.dataset.view), cls=f&&f.className; sortPanel.innerHTML=panelHtml();
+function refreshPanel(){ const f=document.activeElement, k=f&&(f.dataset.k||f.dataset.rev||f.dataset.view), cls=f&&f.className; sortPanel.innerHTML=`<div class="sp-body">${panelHtml()}</div>`;
   if(k){ const sel=[...sortPanel.querySelectorAll('button')].find(b=>(b.dataset.k||b.dataset.rev||b.dataset.view)===k&&b.className===cls); if(sel) sel.focus({preventScroll:true}); } }
 let panelTrigger=null, panelScrollY=0;
 function placePanel(){ if(window.matchMedia('(max-width:640px)').matches || !panelTrigger) return;
   const r=panelTrigger.getBoundingClientRect(); const w=sortPanel.offsetWidth;
   const left=Math.max(16, Math.min(r.left, document.documentElement.clientWidth-w-16));
   sortPanel.style.left=(left+window.scrollX)+'px'; sortPanel.style.top=(r.bottom+8+window.scrollY)+'px'; }
-function openSortPanel(trigger){ panelTrigger=trigger||sortBtn; sortPanel.innerHTML=panelHtml(); sortPanel.hidden=false; sortScrim.hidden=false; placePanel(); panelScrollY=window.scrollY;
+function openSortPanel(trigger){ panelTrigger=trigger||sortBtn; sortPanel.innerHTML=`<div class="sp-body">${panelHtml()}</div>`; sortPanel.hidden=false; sortScrim.hidden=false; placePanel(); panelScrollY=window.scrollY;
   document.querySelectorAll('#sort-btn,#si-sort').forEach(b=>b.setAttribute('aria-expanded', b===panelTrigger));
   (sortPanel.querySelector('.sp-opt[aria-checked="true"]')||sortPanel.querySelector('button')).focus({preventScroll:true}); }
 function closeSortPanel(focusBtn){ if(sortPanel.hidden) return; sortPanel.hidden=true; sortScrim.hidden=true;
