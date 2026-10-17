@@ -1,6 +1,36 @@
-{"brand":"郁郁 YùYù","name":"寂靜深谷山韻淡香精香水","source":"https://www.yuyuteadaily.com/郁郁-Yuyu,香氛,香水,茶香水,","checked":"2026-10-17",
- "concentration":"EDP 淡香精","size":"10g（約 150 次噴灑；官網另有 30ml、50ml 茶／山韻香水）","price_twd":1000,
- "notes":{"top":["佛手柑","綠葉"],"middle":["風信子","水鈴蘭","海洋"],"base":["橡苔樹","台灣香杉","雪松","皮革"]},
- "story":"「土地上的氣味」山韻系列；以台灣木精油為基底，調配山谷感受的氣味",
- "longevity":"約 4 小時；未添加定香劑，因人而異","registration":"50885700-0188-20210629p1",
- "caveat":"同系列的「薄霧林間」商品頁（product_id=27）標題與 meta 仍沿用「寂靜深谷」舊名與香調，以本頁為準"}
+{
+ "brand": "郁郁 YùYù",
+ "name": "寂靜深谷山韻淡香精香水",
+ "source": "https://www.yuyuteadaily.com/郁郁-Yuyu,香氛,香水,茶香水,",
+ "checked": "2026-10-17",
+ "concentration": "EDP 淡香精",
+ "size": "10g（約 150 次噴灑；官網另有 30ml、50ml 茶／山韻香水）",
+ "price_twd": 1000,
+ "notes": {
+  "top": [
+   "佛手柑",
+   "綠葉"
+  ],
+  "middle": [
+   "風信子",
+   "水鈴蘭",
+   "海洋"
+  ],
+  "base": [
+   "橡苔樹",
+   "台灣香杉",
+   "雪松",
+   "皮革"
+  ]
+ },
+ "story": "「土地上的氣味」山韻系列；以台灣木精油為基底，調配山谷感受的氣味",
+ "longevity": "約 4 小時；未添加定香劑，因人而異",
+ "registration": "50885700-0188-20210629p1",
+ "caveat": "同系列的「薄霧林間」商品頁（product_id=27）標題與 meta 仍沿用「寂靜深谷」舊名與香調，以本頁為準",
+ "owned_size": "50ml（官網「茶/山韻50ml淡香精香水」，可選寂靜深谷，NT$3,200）",
+ "bottle_50ml": {
+  "image": "https://image-cdn-flare.qdm.cloud/q69b9630fa692a/image/data/2025/11/11/6d6285c1b92d13ae96d285baac5dd867.jpg",
+  "source": "https://www.yuyuteadaily.com/product/product&product_id=38",
+  "look": "扁圓肩透明玻璃瓶、霧銀色圓柱金屬蓋、白色圓形 logo 標籤；外盒為米白色浮雕書法紙盒"
+ }
+}
