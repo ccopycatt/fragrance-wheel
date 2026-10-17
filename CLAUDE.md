@@ -41,4 +41,5 @@
 
 ## 技術要點（3D 頁）
 - Three.js 0.160（jsDelivr importmap）。玻璃用自訂 ShaderMaterial：先把不含玻璃的畫面（含香水自身的 transmission 折射）渲染到 render target，再由玻璃取樣做第二層折射。玻璃放在 layer 1。
+- 反鋸齒：場景（layer 0）與玻璃（layer 1）都畫進多重取樣（MSAA 4x）的 render target，最後一道輸出到螢幕時做色調映射 + FXAA；手機像素比上限 2。
 - 場景設定集中在 `SCENE_CFG`（太陽方向、天空、霧、有色玻璃吸收 `glassAbsorb`），換香水時從這裡改。

@@ -113,7 +113,7 @@ try{
   renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
   if(!renderer.capabilities.isWebGL2) throw new Error('webgl2');
 }catch(e){ document.getElementById('err').style.display='flex'; document.getElementById('loading').remove(); throw e; }
-const DPR = Math.min(window.devicePixelRatio, /Mobi|Android|iPhone/i.test(navigator.userAgent)?1.6:2);
+const DPR = Math.min(window.devicePixelRatio, 2);
 renderer.setPixelRatio(DPR);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = .95;
@@ -595,7 +595,8 @@ const interface_=new THREE.Mesh(new RoundedBoxGeometry(W-2*WALL+.02, LIQ_TOP-BAS
 interface_.position.copy(liquid.position); bottle.add(interface_);
 
 // 玻璃：自訂著色器（取樣無玻璃的畫面做第二層折射＋色散），這支是有色的深橄欖綠玻璃
-const sceneRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:4, depthTexture:new THREE.DepthTexture(2,2) });
+const MSAA = Math.min(4, renderer.capabilities.maxSamples||4);
+const sceneRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA, depthTexture:new THREE.DepthTexture(2,2) });
 const uViewProj = { value:new THREE.Matrix4() };
 const glassMat = new THREE.ShaderMaterial({
   uniforms:{ tScene:{value:sceneRT.texture}, tEnv:{value:cubeRT.texture}, uViewProj, uSunDir:{value:SCENE_CFG.sunDir}, uSunCol:{value:SCENE_CFG.sunColor},
@@ -727,6 +728,34 @@ const blit = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMateri
     #include <colorspace_fragment>
   }` }));
 blit.frustumCulled=false; const blitScene=new THREE.Scene(); blitScene.add(blit); const blitCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+// 反鋸齒：場景與玻璃都畫進同一張多重取樣（MSAA）畫布，玻璃邊緣也能平滑，最後再輸出到螢幕
+const outRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA });
+const outQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({ depthTest:false, depthWrite:false,
+  uniforms:{ tColor:{value:outRT.texture}, uRes:{value:new THREE.Vector2(2,2)} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+  // 色調映射後再做 FXAA：處理樹葉、草葉、高光等 MSAA 抓不到的細碎鋸齒
+  fragmentShader:`uniform sampler2D tColor; uniform vec2 uRes; varying vec2 vUv;
+    vec3 T(vec2 uv){ vec3 c=texture2D(tColor,uv).rgb;
+      #ifdef TONE_MAPPING
+      c=toneMapping(c);
+      #endif
+      return linearToOutputTexel(vec4(c,1.)).rgb; }
+    void main(){
+      vec2 inv=1./uRes; vec2 uv=vUv;
+      vec3 rgbNW=T(uv+vec2(-1.,-1.)*inv), rgbNE=T(uv+vec2(1.,-1.)*inv), rgbSW=T(uv+vec2(-1.,1.)*inv), rgbSE=T(uv+vec2(1.,1.)*inv), rgbM=T(uv);
+      vec3 W=vec3(.299,.587,.114);
+      float lNW=dot(rgbNW,W), lNE=dot(rgbNE,W), lSW=dot(rgbSW,W), lSE=dot(rgbSE,W), lM=dot(rgbM,W);
+      float lMin=min(lM,min(min(lNW,lNE),min(lSW,lSE))), lMax=max(lM,max(max(lNW,lNE),max(lSW,lSE)));
+      vec2 dir=vec2(-((lNW+lNE)-(lSW+lSE)), (lNW+lSW)-(lNE+lSE));
+      float red=max((lNW+lNE+lSW+lSE)*(.25/8.), 1./128.);
+      float rcp=1./(min(abs(dir.x),abs(dir.y))+red);
+      dir=clamp(dir*rcp, vec2(-8.), vec2(8.))*inv;
+      vec3 A=.5*(T(uv+dir*(1./3.-.5))+T(uv+dir*(2./3.-.5)));
+      vec3 B=A*.5+.25*(T(uv-dir*.5)+T(uv+dir*.5));
+      float lB=dot(B,W);
+      gl_FragColor=vec4((lB<lMin||lB>lMax)?A:B, 1.);
+    }` }));
+outQuad.frustumCulled=false; const outScene=new THREE.Scene(); outScene.add(outQuad);
 
 
 // ---------- 香材 ----------
@@ -970,7 +999,7 @@ function layout(k){
 }
 function frame(){
   const w=innerWidth, h=innerHeight; renderer.setSize(w,h); labelRenderer.setSize(w,h); camera.aspect=w/h;
-  const dp=renderer.getPixelRatio(); sceneRT.setSize(Math.floor(w*dp), Math.floor(h*dp));
+  const dp=renderer.getPixelRatio(); sceneRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); outRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); outQuad.material.uniforms.uRes.value.set(Math.floor(w*dp), Math.floor(h*dp));
   const k=THREE.MathUtils.clamp(camera.aspect*1.25,.6,1); layout(k);
   const vf=THREE.MathUtils.degToRad(camera.fov)/2, hf=Math.atan(Math.tan(vf)*camera.aspect);
   const dist=Math.max(10.6/Math.tan(vf), (9.4*k+1.3)/Math.tan(hf));
@@ -1026,8 +1055,10 @@ renderer.setAnimationLoop(()=>{
   // 1) 不含玻璃的畫面 → 貼圖（香水水體在這一步已自行折射背景）
   renderer.shadowMap.needsUpdate = true; camera.layers.set(0); renderer.setRenderTarget(sceneRT); renderer.render(scene,camera);
   // 2) 貼回螢幕（含深度）  3) 玻璃取樣第 1 步的畫面做第二層折射
-  renderer.setRenderTarget(null); renderer.render(blitScene, blitCam);
+  renderer.setRenderTarget(outRT); renderer.render(blitScene, blitCam);
   renderer.autoClear=false; camera.layers.set(1); renderer.render(scene,camera); renderer.autoClear=true; camera.layers.set(0);
+  // 4) 多重取樣畫布 → 螢幕（色調映射在這一步）
+  renderer.setRenderTarget(null); renderer.render(outScene, blitCam);
   labelRenderer.render(scene,camera);
   if(first){ first=false; const L=document.getElementById('loading'); setTimeout(()=>{ L.style.opacity=0; setTimeout(()=>L.remove(),700); },250); }
 });
