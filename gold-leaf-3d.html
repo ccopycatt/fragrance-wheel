@@ -953,14 +953,15 @@ const BUILD_GL = {
   // 烏龍茶：一心二葉的茶菁，旁邊是揉捻成球的成茶與一片泡開的葉子
   oolong(){
     const g=new THREE.Group(); const r=rng(201);
-    const stem=stemCurve([[0,-1.3,0],[.04,-.6,.02],[0,.1,0],[-.04,.75,.02],[0,1.2,0]]); g.add(tube(stem,.032,M.stem('#7c8c4a')));
-    const lm=vcMat({ roughness:.28, clearcoat:.8, clearcoatRoughness:.12, sheen:.2, sheenColor:C('#e8f0d0') });
+    // 茶菁：短短一段嫩莖，頂端一心（芽）、緊接著兩片嫩葉，下面兩片成熟葉；茶葉是橢圓形、葉緣細鋸齒、葉面油亮
+    const stem=stemCurve([[.05,-.75,0],[.02,-.35,.02],[0,.05,0],[-.02,.42,.02],[0,.72,0]]); g.add(tube(stem,.03,M.stem('#7c8c4a')));
+    const lm=vcMat({ roughness:.26, clearcoat:.85, clearcoatRoughness:.1, sheen:.15, sheenColor:C('#e8f0d0') });
     const pm=M.stem('#8a9a56');
-    const mature=leafGeo({ len:1.25, wid:.52, serr:22, serrAmp:.07, cup:.16, droop:.16, veins:8, veinDepth:.016, base:'#24461b', tip:'#2f5a22', edge:'#3a6a28', vein:'#5b8a3a', seed:2 });
-    const young=leafGeo({ len:.85, wid:.34, serr:20, serrAmp:.06, cup:.28, droop:.04, curl:.04, veins:7, veinDepth:.01, base:'#5c8c2c', tip:'#7eae3e', edge:'#9cc452', vein:'#a8c86a', seed:5 });
-    const young2=leafGeo({ len:.62, wid:.24, serr:18, serrAmp:.05, cup:.38, droop:0, curl:.1, veins:6, veinDepth:.008, base:'#6e9c34', tip:'#94bc4c', edge:'#b0d064', vein:'#b8d47c', seed:7 });
-    // 老葉在下、兩片嫩葉往上，頂端一心（芽）
-    [[.18,mature,1,0,.25],[.42,mature,.92,2.5,.32],[.66,young,1,4.9,.62],[.82,young2,1,7.3,.9]].forEach(([t,geo,s,yaw,elev])=>g.add(leafStalk(geo,lm,pm,stem.getPointAt(t),{ yaw, elev, roll:(r()-.5)*.2, s, pet:.08 })));
+    const ell=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.97+.03)),.62)*(1-.18*t);
+    const mature=leafGeo({ len:1.05, wid:.5, prof:ell, serr:24, serrAmp:.06, cup:.2, droop:.2, curl:.02, veins:8, veinDepth:.016, mid:.022, wave:.012, base:'#24461b', tip:'#2f5a22', edge:'#3a6a28', vein:'#5b8a3a', seed:2 });
+    const young=leafGeo({ len:.72, wid:.34, prof:ell, serr:20, serrAmp:.05, cup:.34, droop:.06, curl:.06, veins:7, veinDepth:.01, base:'#5c8c2c', tip:'#7eae3e', edge:'#9cc452', vein:'#a8c86a', seed:5 });
+    const young2=leafGeo({ len:.5, wid:.22, prof:ell, serr:18, serrAmp:.04, cup:.5, droop:0, curl:.12, veins:6, veinDepth:.008, base:'#6e9c34', tip:'#94bc4c', edge:'#b0d064', vein:'#b8d47c', seed:7 });
+    [[.12,mature,1,0,.42],[.38,mature,.9,2.6,.5],[.66,young,1,4.7,.72],[.84,young2,1,7.2,.95]].forEach(([t,geo,s,yaw,elev])=>g.add(leafStalk(geo,lm,pm,stem.getPointAt(t),{ yaw, elev, roll:(r()-.5)*.2+.15, s, pet:.06 })));
     // 芽：紡錘形、覆著白毫（銀白的絨毛光澤）
     const bp=[]; for(let i=0;i<=24;i++){ const t=i/24; bp.push(new THREE.Vector2(Math.max(.002,.075*Math.pow(Math.sin(Math.PI*Math.min(1,t*.95+.05)),.7)*(1-.35*t)), t*.62)); }
     const bud=new THREE.Mesh(new THREE.LatheGeometry(bp,24), new THREE.MeshPhysicalMaterial({ color:C('#b8cc8a'), roughness:.55, sheen:1, sheenRoughness:.35, sheenColor:C('#ffffff') }));
@@ -972,11 +973,11 @@ const BUILD_GL = {
     // 揉捻成球的烏龍（深綠帶一點焙火的褐）
     const ball=mergeVertices(new THREE.IcosahedronGeometry(.16,3)); ball.deleteAttribute('normal'); ball.deleteAttribute('uv'); displace(ball,.05,10,3,3); ball.computeVertexNormals();
     const bm=new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.7, sheen:.4, sheenColor:C('#a8b080') }); const im=new THREE.InstancedMesh(ball,bm,9);
-    for(let i=0;i<9;i++){ q.setFromEuler(new THREE.Euler(r()*6,r()*6,r()*6)); const s=.85+r()*.4; m.compose(new THREE.Vector3(.35+(r()-.5)*.8,-1.25+r()*.08,(r()-.5)*.7), q, new THREE.Vector3(s,s*.85,s)); im.setMatrixAt(i,m); im.setColorAt(i,C(['#3e4c24','#4a5628','#34401e','#55562a'][(r()*4)|0])); }
+    for(let i=0;i<9;i++){ q.setFromEuler(new THREE.Euler(r()*6,r()*6,r()*6)); const s=.85+r()*.4; m.compose(new THREE.Vector3(.4+(r()-.5)*.8,-.86+r()*.06,(r()-.5)*.7), q, new THREE.Vector3(s,s*.85,s)); im.setMatrixAt(i,m); im.setColorAt(i,C(['#3e4c24','#4a5628','#34401e','#55562a'][(r()*4)|0])); }
     g.add(im);
     // 沖泡後舒展開的葉（帶紅邊：烏龍「綠葉鑲紅邊」）
     const open=leafGeo({ len:.8, wid:.34, serr:20, cup:.1, droop:.02, wave:.04, base:'#4a6a26', tip:'#5f7a2c', edge:'#8a4a22', vein:'#6a8a3a', seed:9 });
-    const ol=new THREE.Mesh(open, vcMat({ roughness:.35, clearcoat:.6 })); ol.position.set(-.55,-1.28,.25); ol.rotation.set(0,.6,-.06); g.add(ol);
+    const ol=new THREE.Mesh(open, vcMat({ roughness:.35, clearcoat:.6 })); ol.position.set(-.6,-.92,.25); ol.rotation.set(0,.6,-.06); g.add(ol);
     return g;
   },
   // 黑醋栗：一串串下垂的紫黑漿果（果頂留著乾掉的花萼），掌狀鋸齒葉
@@ -984,15 +985,15 @@ const BUILD_GL = {
     const g=new THREE.Group(); const r=rng(211); const sm=M.stem('#6a5a3a');
     const twig=stemCurve([[-1.1,.9,0],[-.4,1.05,.05],[.3,1.0,0],[1.0,.8,-.05]]); g.add(tube(twig,.035,sm));
     const berry=mergeVertices(new THREE.SphereGeometry(.13,28,20)); displace(berry,.004,6,2,2);
-    const bmat=new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.22, clearcoat:.9, clearcoatRoughness:.08, sheen:.6, sheenRoughness:.3, sheenColor:C('#8a6aa0') });
-    const pal=['#1c0e1e','#24122a','#2c1430','#170b18','#341a3a'].map(C);
+    const bmat=new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.34, clearcoat:.55, clearcoatRoughness:.22, sheen:.8, sheenRoughness:.45, sheenColor:C('#6a5a80') });   // 果粉：一層淡淡的霧
+    const pal=['#120a12','#170c18','#1e0f20','#0e080e','#24122a','#3a2a18'].map(C);
     const calyx=new THREE.ConeGeometry(.035,.05,5); const cm=new THREE.MeshStandardMaterial({ color:C('#5a4430'), roughness:.9 });
     const N=40, im=new THREE.InstancedMesh(berry,bmat,N), cim=new THREE.InstancedMesh(calyx,cm,N); const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(); let k=0;
     [[.25,.0],[.5,.3],[.75,-.2]].forEach(([t,sw])=>{ const p=twig.getPointAt(t); const end=p.clone().add(new THREE.Vector3(sw*.4,-1.9,.2+sw*.3));
-      const strig=stemCurve([[p.x,p.y,p.z],[p.x+sw*.2,p.y-.6,p.z+.12],[end.x,end.y,end.z]]); g.add(tube(strig,.012,sm,20));
-      for(let j=0;j<12 && k<N;j++){ const tt=.18+.82*j/11; const c=strig.getPointAt(tt); const out=new THREE.Vector3(Math.cos(j*2.4),-.3,Math.sin(j*2.4)).normalize();
+      end.y=p.y-1.35; const strig=stemCurve([[p.x,p.y,p.z],[p.x+sw*.35+.12,p.y-.35,p.z+.1],[p.x+sw*.45+.15,p.y-.85,p.z+.18],[end.x+.05,end.y,end.z]]); g.add(tube(strig,.011,sm,24));
+      const nb=6+(r()*3|0); for(let j=0;j<nb && k<N;j++){ const tt=.2+.8*j/(nb-1); const c=strig.getPointAt(tt); const out=new THREE.Vector3(Math.cos(j*2.4),-.3,Math.sin(j*2.4)).normalize();
         const bp=c.clone().addScaledVector(out,.12+.04*r()); g.add(tube(stemCurve([[c.x,c.y,c.z],[bp.x,bp.y+.05,bp.z],[bp.x,bp.y-.02,bp.z]]),.005,sm,6));
-        const sc=(.75+.35*(1-tt))*(.9+r()*.2); s.set(sc,sc*.97,sc); q.identity(); m.compose(bp.clone().add(new THREE.Vector3(0,-.12*sc,0)),q,s); im.setMatrixAt(k,m); im.setColorAt(k,pal[(r()*pal.length)|0]);
+        const sc=(.6+.45*(1-tt))*(.8+r()*.35); s.set(sc,sc*.97,sc); q.identity(); m.compose(bp.clone().add(new THREE.Vector3(0,-.12*sc,0)),q,s); im.setMatrixAt(k,m); im.setColorAt(k,pal[(r()*pal.length)|0]);
         m.compose(bp.clone().add(new THREE.Vector3(0,-.25*sc,0)), q.setFromEuler(new THREE.Euler(Math.PI,0,0)), new THREE.Vector3(1,1,1)); cim.setMatrixAt(k,m); k++; } });
     im.count=k; cim.count=k; g.add(im, cim);
     const lg=palmateLeaf({ R:.95, seed:3 }); const lm=vcMat({ roughness:.55, sheen:.4, sheenColor:C('#d8e4c0') });
@@ -1009,12 +1010,14 @@ const BUILD_GL = {
     const head=new THREE.Group(); head.position.copy(stem.getPointAt(1)); g.add(head);
     const prof=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.78+.22)),.55)*(.55+.45*t);
     const pm=petalMat({ roughness:.55, sheen:1, sheenRoughness:.4, sheenColor:C('#fff0f4') });
-    const whorls=[ {n:6, len:.42, wid:.5, elev:1.32, cup:.55, curl:.02, base:'#d4507a', tip:'#e87a9c'},
-                   {n:7, len:.52, wid:.6, elev:1.05, cup:.45, curl:-.02, base:'#dc6088', tip:'#f096b0'},
-                   {n:8, len:.62, wid:.7, elev:.72, cup:.35, curl:-.1, base:'#e47196', tip:'#f6aec2'},
-                   {n:8, len:.7, wid:.78, elev:.38, cup:.25, curl:-.2, base:'#e88aa6', tip:'#f8c0d0'} ];
+    // 大馬士革玫瑰的花形是杯狀：內圈花瓣直立包著花心，外圈才微微外翻
+    const whorls=[ {n:5, len:.3, wid:.4, elev:1.48, cup:.75, curl:.06, base:'#c8406e', tip:'#e2668e'},
+                   {n:6, len:.38, wid:.48, elev:1.28, cup:.65, curl:.02, base:'#d24e7a', tip:'#ea7ea0'},
+                   {n:7, len:.46, wid:.56, elev:1.04, cup:.55, curl:-.06, base:'#dc6088', tip:'#f096b2'},
+                   {n:8, len:.52, wid:.62, elev:.74, cup:.42, curl:-.16, base:'#e47496', tip:'#f6b4c6'},
+                   {n:6, len:.55, wid:.64, elev:.42, cup:.3, curl:-.24, base:'#e88aa6', tip:'#f8c4d2'} ];
     whorls.forEach((w,wi)=>{ for(let i=0;i<w.n;i++){ const geo=petalGeometry({ len:w.len, wid:w.wid, profile:prof, cup:w.cup, curl:w.curl, frill:.02, frillFreq:7, frillTip:true, base:w.base, tip:w.tip, edge:'#fbd0dc', seed:wi*10+i, segL:14, segW:10 });
-        head.add(place(new THREE.Mesh(geo,pm),{ yaw:i/w.n*6.28 + wi*.4 + (r()-.5)*.2, elev:w.elev+(r()-.5)*.12, roll:(r()-.5)*.2, x:.03+wi*.025 })); } });
+        head.add(place(new THREE.Mesh(geo,pm),{ yaw:i/w.n*6.28 + wi*.55 + (r()-.5)*.25, elev:w.elev+(r()-.5)*.1, roll:(r()-.5)*.25, x:.02+wi*.03 })); } });
     // 雄蕊
     const st=new THREE.InstancedMesh(new THREE.CylinderGeometry(.006,.006,.16,4), new THREE.MeshStandardMaterial({ color:C('#e8d070') }), 46);
     const an=new THREE.InstancedMesh(new THREE.SphereGeometry(.022,8,6), new THREE.MeshStandardMaterial({ color:C('#e6b830'), roughness:.6 }), 46); const m=new THREE.Matrix4(), q=new THREE.Quaternion();
@@ -1040,7 +1043,7 @@ const BUILD_GL = {
   // 阿拉伯茉莉：小巧的半重瓣白花與圓潤花苞，對生的卵形亮綠葉
   jasmine(){
     const g=new THREE.Group(); const r=rng(231); const sm=M.stem('#5f7a3a');
-    const stem=stemCurve([[0,-1.4,0],[.05,-.6,0],[0,.2,.04],[.02,.85,0]]); g.add(tube(stem,.03,sm));
+    const stem=stemCurve([[0,-1.0,0],[.06,-.5,0],[0,0,.04],[.02,.5,0]]); g.add(tube(stem,.03,sm));
     const pm=petalMat({ roughness:.42, sheen:1, sheenRoughness:.35, sheenColor:C('#ffffff') });
     const prof=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.85+.15)),.6)*(.55+.45*Math.sin(Math.PI*t*.8));
     const flower=(s)=>{ const f=new THREE.Group();
@@ -1058,7 +1061,8 @@ const BUILD_GL = {
       const o=k==='f'?flower(s):bud(s); o.position.copy(p); o.lookAt(p.clone().add(new THREE.Vector3(x*.8,1,z*.8))); o.rotateX(Math.PI/2); g.add(o); });
     const lg=leafGeo({ len:.95, wid:.62, prof:(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.93+.07)),.62)*(1-.15*t), cup:.1, droop:.12, veins:6, veinDepth:.014, mid:.018, wave:.03, base:'#22481c', tip:'#2e5a24', vein:'#4f7a3a', seed:6 });
     const lm=vcMat({ roughness:.25, clearcoat:.85, clearcoatRoughness:.1 });
-    [[.15,0,.25],[.42,Math.PI/2,.35],[.68,0,.55]].forEach(([t,yaw,elev])=>{ const p=stem.getPointAt(t); for(const sd of [0,Math.PI]) g.add(leafStalk(lg,lm,sm,p,{ yaw:yaw+sd+(r()-.5)*.2, elev, roll:(r()-.5)*.2, s:1-t*.35, pet:.06 })); });
+    // 對生葉：一節一對、上下兩節互相垂直，越往上越小
+    [[.08,0,.2],[.26,Math.PI/2,.28],[.44,0,.36],[.6,Math.PI/2,.46],[.74,0,.58],[.86,Math.PI/2,.72]].forEach(([t,yaw,elev])=>{ const p=stem.getPointAt(t); for(const sd of [0,Math.PI]) g.add(leafStalk(lg,lm,sm,p,{ yaw:yaw+sd+(r()-.5)*.2, elev, roll:(r()-.5)*.2, s:.95-t*.45, pet:.05 })); });
     return g;
   },
   // 正山小種：扭曲捲成條索的黑茶葉、一段馬尾松枝，與裊裊松煙
@@ -1066,9 +1070,10 @@ const BUILD_GL = {
     const g=new THREE.Group(); const r=rng(241);
     const lm=vcMat({ roughness:.55, sheen:.6, sheenRoughness:.4, sheenColor:C('#9a7a5a') });
     const leaves=[];
-    for(let i=0;i<46;i++){ const geo=petalGeometry({ len:.42+r()*.25, wid:.07+r()*.03, cup:.9+r()*.6, curl:(r()-.5)*.3, twist:2+r()*4, base:['#1e1610','#2a1c12','#24180e'][(r()*3)|0], tip:['#3a2618','#2e2014','#4a3020'][(r()*3)|0], segL:12, segW:4, seed:i });
-      geo.deleteAttribute('uv'); const a=r()*6.28, d=Math.sqrt(r())*.75; const h=.42*(1-d/.8)+r()*.1;
-      const mm=new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a)*d-.15, -1.0+h, Math.sin(a)*d*.8), new THREE.Quaternion().setFromEuler(new THREE.Euler(r()*6,r()*6,r()*6)), new THREE.Vector3(1,1,1));
+    // 一小堆條索緊結的乾茶：細長、捲成條、扭曲，平躺著堆成小丘
+    for(let i=0;i<150;i++){ const geo=petalGeometry({ len:.2+r()*.17, wid:.045+r()*.02, cup:1.5+r()*.8, curl:(r()-.5)*.5, twist:4+r()*5, base:['#1a120c','#22170f','#1e140c'][(r()*3)|0], tip:['#2e2014','#3a2818','#2a1c10'][(r()*3)|0], segL:10, segW:4, seed:i });
+      geo.deleteAttribute('uv'); const a=r()*6.28, d=Math.pow(r(),.7)*.72; const h=.5*Math.pow(Math.max(0,1-d/.75),1.3)+r()*.05;
+      const mm=new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a)*d-.2, -1.0+h, Math.sin(a)*d*.85), new THREE.Quaternion().setFromEuler(new THREE.Euler((r()-.5)*.8, r()*6.28, (r()-.5)*.8)), new THREE.Vector3(1,1,1));
       geo.applyMatrix4(mm); leaves.push(geo.index?geo.toNonIndexed():geo); }
     g.add(new THREE.Mesh(mergeGeometries(leaves), lm));
     // 松枝：成對的長針葉
@@ -1082,7 +1087,7 @@ const BUILD_GL = {
     // 煙：幾條半透明的煙帶，從茶堆裊裊升起
     const smokeTex=canvasTex(128,512,(c,w,h)=>{ const gr=c.createLinearGradient(0,0,w,0); gr.addColorStop(0,'rgba(220,224,228,0)'); gr.addColorStop(.5,'rgba(230,232,236,1)'); gr.addColorStop(1,'rgba(220,224,228,0)'); c.fillStyle=gr; c.fillRect(0,0,w,h);
       c.globalCompositeOperation='destination-in'; const vg=c.createLinearGradient(0,0,0,h); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(.3,'rgba(0,0,0,.8)'); vg.addColorStop(.85,'rgba(0,0,0,.6)'); vg.addColorStop(1,'rgba(0,0,0,0)'); c.fillStyle=vg; c.fillRect(0,0,w,h); });
-    const smM=new THREE.MeshBasicMaterial({ map:smokeTex, transparent:true, opacity:.5, depthWrite:false, side:THREE.DoubleSide, color:C('#d8dce0') });
+    const smM=new THREE.MeshBasicMaterial({ map:smokeTex, transparent:true, opacity:.62, depthWrite:false, side:THREE.DoubleSide, color:C('#d8dce0') });
     for(let sIdx=0;sIdx<3;sIdx++){ const pts=[]; const ph=r()*6; for(let i=0;i<=40;i++){ const t=i/40; pts.push(new THREE.Vector3(-.15+Math.sin(t*5+ph)*.25*t+sIdx*.12-.12, -.7+t*2.4, Math.cos(t*4+ph)*.2*t)); }
       const cv=new THREE.CatmullRomCurve3(pts); const pos=[], uv=[], idx=[];
       for(let i=0;i<=40;i++){ const t=i/40, c=cv.getPointAt(t), w=.05+t*.22; const tw2=t*3+ph; const off=new THREE.Vector3(Math.cos(tw2),0,Math.sin(tw2)).multiplyScalar(w);
@@ -1095,11 +1100,16 @@ const BUILD_GL = {
   // 麝香：一團柔軟潔白的雲（像曬過太陽的棉布），裡面有幾點微光
   musk(){
     const g=new THREE.Group(); const r=rng(251);
-    const mat=new THREE.MeshPhysicalMaterial({ color:C('#e2d2bc'), roughness:1, sheen:1, sheenRoughness:.5, sheenColor:C('#f4d8a8') });
-    const parts=[];
-    const blobs=[[0,0,0,.62],[.55,-.1,.1,.5],[-.55,-.12,0,.48],[.25,.32,-.05,.46],[-.25,.3,.1,.44],[.9,-.25,-.1,.34],[-.88,-.28,.12,.33],[0,-.25,.35,.42],[.1,-.2,-.38,.4],[.5,.15,.32,.32],[-.45,.12,-.3,.3],[.05,.62,0,.3]];
-    blobs.forEach(([x,y,z,s],i)=>{ const b=mergeVertices(new THREE.IcosahedronGeometry(s,4)); b.deleteAttribute('normal'); b.deleteAttribute('uv'); displace(b,s*.12,3/s,4,i*1.7); b.translate(x,y,z); b.deleteAttribute('normal'); parts.push(b); });
+    const mat=new THREE.MeshPhysicalMaterial({ color:C('#eee6da'), roughness:1, sheen:1, sheenRoughness:.35, sheenColor:C('#fff2dc') });
+    // 雲：大量小團塊鋪在積雲形狀的表面上（像棉花的纖維感），外圍再罩一層柔邊的霧粒讓輪廓變軟
+    const parts=[]; const core=[[0,0,0,.55],[.5,-.12,.05,.42],[-.5,-.14,0,.4],[.22,.28,-.04,.4],[-.24,.26,.08,.38],[.85,-.26,-.08,.28],[-.84,-.28,.1,.27],[0,.55,0,.26]];
+    core.forEach(([x,y,z,rr],ci)=>{ const n=Math.round(rr*60); for(let k=0;k<n;k++){ const u=r()*6.28, v=Math.acos(1-2*r()); const d=new THREE.Vector3(Math.sin(v)*Math.cos(u),Math.cos(v)*.85,Math.sin(v)*Math.sin(u));
+        if(d.y<-.45 && r()<.7) continue; const sz=rr*(.32+r()*.3); const b=mergeVertices(new THREE.IcosahedronGeometry(sz,2)); b.deleteAttribute('normal'); b.deleteAttribute('uv'); displace(b,sz*.22,5/sz,3,ci*13+k);
+        b.translate(x+d.x*rr*.8, y+d.y*rr*.8, z+d.z*rr*.8); b.deleteAttribute('normal'); parts.push(b); } });
     const cloud=new THREE.Mesh(mergeGeometries(parts), mat); cloud.geometry.computeVertexNormals(); g.add(cloud);
+    const haze=canvasTex(128,128,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,252,246,.9)'); gr.addColorStop(.5,'rgba(255,250,240,.4)'); gr.addColorStop(1,'rgba(255,250,240,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
+    const hm=new THREE.SpriteMaterial({ map:haze, transparent:true, depthWrite:false, opacity:.55, color:C('#fbf6ee') });
+    for(let k=0;k<26;k++){ const [x,y,z,rr]=core[(r()*core.length)|0]; const u=r()*6.28; const sp=new THREE.Sprite(hm); sp.position.set(x+Math.cos(u)*rr*1.05, y+(r()-.3)*rr, z+Math.sin(u)*rr*1.05); sp.scale.setScalar(rr*(1.1+r()*.8)); g.add(sp); }
     const glow=canvasTex(64,64,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,246,220,1)'); gr.addColorStop(.4,'rgba(255,240,210,.35)'); gr.addColorStop(1,'rgba(255,240,210,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
     const sm=new THREE.SpriteMaterial({ map:glow, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, color:C('#ffe8b8') });
     for(let i=0;i<14;i++){ const s=new THREE.Sprite(sm); const a=r()*6.28, d=.9+r()*.5; s.position.set(Math.cos(a)*d, -.3+r()*1.2, Math.sin(a)*d*.6); s.scale.setScalar(.12+r()*.12); g.add(s); }
