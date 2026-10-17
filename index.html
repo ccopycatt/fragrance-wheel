@@ -79,7 +79,7 @@
   @media (max-width:1000px){.layout{grid-template-columns:1fr;gap:26px;}.wheel-wrap{position:static !important;}}
   .layout.novial .wheel-wrap{display:flex;}
   .wheel-wrap{display:flex;flex-direction:column;align-items:center;position:sticky;top:18px;}
-  .wheel-container{position:relative;width:clamp(320px,92vw,470px);height:clamp(320px,92vw,470px);border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto;}
+  .wheel-container{position:relative;width:clamp(280px,calc(100vw - 40px),470px);height:clamp(280px,calc(100vw - 40px),470px);border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto;}
   .circle-bg{position:absolute;width:100%;height:100%;border:1px dashed var(--border-strong);border-radius:50%;z-index:0;}
   .circle-bg::after{content:"";position:absolute;inset:26px;border:1px solid var(--border);border-radius:50%;}
   .node{position:absolute;width:clamp(66px,17vw,84px);height:clamp(66px,17vw,84px);
@@ -110,7 +110,7 @@
   .detail-header .hdr-icon svg{width:28px;height:28px;color:var(--fam-color,var(--gold));}
   .detail-header h2{font-family:var(--serif);font-size:var(--fs-xl);color:var(--text);font-weight:600;margin:0;letter-spacing:0.5px;}
   .detail-header .fam-count{font-size:var(--fs-sm);color:var(--text-muted);letter-spacing:1px;}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(345px,1fr));gap:18px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(345px,100%),1fr));gap:18px;}
   .card{--R:22px;--p:16px;background:linear-gradient(180deg,var(--surface-2),var(--surface));border:1px solid var(--border);border-radius:var(--R);padding:var(--p);cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s;}
   .card:hover{border-color:var(--border-strong);transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,0.5);}
   .card .brand{font-size:var(--fs-xs);letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;}
@@ -153,7 +153,7 @@
   .perf-dist{display:flex;flex-wrap:wrap;gap:4px 9px;font-size:var(--fs-xs);color:var(--text-muted);margin:-1px 0 8px 55px;}
   .perf-dist b{color:var(--text-2);font-weight:600;margin-left:3px;}
   .perf-na{font-size:var(--fs-xs);color:var(--text-muted);font-style:italic;}
-  .perf-source{font-size:var(--fs-xs);color:var(--text-muted);margin-top:3px;}
+  .perf-source{font-size:var(--fs-xs);color:var(--text-muted);margin-top:3px;overflow-wrap:anywhere;}
   .season-block{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);margin-bottom:4px;}
   .season-cells{display:flex;gap:4px;}
   .season-cell{width:27px;height:23px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);}
@@ -261,11 +261,8 @@
   .fam-chip.active{border-color:var(--c);color:var(--text);background:color-mix(in srgb,var(--c) 20%,var(--surface));}
   .fam-chip.active b{color:var(--text-2);}
   @media (max-width:640px){
-    .fam-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:20;background:var(--bg);margin:0 -20px 20px;padding:10px 20px;border-bottom:1px solid var(--border);}
-    .fam-strip::-webkit-scrollbar{display:none;}
     #viewbar{display:none;}
     .layout{gap:22px;}
-    .legend-note{margin-top:14px;}
     .toolbar{margin-bottom:16px;}
   }
   /* 觸控：手指操作的按鈕至少 44px 高 */
@@ -289,36 +286,75 @@
   .search-hint,.today-src,.pick-why{text-wrap:pretty;}
   .search-hint{text-wrap:balance;}
 
-  /* 排序列：在香調列下方，左邊排序、右邊詳細／總覽 */
+  /* 置頂分頁列：香調列（香調環在旁邊時不顯示）＋排序開關 */
+  html,body{overflow-x:clip;}
   .detail-col{min-width:0;}
-  .sortbar{display:flex;align-items:center;gap:8px;margin:0 0 20px;}
-  .sortbar .seg{margin-left:auto;}
-  .sort-wrap{position:relative;}
-  .sort-btn,.sort-rev{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 15px;border-radius:999px;background:var(--surface);border:1px solid var(--border-strong);color:var(--text);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;}
-  .sort-btn .k{color:var(--text-muted);}
-  .sort-btn svg{width:14px;height:14px;color:var(--gold);transition:transform .2s;}
-  .sort-btn[aria-expanded="true"]{border-color:var(--gold);}
-  .sort-btn[aria-expanded="true"] svg{transform:rotate(180deg);}
-  .sort-rev{padding:0 13px;color:var(--text-2);gap:6px;}
-  .sort-rev svg{width:15px;height:15px;}
-  .sort-rev[aria-pressed="true"]{border-color:var(--gold);color:var(--gold-lt);background:color-mix(in srgb,var(--gold) 14%,var(--surface));}
-  .sort-rev:disabled{opacity:.4;cursor:default;}
-  .sort-btn:hover,.sort-rev:hover:not(:disabled){border-color:var(--gold);}
-  .sort-menu{--R:16px;--p:6px;position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:min(316px,calc(100vw - 40px));padding:var(--p);border-radius:var(--R);
+  .tabbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 0;margin:0 0 20px;}
+  .tabbar .fam-strip{display:none;}
+  .sort-wrap{position:relative;flex-shrink:0;}
+  .sort-btn{position:relative;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px 0 13px;border-radius:999px;background:var(--surface);border:1px solid var(--border-strong);color:var(--text);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;}
+  .sort-btn svg{width:17px;height:17px;color:var(--gold);flex-shrink:0;}
+  .sort-btn .sb-cur{color:var(--gold-lt);}
+  .sort-btn .sb-cur:empty{display:none;}
+  .sort-btn .sb-k{color:var(--text);}
+  .sort-btn .sb-cur:not(:empty){margin-left:2px;}
+  .sort-btn:has(.sb-cur:not(:empty)) .sb-k{color:var(--text-muted);}
+  .sort-btn .sb-dot{display:none;position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--gold);}
+  .sort-btn:hover,.sort-btn[aria-expanded="true"]{border-color:var(--gold);}
+  @media (max-width:1000px){
+    .tabbar{margin:0 calc(50% - 50vw) 18px;padding:10px 0;}
+    .tabbar .fam-strip{display:flex;flex:1;min-width:0;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:0 12px 0 20px;}
+    .tabbar .fam-strip::-webkit-scrollbar{display:none;}
+    .sort-wrap{padding:0 20px 0 6px;}
+    .sort-wrap::before{content:"";position:absolute;left:-18px;top:0;bottom:0;width:24px;background:linear-gradient(90deg,transparent,var(--bg));pointer-events:none;}
+  }
+  @media (max-width:640px){
+    .sort-btn{height:44px;}
+    .sort-btn .sb-cur{display:none;}
+    .sort-btn.on .sb-dot{display:block;}
+  }
+  @media (pointer:coarse){ .sort-btn{height:44px;} }
+  .sort-note{color:var(--gold-lt);}
+  .detail-header{flex-wrap:wrap;row-gap:4px;}
+
+  /* 排序面板：電腦是下拉面板，手機是底部抽屜（單手好按） */
+  .sort-panel{--R:20px;--p:14px;--ir:calc(var(--R) - var(--p) - 1px);position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:380px;padding:var(--p);border-radius:var(--R);
     background:#17120b;border:1px solid var(--border-strong);box-shadow:0 18px 44px rgba(0,0,0,.65);}
-  .sort-menu[hidden]{display:none;}
-  .sort-opt{all:unset;box-sizing:border-box;display:grid;grid-template-columns:1fr 16px;column-gap:12px;width:100%;padding:9px 12px;border-radius:calc(var(--R) - var(--p) - 1px);cursor:pointer;}
-  .sort-opt b{font-weight:500;color:var(--text);font-size:var(--fs-base);}
-  .sort-opt small{grid-column:1;font-size:var(--fs-xs);color:var(--text-muted);margin-top:2px;line-height:1.5;}
-  .sort-opt svg{grid-column:2;grid-row:1 / span 2;align-self:center;width:16px;height:16px;color:var(--gold);visibility:hidden;}
-  .sort-opt:hover,.sort-opt:focus-visible{background:var(--surface-2);outline:none;}
-  .sort-opt[aria-selected="true"] b{color:var(--gold-lt);}
-  .sort-opt[aria-selected="true"] svg{visibility:visible;}
-  .sort-opt[aria-disabled="true"]{cursor:default;}
-  .sort-opt[aria-disabled="true"] b{color:var(--text-muted);}
+  @media (min-width:1001px){ .sort-panel{left:0;right:auto;} }
+  .sort-panel[hidden],.sort-scrim[hidden]{display:none;}
+  .sp-title{font-family:var(--serif);font-size:var(--fs-md);color:var(--text);margin:2px 2px 12px;font-weight:600;}
+  .sp-label{font-size:var(--fs-sm);color:var(--text-muted);margin:14px 2px 8px;}
+  .sp-title + .sp-label{margin-top:0;}
   .sort-metric{margin-top:6px;font-size:var(--fs-sm);color:var(--gold-lt);font-variant-numeric:tabular-nums;}
-  @media (pointer:coarse){ .sort-btn,.sort-rev{height:44px;} }
-  @media (max-width:640px){ .sort-rev span{display:none;} .sort-rev{width:44px;padding:0;justify-content:center;} .sortbar{margin-bottom:16px;} }
+  .sp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+  .sp-opt,.sp-seg button{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;min-height:40px;padding:6px 8px;border-radius:var(--ir);
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);font-size:var(--fs-sm);cursor:pointer;line-height:1.3;}
+  .sp-opt:hover,.sp-seg button:hover{border-color:var(--border-strong);color:var(--text);}
+  .sp-opt[aria-checked="true"],.sp-seg button[aria-checked="true"]{background:color-mix(in srgb,var(--gold) 22%,var(--surface-2));border-color:var(--gold);color:var(--gold-lt);font-weight:600;}
+  .sp-opt[aria-disabled="true"]{opacity:.45;cursor:default;}
+  .sp-opt:focus-visible,.sp-seg button:focus-visible{outline:2px solid var(--gold);outline-offset:1px;}
+  .sp-desc{font-size:var(--fs-xs);color:var(--text-muted);margin:8px 2px 0;line-height:1.6;min-height:1.6em;}
+  .sp-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .sp-seg button{flex-direction:column;gap:1px;}
+  .sp-seg button small{font-size:var(--fs-xs);font-weight:400;color:var(--text-muted);}
+  .sp-none{font-size:var(--fs-sm);color:var(--text-muted);padding:10px 2px;}
+  .sp-done{all:unset;box-sizing:border-box;display:none;width:100%;margin-top:16px;min-height:48px;border-radius:var(--ir);background:var(--gold-grad);color:var(--ink-on-gold);font-weight:700;font-size:var(--fs-base);text-align:center;line-height:48px;cursor:pointer;letter-spacing:1px;}
+  .sort-scrim{position:fixed;inset:0;z-index:90;background:rgba(3,2,1,.6);}
+  @media (max-width:640px){
+    .sort-panel{--R:24px;--p:16px;position:fixed;top:auto;left:0;right:0;bottom:0;width:auto;z-index:95;border-radius:var(--R) var(--R) 0 0;border-bottom:none;
+      padding:18px var(--p) calc(var(--p) + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;overscroll-behavior:contain;}
+    .sp-done{display:block;}
+    .sp-opt,.sp-seg button{min-height:44px;}
+  }
+  @media (min-width:641px){ .sort-scrim{display:none !important;} }
+
+  /* 香水詳細：3D 圖／商品圖切換 */
+  .modal-bottle{flex-direction:column;gap:14px;}
+  .bottle-frame{width:240px;height:320px;box-sizing:border-box;}
+  .bottle-frame img{max-width:100%;max-height:100%;}
+  .bottle-frame[hidden]{display:none;}
+  .bottle-switch button{padding:7px 16px;}
+
   /* 今日香氛：換一組／換地點移到地點那一列，不擠在圓角轉角 */
   .today-head{align-items:center;margin-top:8px;flex-wrap:wrap;}
   .today-head .today-place{margin-top:0;}
@@ -359,18 +395,16 @@
           <div class="hub-sub">點擊周圍節點<br>檢視收藏香水</div>
         </div>
       </div>
-      <div class="legend-note">香調、香材、評分、瓶身圖取自 Fragrantica；持香、擴香、季節與日夜取自 Fragrantica 會員投票（2026/10/17 查核）。</div>
     </div>
     <div class="detail-col">
-      <nav class="fam-strip" id="fam-strip" aria-label="香調"></nav>
-      <div class="sortbar" id="sortbar">
+      <div class="tabbar" id="tabbar">
+        <nav class="fam-strip" id="fam-strip" aria-label="香調"></nav>
         <div class="sort-wrap">
-          <button type="button" class="sort-btn" id="sort-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="sort-menu"><span class="k">排序</span><span id="sort-label">預設</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-          <div class="sort-menu" id="sort-menu" role="listbox" aria-label="排序方式" hidden></div>
+          <button type="button" class="sort-btn" id="sort-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="sort-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg><span class="sb-k">排序</span><span class="sb-cur" id="sort-label"></span><span class="sb-dot" aria-hidden="true"></span></button>
+          <div class="sort-panel" id="sort-panel" role="dialog" aria-label="排序與顯示" hidden></div>
         </div>
-        <button type="button" class="sort-rev" id="sort-rev" aria-pressed="false" title="反向排序"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3.5 16.5L7 20l3.5-3.5M17 20V4M13.5 7.5L17 4l3.5 3.5"/></svg><span>反向</span></button>
-        <div class="seg" id="view-seg" role="group" aria-label="檢視方式"><button type="button" data-view="detail">詳細</button><button type="button" data-view="grid">總覽</button></div>
       </div>
+      <div class="sort-scrim" id="sort-scrim" hidden></div>
       <div class="detail-panel" id="detail">
         <div class="empty-state">← 點擊左側香調節點，或於上方搜尋香材</div>
       </div>
@@ -458,14 +492,14 @@ const todayRank = p => window.fwToday ? window.fwToday.get(pkOf(p)) : null;
 // val：數字越大越前面（反向時相反）；沒有資料的永遠排最後
 const SORTS = [
   {k:'default', label:'預設', desc:'依香調分類的順序'},
-  {k:'today', label:'今日適合', desc:'依此刻天氣，最適合的在前', val:p=>{ const r=todayRank(p); return r?-r:null; }, need:()=>!!window.fwToday, needMsg:'天氣資料載入後可用'},
-  {k:'season', label:'當季', desc:`${SEASON_NOW}季投票占比高的在前`, val:seasonShare},
-  {k:'weight', label:'清爽到濃郁', desc:'依主香調的輕重，清爽的在前', val:p=>-perfWarmth(p)},
-  {k:'rating', label:'評分', desc:'Fragrantica 平均分數', val:p=>p.rating||null},
-  {k:'votes', label:'評分人數', desc:'票數越多，口碑越有共識', val:p=>p.votes||null},
-  {k:'longevity', label:'持香', desc:'持香度投票平均，越持久越前', val:p=>p.longevity??null},
-  {k:'sillage', label:'擴香', desc:'擴香度投票平均，擴散越強越前', val:p=>p.sillage??null},
-  {k:'brand', label:'品牌', desc:'品牌名稱 A → Z', cmp:(a,b)=>a.brand.localeCompare(b.brand)||a.name_en.localeCompare(b.name_en)},
+  {k:'today', label:'今日適合', desc:'依此刻的天氣，對每支香水打適合度', dir:['最適合','最不適合'], val:p=>{ const r=todayRank(p); return r?-r:null; }, need:()=>!!window.fwToday, needMsg:'天氣資料載入後可用'},
+  {k:'season', label:'當季', desc:`Fragrantica 會員投給${SEASON_NOW}季的票數占比`, dir:[`${SEASON_NOW}季票多`,`${SEASON_NOW}季票少`], val:seasonShare},
+  {k:'weight', label:'輕重', desc:'依主香調的輕重排列', dir:['清爽','濃郁'], val:p=>-perfWarmth(p)},
+  {k:'rating', label:'評分', desc:'Fragrantica 會員平均分數', dir:['高分','低分'], val:p=>p.rating||null},
+  {k:'votes', label:'評分人數', desc:'評分的人越多，口碑越有共識', dir:['票數多','票數少'], val:p=>p.votes||null},
+  {k:'longevity', label:'持香', desc:'持香度投票平均（1 很短～5 非常持久）', dir:['持久','短暫'], val:p=>p.longevity??null},
+  {k:'sillage', label:'擴香', desc:'擴香度投票平均（1 貼膚～4 非常強）', dir:['擴散強','貼膚'], val:p=>p.sillage??null},
+  {k:'brand', label:'品牌', desc:'依品牌名稱字母', dir:['A','Z'], cmp:(a,b)=>a.brand.localeCompare(b.brand)||a.name_en.localeCompare(b.name_en)},
 ];
 const SORT_BY = Object.fromEntries(SORTS.map(d=>[d.k,d]));
 let sortKey = (()=>{ try{ const k=localStorage.getItem('fw-sort'); return SORT_BY[k]?k:'default'; }catch(e){ return 'default'; } })();
@@ -493,6 +527,8 @@ function sortMeta(p){
     default: return p.rating?'★ '+p.rating.toFixed(2):'尚無評分';
   }
 }
+function sortSummary(){ const d=SORT_BY[sortKey]; if(!d.dir) return ''; const [a,b]=sortRev?[d.dir[1],d.dir[0]]:d.dir; return `${d.label}：${a} → ${b}`; }
+const sortNote = () => sortKey==='default' ? '' : `<span class="sort-note">・${sortSummary()}</span>`;
 const detailMeta = () => ['today','season','weight'].includes(sortKey);
 function rerender(){ const q=searchInput.value.trim(); if(q) runSearch(q); else if(mode==='all') renderAll(); else if(mode==='vial') renderVials(); else renderFamily(activeFamily||categories[0]); }
 let viewMode = (()=>{ try{ return localStorage.getItem('fw-view')==='grid'?'grid':'detail'; }catch(e){ return 'detail'; } })();
@@ -504,7 +540,6 @@ function cardsHtml(list){ return `<div class="cards${viewMode==='grid'?' compact
 function syncViewbar(){ document.getElementById('vb-all').classList.toggle('active', mode==='all' && !searchInput.value.trim());
   const strip=document.getElementById('fam-strip'); if(strip){ const q=searchInput.value.trim(); strip.querySelectorAll('.fam-chip').forEach(c=>{ const on=!q && ((mode==='all'&&c.dataset.fam==='__all')||(mode==='main'&&c.dataset.fam===activeFamily)); c.classList.toggle('active',on); c.setAttribute('aria-pressed',on);
     if(on){ const l=c.offsetLeft-20, r=l+c.offsetWidth+40; if(l<strip.scrollLeft||r>strip.scrollLeft+strip.clientWidth) strip.scrollLeft=l; } }); }
-  document.querySelectorAll('#view-seg button').forEach(b=>{ const on=b.dataset.view===viewMode; b.classList.toggle('active',on); b.setAttribute('aria-pressed',on); });
   syncSortbar(); }
 
 function starsHtml(rating){ if(!rating) return '<span class="no-rating">尚無評分</span>';
@@ -592,7 +627,15 @@ function openModal(pkey){
   const votes=p.votes?`${p.votes.toLocaleString()} 人評分`:'';
   const srcText=perfSourceText(p.perf_source);
   const fb = (p.img_fallback && p.img_fallback!==p.img) ? p.img_fallback : '';
-  const bottle=p.thumb?`<div class="bottle-frame is3d"><img src="${p.thumb}" alt="${p.name_en} 3D 瓶身"></div>`:p.img?`<div class="bottle-frame"><img src="${p.img}" alt="${p.name_en}" loading="lazy" data-fb="${fb}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.parentNode.style.display='none';this.closest('.modal-bottle').querySelector('.noimg').style.display='block';}"></div><div class="noimg" style="display:none">瓶身圖暫時無法載入</div>`:`<div class="noimg">暫無瓶身圖</div>`;
+  const photo = p.img ? `<div class="bottle-frame" data-v="photo"><img src="${p.img}" alt="${p.name_en} 商品圖" loading="lazy" data-fb="${fb}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.parentNode.remove();const m=document.querySelector('.modal-bottle');if(m&&!m.querySelector('.bottle-frame')){m.querySelector('.noimg').style.display='block';}const sw=document.querySelector('.bottle-switch');if(sw)sw.remove();const f=document.querySelector('.bottle-frame.is3d');if(f)f.hidden=false;}"></div>` : '';
+  const m3d = p.thumb ? `<div class="bottle-frame is3d" data-v="3d"><img src="${p.thumb}" alt="${p.name_en} 3D 瓶身"></div>` : '';
+  let bv = (()=>{ try{ return localStorage.getItem('fw-bottle')==='photo'?'photo':'3d'; }catch(e){ return '3d'; } })();
+  if(!m3d) bv='photo'; if(!photo) bv='3d';
+  const both = m3d && photo;
+  const bottle = (m3d||photo)
+    ? m3d.replace('data-v="3d"', `data-v="3d"${bv==='3d'?'':' hidden'}`) + photo.replace('data-v="photo"', `data-v="photo"${bv==='photo'?'':' hidden'}`) + `<div class="noimg" style="display:none">瓶身圖暫時無法載入</div>`
+      + (both ? `<div class="seg bottle-switch" role="group" aria-label="瓶身圖"><button type="button" data-bv="3d" class="${bv==='3d'?'active':''}" aria-pressed="${bv==='3d'}">3D 模型</button><button type="button" data-bv="photo" class="${bv==='photo'?'active':''}" aria-pressed="${bv==='photo'}">商品圖</button></div>` : '')
+    : `<div class="noimg">暫無瓶身圖</div>`;
   const accords=(p.accords||[]).map(a=>`<span class="accord-tag" style="--fam-color:${famColor}" title="${a}">${accordZh(a)}</span>`).join('');
   const vial=isv?`<span class="vial-badge">🧪 SCENT VIAL 試香</span>`:'';
   const badges=vial+families.map(f=>`<span class="fam-badge" style="background:${familyColors[f]}">${f.split('. ')[1]}</span>`).join('');
@@ -621,7 +664,10 @@ function openModal(pkey){
   modal.classList.add('open'); document.body.style.overflow='hidden';
 }
 function closeModal(){ modal.classList.remove('open'); document.body.style.overflow=''; }
-modal.addEventListener('click',e=>{ if(e.target===modal||e.target.classList.contains('modal-close')) closeModal(); });
+modal.addEventListener('click',e=>{ if(e.target===modal||e.target.closest('.modal-close')) { closeModal(); return; }
+  const sw=e.target.closest('.bottle-switch button'); if(!sw) return; const v=sw.dataset.bv; try{ localStorage.setItem('fw-bottle',v); }catch(err){}
+  modal.querySelectorAll('.bottle-frame').forEach(f=>f.hidden=f.dataset.v!==v);
+  modal.querySelectorAll('.bottle-switch button').forEach(b=>{ const on=b.dataset.bv===v; b.classList.toggle('active',on); b.setAttribute('aria-pressed',on); }); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 detail.addEventListener('click',e=>{ const c=e.target.closest('.card'); if(c&&c.dataset.pkey) openModal(c.dataset.pkey); });
 
@@ -637,7 +683,7 @@ function renderFamily(fam){
   hub.querySelector('.hub-title').textContent=fam.split('. ')[1];
   hub.querySelector('.hub-sub').innerHTML=`${database[fam].length} 款收藏`;
   const items=applySort(database[fam].map(p=>({p,famColor})));
-  detail.innerHTML=`<div class="detail-header" style="--fam-color:${famColor}"><span class="hdr-icon">${familyIcons[fam]}</span><h2>${famName(fam)}</h2><div class="fam-count">${items.length} 款香水</div></div>`+cardsHtml(items);
+  detail.innerHTML=`<div class="detail-header" style="--fam-color:${famColor}"><span class="hdr-icon">${familyIcons[fam]}</span><h2>${famName(fam)}</h2><div class="fam-count">${items.length} 款香水${sortNote()}</div></div>`+cardsHtml(items);
   syncViewbar();
 }
 
@@ -650,7 +696,7 @@ function renderAll(){
   const list=Object.values(perfIndex).filter(e=>!e.is_sample).map((e,i)=>({e,i})).sort((a,b)=>categories.indexOf(a.e.families[0])-categories.indexOf(b.e.families[0])||a.i-b.i).map(x=>x.e);
   document.getElementById('hub-icon').innerHTML=ALL_ICON; hub.style.setProperty('--hub-color','var(--gold)');
   hub.querySelector('.hub-title').textContent='全部收藏'; hub.querySelector('.hub-sub').innerHTML=`${list.length} 款收藏`;
-  detail.innerHTML=`<div class="detail-header" style="--fam-color:var(--gold)"><span class="hdr-icon">${ALL_ICON}</span><h2>全部收藏</h2><div class="fam-count">${list.length} 款香水</div></div>`+cardsHtml(applySort(list.map(e=>({p:e.p,famColor:familyColors[e.families[0]],opts:{families:e.families}}))));
+  detail.innerHTML=`<div class="detail-header" style="--fam-color:var(--gold)"><span class="hdr-icon">${ALL_ICON}</span><h2>全部收藏</h2><div class="fam-count">${list.length} 款香水${sortNote()}</div></div>`+cardsHtml(applySort(list.map(e=>({p:e.p,famColor:familyColors[e.families[0]],opts:{families:e.families}}))));
   syncViewbar();
 }
 
@@ -679,7 +725,7 @@ function runSearch(query){
     return terms.some(t=>hay.includes(t));
   });
   if(!results.length){ detail.innerHTML=`<div class="detail-header"><h2>搜尋結果</h2></div><div class="empty-state">找不到含「${query}」的香水<br>試試 vetiver、rose、oud、tea 等香材</div>`; syncViewbar(); return; }
-  detail.innerHTML=`<div class="detail-header"><h2>搜尋結果</h2><div class="fam-count">${results.length} 款符合「${query}」</div></div>`+cardsHtml(applySort(results.map(({p,families,is_sample})=>({p,famColor:familyColors[families[0]],opts:{terms,families,is_sample}}))));
+  detail.innerHTML=`<div class="detail-header"><h2>搜尋結果</h2><div class="fam-count">${results.length} 款符合「${query}」${sortNote()}</div></div>`+cardsHtml(applySort(results.map(({p,families,is_sample})=>({p,famColor:familyColors[families[0]],opts:{terms,families,is_sample}}))));
   syncViewbar();
 }
 
@@ -703,31 +749,52 @@ famStrip.innerHTML=`<button type="button" class="fam-chip" data-fam="__all" styl
   categories.map(c=>`<button type="button" class="fam-chip" data-fam="${c}" style="--c:${familyColors[c]}"><span class="dot"></span>${famName(c)}<b>${database[c].length}</b></button>`).join('');
 famStrip.addEventListener('click',e=>{ const b=e.target.closest('.fam-chip'); if(!b) return;
   if(b.dataset.fam==='__all') renderAll(); else renderFamily(b.dataset.fam);
-  const top=document.getElementById('sortbar').getBoundingClientRect().top+window.scrollY-famStrip.offsetHeight-10; if(window.scrollY>top) window.scrollTo({top}); });
-document.querySelectorAll('#view-seg button').forEach(b=>b.addEventListener('click',()=>{ viewMode=b.dataset.view; try{ localStorage.setItem('fw-view',viewMode); }catch(e){}
-  rerender(); }));
-// 排序選單
-const sortBtn=document.getElementById('sort-btn'), sortMenu=document.getElementById('sort-menu'), sortRevBtn=document.getElementById('sort-rev');
-const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-function syncSortbar(){ const d=SORT_BY[sortKey]; document.getElementById('sort-label').textContent=d.label;
-  sortRevBtn.disabled = sortKey==='default'; sortRevBtn.setAttribute('aria-pressed', sortRev && sortKey!=='default'); }
-function openSortMenu(){
-  sortMenu.innerHTML=SORTS.map(d=>{ const off=d.need&&!d.need();
-    return `<button type="button" class="sort-opt" role="option" data-k="${d.k}" aria-selected="${d.k===sortKey}"${off?' aria-disabled="true"':''} tabindex="-1"><b>${d.label}</b><small>${off?d.needMsg:d.desc}</small>${CHECK}</button>`; }).join('');
-  sortMenu.hidden=false; sortBtn.setAttribute('aria-expanded','true');
-  (sortMenu.querySelector('[aria-selected="true"]')||sortMenu.firstElementChild).focus({preventScroll:true});
+  const top=detail.getBoundingClientRect().top+window.scrollY-document.getElementById('tabbar').offsetHeight-10; if(window.scrollY>top) window.scrollTo({top}); });
+// 排序與顯示面板
+const sortBtn=document.getElementById('sort-btn'), sortPanel=document.getElementById('sort-panel'), sortScrim=document.getElementById('sort-scrim');
+function syncSortbar(){ const on=sortKey!=='default'; document.getElementById('sort-label').textContent=on?sortSummary():'';
+  sortBtn.classList.toggle('on', on||viewMode==='grid');
+  sortBtn.setAttribute('aria-label', '排序與顯示'+(on?'，目前 '+sortSummary():'')+(viewMode==='grid'?'，總覽':'')); }
+function panelHtml(){
+  const d=SORT_BY[sortKey];
+  const opts=SORTS.map(x=>{ const off=x.need&&!x.need(); return `<button type="button" class="sp-opt" role="radio" data-k="${x.k}" aria-checked="${x.k===sortKey}"${off?' aria-disabled="true" title="'+x.needMsg+'"':''}>${x.label}</button>`; }).join('');
+  const off=d.need&&!d.need();
+  const dirSec = d.dir ? `<div class="sp-seg" role="radiogroup" aria-label="順序">
+      <button type="button" role="radio" data-rev="0" aria-checked="${!sortRev}">${d.dir[0]} → ${d.dir[1]}</button>
+      <button type="button" role="radio" data-rev="1" aria-checked="${sortRev}">${d.dir[1]} → ${d.dir[0]}</button></div>`
+    : `<div class="sp-none">預設依香調分類排列，沒有先後方向</div>`;
+  return `<div class="sp-title">排序與顯示</div>
+    <div class="sp-label" id="sp-l1">排序依據</div>
+    <div class="sp-grid" role="radiogroup" aria-labelledby="sp-l1">${opts}</div>
+    <div class="sp-desc">${off?d.needMsg:d.desc}</div>
+    <div class="sp-label">順序</div>${dirSec}
+    <div class="sp-label">顯示方式</div>
+    <div class="sp-seg" role="radiogroup" aria-label="顯示方式">
+      <button type="button" role="radio" data-view="detail" aria-checked="${viewMode==='detail'}">詳細<small>完整資訊</small></button>
+      <button type="button" role="radio" data-view="grid" aria-checked="${viewMode==='grid'}">總覽<small>一列三支</small></button></div>
+    <button type="button" class="sp-done">完成</button>`;
 }
-function closeSortMenu(focusBtn){ if(sortMenu.hidden) return; sortMenu.hidden=true; sortBtn.setAttribute('aria-expanded','false'); if(focusBtn) sortBtn.focus(); }
-sortBtn.addEventListener('click',()=>{ sortMenu.hidden?openSortMenu():closeSortMenu(); });
-sortMenu.addEventListener('click',e=>{ const o=e.target.closest('.sort-opt'); if(!o||o.getAttribute('aria-disabled')==='true') return;
-  sortKey=o.dataset.k; try{ localStorage.setItem('fw-sort',sortKey); }catch(err){} closeSortMenu(e.detail===0); rerender(); });
-sortMenu.addEventListener('keydown',e=>{ const opts=[...sortMenu.querySelectorAll('.sort-opt')]; const i=opts.indexOf(document.activeElement);
-  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); opts[(i+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length].focus(); }
-  else if(e.key==='Home'||e.key==='End'){ e.preventDefault(); opts[e.key==='Home'?0:opts.length-1].focus(); }
-  else if(e.key==='Escape'){ e.stopPropagation(); closeSortMenu(true); }
-  else if(e.key==='Tab'){ closeSortMenu(); } });
-document.addEventListener('click',e=>{ if(!e.target.closest('.sort-wrap')) closeSortMenu(); });
-sortRevBtn.addEventListener('click',()=>{ sortRev=!sortRev; try{ localStorage.setItem('fw-sort-rev',sortRev?'1':'0'); }catch(e){} rerender(); });
+function refreshPanel(){ const f=document.activeElement, k=f&&(f.dataset.k||f.dataset.rev||f.dataset.view), cls=f&&f.className; sortPanel.innerHTML=panelHtml();
+  if(k){ const sel=[...sortPanel.querySelectorAll('button')].find(b=>(b.dataset.k||b.dataset.rev||b.dataset.view)===k&&b.className===cls); if(sel) sel.focus({preventScroll:true}); } }
+function openSortPanel(){ sortPanel.innerHTML=panelHtml(); sortPanel.hidden=false; sortScrim.hidden=false; sortBtn.setAttribute('aria-expanded','true');
+  (sortPanel.querySelector('.sp-opt[aria-checked="true"]')||sortPanel.querySelector('button')).focus({preventScroll:true}); }
+function closeSortPanel(focusBtn){ if(sortPanel.hidden) return; sortPanel.hidden=true; sortScrim.hidden=true; sortBtn.setAttribute('aria-expanded','false'); if(focusBtn) sortBtn.focus({preventScroll:true}); }
+sortBtn.addEventListener('click',()=>{ sortPanel.hidden?openSortPanel():closeSortPanel(); });
+sortScrim.addEventListener('click',()=>closeSortPanel());
+sortPanel.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+  if(b.classList.contains('sp-done')){ closeSortPanel(e.detail===0); return; }
+  if(b.dataset.k){ if(b.getAttribute('aria-disabled')==='true') return; if(sortKey!==b.dataset.k){ sortKey=b.dataset.k; sortRev=false; } }
+  else if(b.dataset.rev!==undefined){ sortRev=b.dataset.rev==='1'; }
+  else if(b.dataset.view){ viewMode=b.dataset.view; try{ localStorage.setItem('fw-view',viewMode); }catch(err){} }
+  else return;
+  try{ localStorage.setItem('fw-sort',sortKey); localStorage.setItem('fw-sort-rev',sortRev?'1':'0'); }catch(err){}
+  rerender(); refreshPanel(); });
+sortPanel.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ e.stopPropagation(); closeSortPanel(true); return; }
+  const grid=e.target.closest('.sp-grid'); if(!grid) return; const opts=[...grid.querySelectorAll('.sp-opt')]; const i=opts.indexOf(e.target);
+  const step={ArrowRight:1,ArrowLeft:-1,ArrowDown:3,ArrowUp:-3}[e.key]; if(step===undefined) return; e.preventDefault();
+  opts[Math.max(0,Math.min(opts.length-1,i+step))].focus(); });
+document.addEventListener('click',e=>{ if(!sortPanel.hidden && e.target.isConnected && !e.target.closest('.sort-wrap') && !e.target.closest('#sort-scrim')) closeSortPanel(); });
 
 document.getElementById('footer').innerHTML=`
   <div><b>資料製作說明</b></div>
@@ -872,7 +939,6 @@ renderFamily(categories[0]);
         </div>
       </div>
       <div class="picks">${recs.length?pickCard(recs[0],wx,0):''}${recs.length>1?`<div class="picks-more"><div class="picks-cap">也適合</div>${recs.slice(1).map((r,i)=>pickCard(r,wx,i+1)).join('')}</div>`:''}</div>
-      <div class="today-src">天氣：${wx.src}，打開時即時更新。依香調輕重、體感、濕度、降雨、季節與日夜，從合適的香水裡挑選；每次打開都會輪替，最近推過的先讓位。</div>
       <div class="city-picker" id="city-picker" hidden>
         <button class="city" type="button" data-geo="1">目前位置</button>
         ${CITIES.map(c=>`<button class="city" type="button" data-city="${c[0]}">${c[0]}</button>`).join('')}
