@@ -312,18 +312,40 @@ function buildWorld(target, detailed){
   // 雪松：分層水平枝，枝上成簇的針葉
   const tuft=(()=>{ const parts=[]; for(let i=0;i<5;i++){ const n=new THREE.CylinderGeometry(.01,.02,.6,3,1,true); n.translate(0,.3,0); n.rotateZ(.5+r()*.5); n.rotateY(i/5*6.28); n.deleteAttribute('uv'); parts.push(n.toNonIndexed()); }
     const g=mergeGeometries(parts); const c=new Float32Array(g.attributes.position.count*3).fill(1); g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
-  placeRing(62,140,72,(p,k)=>{ const H=26+k*14; tubeTaper([p.clone(), p.clone().add(new V(.3,H*.5,.2)), p.clone().add(new V(-.2,H,.1))], 1.1+k*.5, .12, 10, 9);
-    const tiers=Math.floor(14+k*8); for(let i=0;i<tiers;i++){ const t=.32+.66*(i/tiers); const y=p.y+H*t; const R=(9+k*4)*(1-t*.75);
-      for(let b=0;b<3;b++){ const a=r()*6.28; const b0=new V(p.x,y,p.z), b1=b0.clone().add(new V(Math.cos(a)*R, R*.08, Math.sin(a)*R));
-        tubeTaper([b0, b0.clone().lerp(b1,.5).add(new V(0,R*.05,0)), b1], .16*(1-t*.5), .25, 5, 5);
-        const n=Math.floor(R*1.25); for(let j=0;j<n;j++){ const c=b0.clone().lerp(b1,.15+.85*r()).add(new V((r()-.5)*R*.35,(r()-.3)*.8,(r()-.5)*R*.35));
-          e.set((r()-.5)*.6,r()*6.28,(r()-.5)*.6); q.setFromEuler(e); const s=2.8+r()*1.5; addI('tuft',tuft,m4().compose(c,q,sc.set(s,s,s)), C(['#2a4028','#33482c','#243a22','#3d5233'][(r()*4)|0])); } } } });
+  // 主枝從樹幹表面長出、根部粗，先微微上揚、中段下垂、梢頭再翹起；每根主枝再分出水平小枝，針葉沿枝條成層覆蓋
+  const cedarCols=['#2a4028','#33482c','#243a22','#3d5233'].map(C);
+  const tuftAt=(c,s)=>{ e.set((r()-.5)*.5,r()*6.28,(r()-.5)*.5); q.setFromEuler(e); addI('tuft',tuft,m4().compose(c,q,sc.set(s,s*(.7+r()*.4),s)), cedarCols[(r()*4)|0]); };
+  placeRing(62,140,72,(p,k)=>{ const H=26+k*14; const tR=1.1+k*.5; tubeTaper([p.clone(), p.clone().add(new V(.3,H*.5,.2)), p.clone().add(new V(-.2,H,.1))], tR, .12, 10, 9);
+    const tiers=Math.floor(14+k*8); for(let i=0;i<tiers;i++){ const t=.32+.66*(i/tiers); const y=p.y+H*t; const R=(9+k*4)*(1-t*.75); const tr=tR*(1-.88*t);
+      const nb=4; for(let b=0;b<nb;b++){ const a=b/nb*6.28+i*1.3+r()*.7; const dir=new V(Math.cos(a),0,Math.sin(a)); const b0=new V(p.x,y,p.z).addScaledVector(dir,tr*.6);
+        const P=(u,lift)=>b0.clone().addScaledVector(dir,R*u).add(new V(0,lift,0));
+        const pts=[b0.clone(), P(.3,R*.07), P(.62,R*.02), P(1,R*.09)]; const rad=Math.max(.06,tr*.45);
+        const cv=tubeTaper(pts, rad, .22, 7, 5);
+        const n=Math.floor(R*1.5); for(let j=0;j<n;j++){ const u=.12+.88*r(); const c=cv.getPointAt(u).add(new V((r()-.5)*R*.12,(r()-.2)*.5,(r()-.5)*R*.12)); tuftAt(c, 2.3+r()*1.3); }
+        // 水平小枝
+        for(let m=0;m<3;m++){ const u=.3+.55*(m/2)+(r()-.5)*.1; const st=cv.getPointAt(u); const side=(m%2?1:-1)*(.7+r()*.4);
+          const sd=dir.clone().applyAxisAngle(new V(0,1,0),side); const L=R*.32*(1-u*.4);
+          const sp=[st.clone(), st.clone().addScaledVector(sd,L*.5).add(new V(0,-.1,0)), st.clone().addScaledVector(sd,L).add(new V(0,.08,0))];
+          const sc2=tubeTaper(sp, rad*.4, .3, 4, 4);
+          for(let j=0;j<Math.floor(L*1.6)+2;j++){ tuftAt(sc2.getPointAt(.2+.8*r()).add(new V((r()-.5)*.4,(r()-.2)*.35,(r()-.5)*.4)), 2+r()*1.1); } } } }
+  });
 
-  // 樹蕨：纖維質樹幹 + 一圈拱形大葉
+  // 樹蕨：纖維質樹幹往上漸粗，頂端有膨大的生長點；新葉斜向上再拱出，老葉低垂，最下面掛著一圈枯黃的舊葉
   const bigFrond=frondGeometry({ len:5.2, pinnae:24, pinnaLen:1.3, pinnaWid:.24, arch:.75, seed:7, seg:3 });
-  placeRing(56,80,38,(p,k)=>{ const H=4+k*4; tubeTaper([p.clone(), p.clone().add(new V((r()-.5)*.6,H*.5,(r()-.5)*.6)), p.clone().add(new V((r()-.5)*.8,H,(r()-.5)*.8))], .55, .8, 8, 9);
-    const top=p.clone().add(new V(0,H,0)); const n=11+Math.floor(k*6);
-    for(let i=0;i<n;i++){ const a=i/n*6.28+r()*.3; e.set(0,a,(r()-.5)*.25 - .1); q.setFromEuler(e); const s=.85+r()*.4; addI('bigFrond',bigFrond,m4().compose(top,q,sc.set(s,s,s)), C(['#4f6e2a','#5a7a31','#46632a'][(r()*3)|0])); } });
+  const oldFrond=frondGeometry({ len:4.6, pinnae:22, pinnaLen:1.15, pinnaWid:.22, arch:1.0, droop:.7, seed:8, seg:3 });
+  const deadFrond=frondGeometry({ len:3.0, pinnae:16, pinnaLen:.65, pinnaWid:.11, arch:.3, droop:.2, seed:12, seg:2, TS:8 });
+  const fernBark=[];
+  placeRing(56,80,38,(p,k)=>{ const H=4+k*4; const lx=(r()-.5)*.9, lz=(r()-.5)*.9;
+    const pts=[p.clone(), p.clone().add(new V(lx*.25,H*.45,lz*.25)), p.clone().add(new V(lx*.7,H*.8,lz*.7)), p.clone().add(new V(lx,H,lz))];
+    tubeTaper(pts, .5, 1.3, 10, 10);
+    const top=pts[3].clone();
+    const knob=new THREE.SphereGeometry(.68,12,9); knob.scale(1,.75,1); knob.translate(top.x,top.y+.05,top.z); fernBark.push(knob);
+    const ring=(n,geo,key,tilt,off,dy,cols,sMin,sVar)=>{ for(let i=0;i<n;i++){ const a=i/n*6.28+r()*.35; const o=top.clone().add(new V(Math.cos(a)*off,dy,Math.sin(a)*off));
+        e.set((r()-.5)*.15,-a,tilt+(r()-.5)*.18); q.setFromEuler(e); const s=sMin+r()*sVar; addI(key,geo,m4().compose(o,q,sc.set(s,s,s)), cols[(r()*cols.length)|0]); } };
+    ring(6+(r()*3|0), deadFrond, 'deadFrond', -2.25, .45, -.35, ['#6b5a3a','#7a6440','#5a4a30','#806a48'].map(C), .9, .4);
+    ring(6+(r()*2|0), oldFrond, 'oldFrond', -.85, .42, 0, ['#4a6527','#55712c','#5e6e2c'].map(C), .85, .3);
+    ring(8+(r()*4|0), bigFrond, 'bigFrond', -.35, .3, .18, ['#4f6e2a','#5a7a31','#46632a','#62843a'].map(C), .8, .35);
+  });
 
   // 胡椒木（紅胡椒漿果的來源）：垂枝與成串的粉紅漿果
   const pepperLeaf=frondGeometry({ len:1.4, pinnae:12, pinnaLen:.36, pinnaWid:.06, arch:1.5, droop:.6, lobes:false, seed:11, seg:3, TS:8 });
@@ -440,8 +462,9 @@ function buildWorld(target, detailed){
   { const tg=[]; for(let i=0;i<110;i++){ const a=r()*6.28, d=140+r()*90; const x=Math.cos(a)*d, z=Math.sin(a)*d; const H=30+r()*25; const g=new THREE.CylinderGeometry(.5+r()*.5,1+r()*.6,H,6); g.translate(x,terrainH(x,z)+H/2,z); tg.push(g); }
     const tm=new THREE.Mesh(mergeGeometries(tg), barkM); target.add(tm); }
   // 統一建立
+  fernBark.forEach(g=>branches.push(g));
   const bm=new THREE.Mesh(mergeGeometries(branches), barkM); bm.castShadow=false; bm.receiveShadow=true; target.add(bm);
-  const mats={ tuft:windMaterial({ roughness:.8 },.5), bigFrond:windMaterial({ roughness:.55 },.03), pepperLeaf:windMaterial({ roughness:.6 },.5), spray:windMaterial({ roughness:.7 },.4),
+  const mats={ tuft:windMaterial({ roughness:.8 },.5), bigFrond:windMaterial({ roughness:.55 },.03), oldFrond:windMaterial({ roughness:.6 },.03), deadFrond:windMaterial({ roughness:.85 },.02), pepperLeaf:windMaterial({ roughness:.6 },.5), spray:windMaterial({ roughness:.7 },.4),
     frondA:windMaterial({ roughness:.55 },.12), frondC:windMaterial({ roughness:.6 },.08), blade:windMaterial({ roughness:.7 },.9), cushion:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95 }), lichen:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85 }), oxalis:windMaterial({ roughness:.5 },.6), aleaf:windMaterial({ roughness:.6 },.35), mossTuft:windMaterial({ roughness:.85 },.2), frondB:windMaterial({ roughness:.55 },.16),
     berry:new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.3, clearcoat:.7, clearcoatRoughness:.15 }), jberry:new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.6, sheen:1, sheenColor:C('#b8c4dc') }) };
   Object.entries(inst).forEach(([k,v])=>{ const im=new THREE.InstancedMesh(v.geo, mats[k], v.xf.length); v.xf.forEach((m,i)=>{ im.setMatrixAt(i,m); im.setColorAt(i,v.cl[i]); });
@@ -1057,7 +1080,7 @@ renderer.setAnimationLoop(()=>{
   // 2) 貼回螢幕（含深度）  3) 玻璃取樣第 1 步的畫面做第二層折射
   renderer.setRenderTarget(outRT); renderer.render(blitScene, blitCam);
   renderer.autoClear=false; camera.layers.set(1); renderer.render(scene,camera); renderer.autoClear=true; camera.layers.set(0);
-  // 4) 多重取樣畫布 → 螢幕（色調映射在這一步）
+  // 4) 多重取樣畫布 → 螢幕（色調映射 + FXAA 在這一步）
   renderer.setRenderTarget(null); renderer.render(outScene, blitCam);
   labelRenderer.render(scene,camera);
   if(first){ first=false; const L=document.getElementById('loading'); setTimeout(()=>{ L.style.opacity=0; setTimeout(()=>L.remove(),700); },250); }
