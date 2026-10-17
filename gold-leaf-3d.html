@@ -808,9 +808,9 @@ const glass = new THREE.Mesh(glassGeo, glassMat); glass.layers.set(1); bottle.ad
 
 // 鍍鉻件的反射：霧裡的天光太均勻，鍍鉻會像白色塑膠；給瓶蓋與瓶頸一張「攝影棚」環境圖（上方柔光箱、兩側深色旗板、下方暖木色）
 const chromeEnv=(()=>{ const c=document.createElement('canvas'); c.width=1024; c.height=512; const g=c.getContext('2d');
-  const v=g.createLinearGradient(0,0,0,512); v.addColorStop(0,'#fdfcf8'); v.addColorStop(.3,'#e6e8e8'); v.addColorStop(.47,'#8c949a'); v.addColorStop(.5,'#3a4248'); v.addColorStop(.56,'#6a645a'); v.addColorStop(1,'#2a241c');
+  const v=g.createLinearGradient(0,0,0,512); v.addColorStop(0,'#ffffff'); v.addColorStop(.3,'#f0f1f0'); v.addColorStop(.46,'#c4c9cc'); v.addColorStop(.5,'#6e777c'); v.addColorStop(.56,'#a49c8e'); v.addColorStop(1,'#5a5044');
   g.fillStyle=v; g.fillRect(0,0,1024,512);
-  [[.08,.07],[.33,.05],[.58,.08],[.83,.06]].forEach(([x,w])=>{ const h=g.createLinearGradient((x-w)*1024,0,(x+w)*1024,0); h.addColorStop(0,'rgba(10,14,16,0)'); h.addColorStop(.5,'rgba(10,14,16,.85)'); h.addColorStop(1,'rgba(10,14,16,0)'); g.fillStyle=h; g.fillRect((x-w)*1024,90,w*2048,300); });
+  [[.08,.07],[.33,.05],[.58,.08],[.83,.06]].forEach(([x,w])=>{ const h=g.createLinearGradient((x-w)*1024,0,(x+w)*1024,0); h.addColorStop(0,'rgba(10,14,16,0)'); h.addColorStop(.5,'rgba(30,34,38,.55)'); h.addColorStop(1,'rgba(10,14,16,0)'); g.fillStyle=h; g.fillRect((x-w)*1024,90,w*2048,300); });
   [[.2,.03],[.7,.025]].forEach(([x,w])=>{ g.fillStyle='rgba(255,255,255,.95)'; g.fillRect((x-w)*1024,40,w*2048,170); });
   g.fillStyle='rgba(60,150,150,.35)'; g.fillRect(0,262,1024,30);   // 瓶身的藍綠映在鍍鉻上
   const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; t.colorSpace=THREE.SRGBColorSpace;
