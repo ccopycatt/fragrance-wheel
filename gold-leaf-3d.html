@@ -991,7 +991,7 @@ const BUILD_GL = {
     const N=40, im=new THREE.InstancedMesh(berry,bmat,N), cim=new THREE.InstancedMesh(calyx,cm,N); const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(); let k=0;
     [[.25,.0],[.5,.3],[.75,-.2]].forEach(([t,sw])=>{ const p=twig.getPointAt(t); const end=p.clone().add(new THREE.Vector3(sw*.4,-1.9,.2+sw*.3));
       end.y=p.y-1.35; const strig=stemCurve([[p.x,p.y,p.z],[p.x+sw*.35+.12,p.y-.35,p.z+.1],[p.x+sw*.45+.15,p.y-.85,p.z+.18],[end.x+.05,end.y,end.z]]); g.add(tube(strig,.011,sm,24));
-      const nb=6+(r()*3|0); for(let j=0;j<nb && k<N;j++){ const tt=.2+.8*j/(nb-1); const c=strig.getPointAt(tt); const out=new THREE.Vector3(Math.cos(j*2.4),-.3,Math.sin(j*2.4)).normalize();
+      const nb=6+(r()*3|0); for(let j=0;j<nb && k<N;j++){ const tt=Math.min(1,.2+.8*j/(nb-1)); const c=strig.getPointAt(tt); const out=new THREE.Vector3(Math.cos(j*2.4),-.3,Math.sin(j*2.4)).normalize();
         const bp=c.clone().addScaledVector(out,.12+.04*r()); g.add(tube(stemCurve([[c.x,c.y,c.z],[bp.x,bp.y+.05,bp.z],[bp.x,bp.y-.02,bp.z]]),.005,sm,6));
         const sc=(.6+.45*(1-tt))*(.8+r()*.35); s.set(sc,sc*.97,sc); q.identity(); m.compose(bp.clone().add(new THREE.Vector3(0,-.12*sc,0)),q,s); im.setMatrixAt(k,m); im.setColorAt(k,pal[(r()*pal.length)|0]);
         m.compose(bp.clone().add(new THREE.Vector3(0,-.25*sc,0)), q.setFromEuler(new THREE.Euler(Math.PI,0,0)), new THREE.Vector3(1,1,1)); cim.setMatrixAt(k,m); k++; } });
