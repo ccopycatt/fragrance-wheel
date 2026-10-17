@@ -2,7 +2,7 @@
 
 網站：https://ccopycatt.github.io/fragrance-wheel/（GitHub Pages，main 分支根目錄）
 
-- `index.html`：香調環主頁（27 支收藏、搜尋、依天氣推薦）
+- `index.html`：香調環主頁（28 支收藏、搜尋、依天氣推薦）
 - `summer-bcn-3d.html`：Summer BCN 的 3D 詳細頁（建好的單檔，貼圖已內嵌）
 - `src/summer-bcn-3d.src.html`：3D 頁原始碼（`__TEX_*__` 為貼圖佔位，建置時換成 data URI）
 - `src/tex_label50*.jpg`：50ml 標籤貼圖（取自官方去背照）
@@ -16,6 +16,7 @@
 - 蒐集方式（2026-10-17 起）：Fragrantica 會擋雲端連線，要用 desktop app 的內建瀏覽器開每支香水頁。分數、票數、持香、擴香、季節、日夜、性別的完整票數都在頁面的全域變數 `status`（加密），在頁面執行 `await _pd(status)` 即可解出；香調金字塔與主調從頁面 DOM 讀。持香擴香區塊是捲到畫面才載入，瀏覽器窗格隱藏時讀不到，所以以 `status` 為準。
 - 原始資料存在 `data/fragrantica_YYYY-MM-DD.json`（ra/rv 分數票數、acc 主調、n 香調、L/S 持香擴香各級票數、w 冬春夏秋日夜票數、g 性別）。
 - 網站的季節標示：達最高票季節 6 成以上；日夜：一方多 3 成以上標日間／夜間，否則日夜皆宜。
+- Fragrantica 未收錄的香水（目前：郁郁「寂靜深谷」）改用品牌官網，原始資料存 `data/official_*.json`；網站上 `perf_source:'official'`、`accords_note` 標明主調是依官方香材整理，季節日夜不推估、顯示「沒有投票資料」。
 - LOEWE Esencia 的香材不用 Fragrantica（那筆是 2018 黑瓶版），用官方主要香材＋ Notino 香調；評分與投票仍用 Fragrantica。
 
 ### 瓶身
