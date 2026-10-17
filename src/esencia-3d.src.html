@@ -458,8 +458,15 @@ function buildWorld(target, detailed){
   const frondC=frondGeometry({ len:2.2, pinnae:10, pinnaLen:.65, pinnaWid:.16, arch:.6, seed:9, seg:2, TS:8 });
   placeRing(18,125,520,(p,k)=>{ const n=5+Math.floor(r()*4); const isAut=r()<.25;
     for(let i=0;i<n;i++){ e.set(0,i/n*6.28+r()*.4,(r()-.5)*.3); q.setFromEuler(e); const s=.9+r()*.7; addI('frondC',frondC,m4().compose(p,q,sc.set(s,s,s)), C((isAut&&r()<.8?autumn:greens)[(r()*3)|0])); } });
-  // 霧中更遠的樹幹剪影
-  { const tg=[]; for(let i=0;i<110;i++){ const a=r()*6.28, d=140+r()*90; const x=Math.cos(a)*d, z=Math.sin(a)*d; const H=30+r()*25; const g=new THREE.CylinderGeometry(.5+r()*.5,1+r()*.6,H,6); g.translate(x,terrainH(x,z)+H/2,z); tg.push(g); }
+  // 霧中更遠的針葉林：一層層下垂的枝葉輪廓（不是光禿的樹幹），讓林子一路延伸進霧裡
+  { const fg=[], tg=[]; const fc=[]; const tc=new THREE.Color();
+    for(let i=0;i<190;i++){ const a=r()*6.28, d=118+r()*110; const x=Math.cos(a)*d, z=Math.sin(a)*d; const y0=terrainH(x,z); const H=24+r()*22; const W=5+r()*3.5;
+      const tr=new THREE.CylinderGeometry(.35,.8,H*.35,6); tr.translate(x,y0+H*.17,z); tg.push(tr);
+      const layers=7+(r()*4|0); for(let l=0;l<layers;l++){ const t=l/layers; const rad=W*(1-t*.85)*(.85+r()*.3); const h=H*.22;
+        const c=new THREE.ConeGeometry(rad,h,9,1,true); const pp=c.attributes.position; for(let v=0;v<pp.count;v++){ const vy=pp.getY(v); if(vy<0){ const vx=pp.getX(v), vz=pp.getZ(v); const ang=Math.atan2(vz,vx); const k=1+.18*Math.sin(ang*5+i+l)+.1*Math.sin(ang*11+l*2); pp.setXYZ(v,vx*k,vy-.25*h*(Math.sin(ang*7+l)*.5+.5),vz*k); } }
+        c.translate(x,y0+H*(.22+.72*t),z); c.computeVertexNormals(); c.deleteAttribute('uv'); fg.push(c);
+        tc.set(['#2b3d29','#33452e','#283826','#3a4a32'][(r()*4)|0]); const cc=new Float32Array(pp.count*3); for(let v=0;v<pp.count;v++){ cc[v*3]=tc.r; cc[v*3+1]=tc.g; cc[v*3+2]=tc.b; } c.setAttribute('color',new THREE.BufferAttribute(cc,3)); } }
+    const fm=new THREE.Mesh(mergeGeometries(fg.map(g=>g.index?g.toNonIndexed():g)), new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95, side:THREE.DoubleSide })); target.add(fm);
     const tm=new THREE.Mesh(mergeGeometries(tg), barkM); target.add(tm); }
   // 統一建立
   fernBark.forEach(g=>branches.push(g));
@@ -752,9 +759,27 @@ const blit = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMateri
   }` }));
 blit.frustumCulled=false; const blitScene=new THREE.Scene(); blitScene.add(blit); const blitCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 // 反鋸齒：場景與玻璃都畫進同一張多重取樣（MSAA）畫布，玻璃邊緣也能平滑，最後再輸出到螢幕
-const outRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA });
+const outRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA, depthTexture:new THREE.DepthTexture(2,2) });
+// 景深：焦點對在鏡頭注視的瓶身，前景與遠景依距離帶一點點散景模糊（上限約 2.5 個 CSS 像素）
+const dofRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType });
+const DOF = { maxR:2.6, gain:1.15, zone:.1 };
+const dofQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({ depthTest:false, depthWrite:false,
+  uniforms:{ tColor:{value:outRT.texture}, tDepth:{value:outRT.depthTexture}, uRes:{value:new THREE.Vector2(2,2)}, uNear:{value:.1}, uFar:{value:3000}, uFocus:{value:40}, uMaxR:{value:5}, uGain:{value:DOF.gain}, uZone:{value:DOF.zone} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+  fragmentShader:`#include <packing>
+    uniform sampler2D tColor, tDepth; uniform vec2 uRes; uniform float uNear, uFar, uFocus, uMaxR, uGain, uZone; varying vec2 vUv;
+    float coc(vec2 uv){ float d=-perspectiveDepthToViewZ(texture2D(tDepth,uv).x, uNear, uFar); return clamp((abs(1.-uFocus/max(d,.01))-uZone)*uGain, 0., 1.)*uMaxR; }
+    void main(){
+      vec3 c0=texture2D(tColor,vUv).rgb; float c=coc(vUv);
+      if(c<.35){ gl_FragColor=vec4(c0,1.); return; }
+      vec3 acc=c0; float ws=1.;
+      for(int i=0;i<24;i++){ float fi=float(i)+.5; float r=sqrt(fi/24.)*c; float a=fi*2.39996; vec2 o=vec2(cos(a),sin(a))*r;
+        vec2 uv=vUv+o/uRes; float w=clamp(coc(uv)-r+1., 0., 1.); acc+=texture2D(tColor,uv).rgb*w; ws+=w; }
+      gl_FragColor=vec4(acc/ws,1.);
+    }` }));
+dofQuad.frustumCulled=false; const dofScene=new THREE.Scene(); dofScene.add(dofQuad);
 const outQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({ depthTest:false, depthWrite:false,
-  uniforms:{ tColor:{value:outRT.texture}, uRes:{value:new THREE.Vector2(2,2)} },
+  uniforms:{ tColor:{value:dofRT.texture}, uRes:{value:new THREE.Vector2(2,2)} },
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
   // 色調映射後再做 FXAA：處理樹葉、草葉、高光等 MSAA 抓不到的細碎鋸齒
   fragmentShader:`uniform sampler2D tColor; uniform vec2 uRes; varying vec2 vUv;
@@ -1022,7 +1047,7 @@ function layout(k){
 }
 function frame(){
   const w=innerWidth, h=innerHeight; renderer.setSize(w,h); labelRenderer.setSize(w,h); camera.aspect=w/h;
-  const dp=renderer.getPixelRatio(); sceneRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); outRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); outQuad.material.uniforms.uRes.value.set(Math.floor(w*dp), Math.floor(h*dp));
+  const dp=renderer.getPixelRatio(); sceneRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); outRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); outQuad.material.uniforms.uRes.value.set(Math.floor(w*dp), Math.floor(h*dp)); dofRT.setSize(Math.floor(w*dp), Math.floor(h*dp)); dofQuad.material.uniforms.uRes.value.set(Math.floor(w*dp), Math.floor(h*dp)); dofQuad.material.uniforms.uMaxR.value=DOF.maxR*dp;
   const k=THREE.MathUtils.clamp(camera.aspect*1.25,.6,1); layout(k);
   const vf=THREE.MathUtils.degToRad(camera.fov)/2, hf=Math.atan(Math.tan(vf)*camera.aspect);
   const dist=Math.max(10.6/Math.tan(vf), (9.4*k+1.3)/Math.tan(hf));
@@ -1081,6 +1106,9 @@ renderer.setAnimationLoop(()=>{
   renderer.setRenderTarget(outRT); renderer.render(blitScene, blitCam);
   renderer.autoClear=false; camera.layers.set(1); renderer.render(scene,camera); renderer.autoClear=true; camera.layers.set(0);
   // 4) 多重取樣畫布 → 螢幕（色調映射 + FXAA 在這一步）
+  // 5) 景深：焦點 = 鏡頭到注視點的距離
+  dofQuad.material.uniforms.uFocus.value = tmpV.copy(controls.target).sub(camera.position).dot(camDir);
+  renderer.setRenderTarget(dofRT); renderer.render(dofScene, blitCam);
   renderer.setRenderTarget(null); renderer.render(outScene, blitCam);
   labelRenderer.render(scene,camera);
   if(first){ first=false; const L=document.getElementById('loading'); setTimeout(()=>{ L.style.opacity=0; setTimeout(()=>L.remove(),700); },250); }
