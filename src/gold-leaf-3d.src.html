@@ -337,9 +337,35 @@ function cloudSea(target){
   const mesh=new THREE.Mesh(g,m); mesh.position.y=-31; mesh.renderOrder=-4; target.add(mesh); return mesh;
 }
 
+// 谷對面的茶山：山坡上一圈圈沿等高線的茶行（著色器依高度畫出條紋），山腳沒入雲海
+function teaHills(target, detail){
+  const mat=new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.9 });
+  mat.onBeforeCompile=(sh)=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vHW;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvHW=(modelMatrix*vec4(transformed,1.)).xyz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vHW;\nfloat hh(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat vn2(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y); }')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        float wob = vn2(vHW.xz*.05)*1.6 + vn2(vHW.xz*.17)*.5;
+        float band = fract(vHW.y*.62 + wob);
+        float aa = fwidth(vHW.y*.62)*1.5;
+        float row = smoothstep(.0, .12+aa, band) * (1.-smoothstep(.62-aa, .74+aa, band));   // 茶行（圓弧樹冠）
+        float slope = 1.-smoothstep(.55,.8, abs(normalize(cross(dFdx(vHW),dFdy(vHW))).y));   // 太陡的地方是樹林，沒有茶行
+        float fade = 1.-smoothstep(160., 420., length(vHW.xz));
+        vec3 tea = mix(vec3(.16,.27,.10), vec3(.36,.52,.2), row*(.6+.4*sin(band*3.14)));
+        vec3 gap = vec3(.33,.3,.2);
+        diffuseColor.rgb = mix(diffuseColor.rgb, mix(gap, tea, row), (1.-slope)*fade*.92);`);
+  };
+  const hills=[ [-70,-150,120,70,30,1], [60,-185,140,80,40,2], [150,-110,90,70,26,3], [-160,-100,100,80,32,4], [-10,-260,170,90,52,5], [210,-220,120,90,46,6], [-230,-210,130,90,48,7] ];
+  hills.forEach(([cx,cz,rx,rz,h,seed])=>{ const pg=new THREE.PlaneGeometry(2,2,detail?140:30,detail?140:30); pg.rotateX(-Math.PI/2); const p=pg.attributes.position, col=[]; const c1=C('#3e6430'), c2=C('#56743a'), tc=new THREE.Color();
+    for(let i=0;i<p.count;i++){ const u=p.getX(i), v=p.getZ(i); const r=Math.hypot(u,v);
+      let y=Math.max(0,1-r*r)*h*(1+.25*fbm(u*2+seed,seed,v*2,3)) + fbm(u*5+seed,1,v*5,3)*h*.12*(1-r);
+      y=Math.max(y,0); p.setXYZ(i, cx+u*rx, -40+y, cz+v*rz); tc.copy(c1).lerp(c2, Math.max(0,fbm(u*4,seed,v*4,2)+.3)); col.push(tc.r,tc.g,tc.b); }
+    pg.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); pg.computeVertexNormals();
+    const m=new THREE.Mesh(pg,mat); m.receiveShadow=false; target.add(m); });
+}
+
 function buildWorld(target, detailed){
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 64, 32), skyMaterial()); sky.renderOrder=-10; sky.frustumCulled=false; target.add(sky);
-  mountainRings(target, detailed); cloudSea(target);
+  mountainRings(target, detailed); teaHills(target, detailed); cloudSea(target);
   // 地面：台地是夯實的紅土與碎石，茶行之間是深色的土壤，邊坡長草
   const ring = new THREE.RingGeometry(.8, 330, detailed?220:60, detailed?120:30);   // 內徑不能是 0：圓心疊點會讓法向／凹凸計算出 NaN ring.rotateX(-Math.PI/2);
   const rp=ring.attributes.position, col=[]; const cRed=C('#8a6a48'), cSoil=C('#5e4a32'), cGrass=C('#5f7a34'), cDry=C('#8a8550'), tmp=new THREE.Color();
@@ -569,10 +595,10 @@ const flakes = (()=>{
   const lidM=new THREE.Mesh(new THREE.BoxGeometry(CW+.3, LID, CD+.3), [mPlain, mPlain, mLid, mPlain, mPlain, mPlain]);
   lidM.position.y=-LID/2; lidM.castShadow=true; lidM.receiveShadow=true; scene.add(lidM);
   // 貼了金箔的黃銅護角：金箔皺褶用凹凸圖表現
-  const foilTex=(mode)=>canvasTex(512,512,(g,w)=>{ g.fillStyle= mode==='color'?'#c9a35a':'#808080'; g.fillRect(0,0,w,w); const r=rng(mode==='color'?5:6);
+  const foilTex=(mode)=>canvasTex(512,512,(g,w)=>{ g.fillStyle= mode==='color'?'#c8a462':'#808080'; g.fillRect(0,0,w,w); const r=rng(mode==='color'?5:6);
     for(let i=0;i<900;i++){ const x=r()*w,y=r()*w,l=6+r()*40,a=r()*6.28; g.strokeStyle= mode==='color'?`rgba(${r()<.5?'120,90,40':'255,230,160'},${r()*.35})`:`rgba(${r()<.5?'0,0,0':'255,255,255'},${r()*.5})`; g.lineWidth=.6+r()*1.6; g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l); g.stroke(); }
     if(mode==='color') for(let i=0;i<60;i++){ g.fillStyle=`rgba(90,60,30,${r()*.25})`; g.beginPath(); g.ellipse(r()*w,r()*w,4+r()*20,2+r()*10,r()*3,0,7); g.fill(); } }, mode==='color');
-  const goldM=new THREE.MeshPhysicalMaterial({ map:foilTex('color'), bumpMap:foilTex('bump'), bumpScale:.6, metalness:1, roughness:.32, color:C('#ffffff'), envMapIntensity:1.25 });
+  const goldM=new THREE.MeshPhysicalMaterial({ map:foilTex('color'), bumpMap:foilTex('bump'), bumpScale:.8, metalness:1, roughness:.42, color:C('#c9a868'), envMapIntensity:.85 });
   const cornerG=[];
   for(const sx of [-1,1]) for(const sz of [-1,1]){
     const a=new THREE.BoxGeometry(.06, CH-LID-.1, .62); a.translate(sx*(CW/2+.03), -CH+(CH-LID)/2, sz*(CD/2-.31)); cornerG.push(a);
@@ -1058,7 +1084,7 @@ const BUILD_GL = {
   // 麝香：一團柔軟潔白的雲（像曬過太陽的棉布），裡面有幾點微光
   musk(){
     const g=new THREE.Group(); const r=rng(251);
-    const mat=new THREE.MeshPhysicalMaterial({ color:C('#efe6da'), roughness:1, sheen:1, sheenRoughness:.6, sheenColor:C('#ffe6c0') });
+    const mat=new THREE.MeshPhysicalMaterial({ color:C('#e2d2bc'), roughness:1, sheen:1, sheenRoughness:.5, sheenColor:C('#f4d8a8') });
     const parts=[];
     const blobs=[[0,0,0,.62],[.55,-.1,.1,.5],[-.55,-.12,0,.48],[.25,.32,-.05,.46],[-.25,.3,.1,.44],[.9,-.25,-.1,.34],[-.88,-.28,.12,.33],[0,-.25,.35,.42],[.1,-.2,-.38,.4],[.5,.15,.32,.32],[-.45,.12,-.3,.3],[.05,.62,0,.3]];
     blobs.forEach(([x,y,z,s],i)=>{ const b=mergeVertices(new THREE.IcosahedronGeometry(s,4)); b.deleteAttribute('normal'); b.deleteAttribute('uv'); displace(b,s*.12,3/s,4,i*1.7); b.translate(x,y,z); b.deleteAttribute('normal'); parts.push(b); });
