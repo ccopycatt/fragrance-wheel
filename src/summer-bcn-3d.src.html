@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Summer BCN 3D</title>
+<title>Summer BCN・香境</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Noto+Serif+TC:wght@500;600&display=swap" rel="stylesheet">
@@ -67,7 +67,7 @@
 <div id="err">這個裝置的瀏覽器無法顯示 3D（需要 WebGL 2）。<br>請改用最新版 Safari 或 Chrome 開啟。</div>
 
 <div class="hud top">
-  <a class="back" href="__BACK_HREF__">← 回到香調環</a>
+  <a class="back" onclick="try{if(document.referrer&&new URL(document.referrer).origin===location.origin&&history.length>1){history.back();return false;}}catch(e){}" href="__BACK_HREF__">← 回到香調環</a>
   <div class="title">
     <div class="brand">Almah Parfums 1948</div>
     <div class="name">Summer BCN</div>
