@@ -18,10 +18,10 @@
     --sans:system-ui,-apple-system,"Segoe UI","Noto Sans TC","微軟正黑體",sans-serif;
   }
   *{box-sizing:border-box;}
-  body{background:var(--bg);color:var(--text-2);font-family:var(--sans);margin:0;padding:0 20px 70px;
+  body{background:var(--bg);color:var(--text-2);font-family:var(--sans);margin:0;padding:0 0 70px;
     background-image:radial-gradient(900px 420px at 50% -120px,rgba(201,169,106,0.14),transparent 70%),radial-gradient(600px 300px at 85% 8%,rgba(201,169,106,0.05),transparent 70%);
     background-repeat:no-repeat;}
-  .page{max-width:1320px;margin:0 auto;}
+  .page{max-width:1360px;margin:0 auto;padding:0 20px;box-sizing:border-box;overflow-x:clip;}
   header{text-align:center;padding:38px 0 8px;}
   .wordmark{font-family:var(--serif);letter-spacing:6px;font-size:var(--fs-sm);color:var(--gold);text-transform:uppercase;margin-bottom:14px;font-weight:500;}
   h1{font-family:var(--serif);font-weight:600;color:var(--text);margin:0 0 10px;font-size:var(--fs-2xl);letter-spacing:1px;}
@@ -169,6 +169,7 @@
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(3,2,1,0.82);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
   .modal-backdrop.open{opacity:1;pointer-events:auto;}
+  .modal-backdrop:not(.show){display:none;}
   .modal-card{background:linear-gradient(180deg,#191309,#0d0a06);border:1px solid var(--border-strong);border-radius:30px;max-width:900px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.7);position:relative;overflow:hidden;transform:translateY(14px) scale(0.985);transition:transform .28s;}
   .modal-backdrop.open .modal-card{transform:none;}
   .modal-close{position:absolute;top:10px;right:10px;z-index:5;width:40px;height:40px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(10,8,6,0.6);color:var(--gold);font-size:var(--fs-lg);cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -288,7 +289,6 @@
   .search-hint{text-wrap:balance;}
 
   /* 置頂分頁列：香調列（香調環在旁邊時不顯示）＋排序開關 */
-  html,body{overflow-x:clip;}
   .detail-col{min-width:0;}
   .tabbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;height:0;margin:0;}
   .tabbar::before{content:"";position:absolute;left:0;right:0;top:0;height:57px;background:var(--bg);border-bottom:1px solid var(--border);opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -684,9 +684,9 @@ function openModal(pkey){
     ${p.note?`<div class="m-note">${ICON.note}<span>${p.note}</span></div>`:''}
     ${p.model3d?`<a class="m-link m-3d" href="${p.model3d}">走進香境 ${ICON.arrow}</a>`:''}${p.url?`<a class="m-link" href="${p.url}" target="_blank" rel="noopener">查看 ${p.url_label||'Fragrantica 原文'} ${ICON.ext}</a>`:''}
   </div>`;
-  modal.classList.add('open'); document.body.style.overflow='hidden';
+  clearTimeout(modal._hideT); modal.classList.add('show'); void modal.offsetWidth; modal.classList.add('open'); document.body.style.overflow='hidden';
 }
-function closeModal(){ modal.classList.remove('open'); document.body.style.overflow=''; }
+function closeModal(){ if(!modal.classList.contains('open')) return; modal.classList.remove('open'); document.body.style.overflow=''; modal._hideT=setTimeout(()=>modal.classList.remove('show'),280); }
 modal.addEventListener('click',e=>{ if(e.target===modal||e.target.closest('.modal-close')) { closeModal(); return; }
   const sw=e.target.closest('.bottle-switch button'); if(!sw) return; const v=sw.dataset.bv; try{ localStorage.setItem('fw-bottle',v); }catch(err){}
   modal.querySelectorAll('.bottle-frame').forEach(f=>f.hidden=f.dataset.v!==v);
@@ -706,7 +706,7 @@ function renderFamily(fam){
   hub.querySelector('.hub-title').textContent=fam.split('. ')[1];
   hub.querySelector('.hub-sub').innerHTML=`${database[fam].length} 款收藏`;
   const items=applySort(database[fam].map(p=>({p,famColor})));
-  detail.innerHTML=`<div class="detail-header" style="--fam-color:${famColor}"><span class="hdr-icon">${familyIcons[fam]}</span><h2>${famName(fam)}</h2><div class="fam-count">${items.length} 款香水${sortNote()}</div></div>`+cardsHtml(items);
+  detail.innerHTML=`<div class="detail-header" style="--fam-color:${famColor}"><span class="hdr-icon">${familyIcons[fam]}</span><h2>${famName(fam)}</h2><div class="fam-count">${items.length} 款香水</div></div>`+cardsHtml(items);
   syncViewbar();
 }
 
@@ -719,7 +719,7 @@ function renderAll(){
   const list=Object.values(perfIndex).filter(e=>!e.is_sample).map((e,i)=>({e,i})).sort((a,b)=>categories.indexOf(a.e.families[0])-categories.indexOf(b.e.families[0])||a.i-b.i).map(x=>x.e);
   document.getElementById('hub-icon').innerHTML=ALL_ICON; hub.style.setProperty('--hub-color','var(--gold)');
   hub.querySelector('.hub-title').textContent='全部收藏'; hub.querySelector('.hub-sub').innerHTML=`${list.length} 款收藏`;
-  detail.innerHTML=`<div class="detail-header" style="--fam-color:var(--gold)"><span class="hdr-icon">${ALL_ICON}</span><h2>全部收藏</h2><div class="fam-count">${list.length} 款香水${sortNote()}</div></div>`+cardsHtml(applySort(list.map(e=>({p:e.p,famColor:familyColors[e.families[0]],opts:{families:e.families}}))));
+  detail.innerHTML=`<div class="detail-header" style="--fam-color:var(--gold)"><span class="hdr-icon">${ALL_ICON}</span><h2>全部收藏</h2><div class="fam-count">${list.length} 款香水</div></div>`+cardsHtml(applySort(list.map(e=>({p:e.p,famColor:familyColors[e.families[0]],opts:{families:e.families}}))));
   syncViewbar();
 }
 
@@ -748,7 +748,7 @@ function runSearch(query){
     return terms.some(t=>hay.includes(t));
   });
   if(!results.length){ detail.innerHTML=`<div class="detail-header"><h2>搜尋結果</h2></div><div class="empty-state">找不到含「${query}」的香水<br>試試 vetiver、rose、oud、tea 等香材</div>`; syncViewbar(); return; }
-  detail.innerHTML=`<div class="detail-header"><h2>搜尋結果</h2><div class="fam-count">${results.length} 款符合「${query}」${sortNote()}</div></div>`+cardsHtml(applySort(results.map(({p,families,is_sample})=>({p,famColor:familyColors[families[0]],opts:{terms,families,is_sample}}))));
+  detail.innerHTML=`<div class="detail-header"><h2>搜尋結果</h2><div class="fam-count">${results.length} 款符合「${query}」</div></div>`+cardsHtml(applySort(results.map(({p,families,is_sample})=>({p,famColor:familyColors[families[0]],opts:{terms,families,is_sample}}))));
   syncViewbar();
 }
 
