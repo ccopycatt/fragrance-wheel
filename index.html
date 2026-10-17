@@ -12,7 +12,8 @@
     --bg:#0a0806; --surface:#14100b; --surface-2:#1d1811; --border:rgba(201,169,106,0.16);
     --border-strong:rgba(201,169,106,0.36); --gold:#c9a96a; --gold-lt:#ecd6a2; --gold-dk:#9c7b3c;
     --gold-grad:linear-gradient(135deg,#f2dfae 0%,#c9a96a 52%,#a8823f 100%);
-    --text:#f4efe4; --text-2:#b3a892; --text-muted:#7c7360;
+    --text:#f4efe4; --text-2:#b3a892; --text-muted:#9a907a; --ink-on-gold:#150f06;
+    --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:18px; --fs-xl:24px; --fs-2xl:34px;
     --serif:"Playfair Display","Noto Serif TC",Georgia,serif;
     --sans:system-ui,-apple-system,"Segoe UI","Noto Sans TC","微軟正黑體",sans-serif;
   }
@@ -22,36 +23,36 @@
     background-repeat:no-repeat;}
   .page{max-width:1320px;margin:0 auto;}
   header{text-align:center;padding:38px 0 8px;}
-  .wordmark{font-family:var(--serif);letter-spacing:6px;font-size:12px;color:var(--gold);text-transform:uppercase;margin-bottom:14px;font-weight:500;}
-  h1{font-family:var(--serif);font-weight:600;color:var(--text);margin:0 0 10px;font-size:34px;letter-spacing:1px;}
+  .wordmark{font-family:var(--serif);letter-spacing:6px;font-size:var(--fs-sm);color:var(--gold);text-transform:uppercase;margin-bottom:14px;font-weight:500;}
+  h1{font-family:var(--serif);font-weight:600;color:var(--text);margin:0 0 10px;font-size:var(--fs-2xl);letter-spacing:1px;}
   h1 .ital{font-style:italic;color:var(--gold-lt);font-weight:500;}
   .flourish{width:70px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 12px;}
-  .subtitle{color:var(--text-muted);font-size:12.5px;letter-spacing:0.3px;margin-bottom:22px;}
+  .subtitle{color:var(--text-muted);font-size:var(--fs-sm);letter-spacing:0.3px;margin-bottom:22px;}
 
   .toolbar{max-width:720px;margin:0 auto 28px;}
   .modeswitch{display:flex;gap:8px;justify-content:center;margin-bottom:16px;}
   .mode-btn{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);border-radius:30px;
-    padding:8px 20px;font-size:13px;font-family:inherit;cursor:pointer;letter-spacing:1px;display:flex;align-items:center;gap:7px;}
+    padding:8px 20px;font-size:var(--fs-sm);font-family:inherit;cursor:pointer;letter-spacing:1px;display:flex;align-items:center;gap:7px;}
   .mode-btn.active{background:var(--gold-grad);color:#150f06;font-weight:700;border-color:var(--gold);}
   .search-box{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(29,24,17,0.9),rgba(20,16,11,0.9));
     border:1px solid var(--border-strong);border-radius:40px;padding:13px 20px;transition:box-shadow .25s,border-color .25s;}
   .search-box:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,106,0.14);}
   .search-box svg{width:18px;height:18px;color:var(--gold);flex-shrink:0;}
-  .search-box input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:15px;font-family:inherit;}
+  .search-box input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:var(--fs-md);font-family:inherit;}
   .search-box input::placeholder{color:var(--text-muted);}
-  .search-clear{background:transparent;border:1px solid var(--border-strong);color:var(--text-2);border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;display:none;letter-spacing:1px;}
+  .search-clear{background:transparent;border:1px solid var(--border-strong);color:var(--text-2);border-radius:20px;padding:4px 14px;font-size:var(--fs-sm);cursor:pointer;display:none;letter-spacing:1px;}
   .search-clear:hover{color:var(--gold);border-color:var(--gold);}
-  .search-hint{text-align:center;font-size:11.5px;color:var(--text-muted);margin-top:10px;letter-spacing:0.3px;}
+  .search-hint{text-align:center;font-size:var(--fs-xs);color:var(--text-muted);margin-top:10px;letter-spacing:0.3px;}
   .search-hint b{color:var(--gold);font-weight:600;}
 
   /* 檢視列：全部收藏／詳細・總覽 */
   .viewbar{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;}
-  .vb-btn{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);border-radius:30px;padding:7px 16px;font-size:12.5px;font-family:inherit;cursor:pointer;letter-spacing:1px;display:inline-flex;align-items:center;gap:7px;}
+  .vb-btn{background:var(--surface);border:1px solid var(--border-strong);color:var(--text-2);border-radius:30px;padding:7px 16px;font-size:var(--fs-sm);font-family:inherit;cursor:pointer;letter-spacing:1px;display:inline-flex;align-items:center;gap:7px;}
   .vb-btn b{color:var(--gold-lt);font-weight:600;}
   .vb-btn.active{background:var(--gold-grad);color:#150f06;border-color:var(--gold);font-weight:700;}
   .vb-btn.active b{color:#150f06;}
   .seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:30px;overflow:hidden;background:var(--surface);}
-  .seg button{all:unset;cursor:pointer;padding:7px 15px;font-size:12.5px;color:var(--text-2);letter-spacing:1px;}
+  .seg button{all:unset;cursor:pointer;padding:7px 15px;font-size:var(--fs-sm);color:var(--text-2);letter-spacing:1px;}
   .seg button.active{background:var(--gold-grad);color:#150f06;font-weight:700;}
   .seg button:focus-visible,.vb-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
   .center-hub{cursor:pointer;}
@@ -62,16 +63,16 @@
   .thumb img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;display:block;}
   .thumb.is3d{background:#0d0b08;}
   .thumb.is3d img{object-fit:cover;mix-blend-mode:normal;}
-  .thumb .t3d{position:absolute;right:5px;bottom:5px;font-size:9px;font-weight:700;letter-spacing:1px;color:#150f06;background:var(--gold-grad);border-radius:6px;padding:1px 5px;}
+  .thumb .t3d{position:absolute;right:5px;bottom:5px;font-size:var(--fs-xs);font-weight:700;letter-spacing:1px;color:#150f06;background:var(--gold-grad);border-radius:6px;padding:1px 5px;}
   /* 總覽模式：一列三支，只看縮圖、品牌、名稱、評分 */
   .cards.compact{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
   .cards.compact .card{padding:10px 10px 12px;}
   .card.mini .thumb{width:100%;height:auto;aspect-ratio:3/4;}
-  .card.mini .brand{margin-top:9px;font-size:9.5px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .card.mini .mini-name{font-family:var(--serif);font-size:14px;color:var(--text);font-weight:600;line-height:1.25;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .card.mini .mini-zh{font-size:11px;color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .card.mini .mini-rate{font-size:11px;color:var(--gold-lt);margin-top:5px;letter-spacing:.5px;}
-  @media (max-width:480px){ .cards.compact{gap:8px;} .cards.compact .card{padding:8px 8px 10px;border-radius:12px;} .card.mini .mini-name{font-size:12.5px;} }
+  .card.mini .brand{margin-top:9px;font-size:var(--fs-xs);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card.mini .mini-name{font-family:var(--serif);font-size:var(--fs-base);color:var(--text);font-weight:600;line-height:1.25;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .card.mini .mini-zh{font-size:var(--fs-xs);color:var(--text-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card.mini .mini-rate{font-size:var(--fs-xs);color:var(--gold-lt);margin-top:5px;letter-spacing:.5px;}
+  @media (max-width:480px){ .cards.compact{gap:8px;} .cards.compact .card{padding:8px 8px 10px;border-radius:12px;} .card.mini .mini-name{font-size:var(--fs-sm);} }
   .today-btns{display:flex;gap:6px;flex-shrink:0;}
 
   .layout{display:grid;grid-template-columns:500px 1fr;gap:40px;align-items:start;}
@@ -87,8 +88,8 @@
     transition:transform .22s ease,box-shadow .22s ease,background .22s ease;box-shadow:0 6px 16px rgba(0,0,0,0.6);user-select:none;}
   .node-icon{line-height:0;}
   .node-icon svg{width:clamp(18px,4.4vw,23px);height:clamp(18px,4.4vw,23px);color:var(--node-color);}
-  .node-name{font-size:clamp(10.5px,2.5vw,12px);font-weight:700;color:var(--text);margin-top:3px;line-height:1.15;letter-spacing:0.5px;}
-  .node-count{font-size:9px;font-weight:400;color:var(--text-muted);margin-top:1px;}
+  .node-name{font-size:clamp(11px,2.6vw,12.5px);font-weight:700;color:var(--text);margin-top:3px;line-height:1.15;letter-spacing:0.5px;}
+  .node-count{font-size:var(--fs-xs);font-weight:400;color:var(--text-muted);margin-top:1px;}
   .node:hover{transform:scale(1.12);box-shadow:0 0 20px var(--node-glow);}
   .node.active{background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--node-color) 88%,#000),color-mix(in srgb,var(--node-color) 62%,#000));border-color:var(--gold-lt);transform:scale(1.13);box-shadow:0 0 24px var(--node-glow);}
   .node.active .node-icon svg{color:#120d07;}
@@ -99,120 +100,119 @@
     text-align:center;border:1px solid var(--border-strong);padding:12px;box-shadow:inset 0 0 30px rgba(0,0,0,0.85),0 0 0 6px rgba(10,8,6,0.6);}
   .center-hub .hub-icon{line-height:0;margin-bottom:7px;}
   .center-hub .hub-icon svg{width:32px;height:32px;color:var(--hub-color,var(--gold));}
-  .center-hub .hub-title{font-family:var(--serif);font-size:18px;color:var(--text);font-weight:600;}
-  .center-hub .hub-sub{font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;letter-spacing:0.5px;}
-  .legend-note{margin-top:24px;font-size:11.5px;color:var(--text-muted);text-align:center;max-width:430px;line-height:1.9;}
+  .center-hub .hub-title{font-family:var(--serif);font-size:var(--fs-lg);color:var(--text);font-weight:600;}
+  .center-hub .hub-sub{font-size:var(--fs-xs);color:var(--text-muted);margin-top:6px;line-height:1.5;letter-spacing:0.5px;}
+  .legend-note{margin-top:24px;font-size:var(--fs-xs);color:var(--text-muted);text-align:center;max-width:430px;line-height:1.9;}
 
   .detail-panel{min-height:420px;}
   .detail-header{display:flex;align-items:center;gap:13px;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:22px;}
   .detail-header .hdr-icon{line-height:0;}
   .detail-header .hdr-icon svg{width:28px;height:28px;color:var(--fam-color,var(--gold));}
-  .detail-header h2{font-family:var(--serif);font-size:25px;color:var(--text);font-weight:600;margin:0;letter-spacing:0.5px;}
-  .detail-header .fam-count{font-size:12px;color:var(--text-muted);letter-spacing:1px;}
+  .detail-header h2{font-family:var(--serif);font-size:var(--fs-xl);color:var(--text);font-weight:600;margin:0;letter-spacing:0.5px;}
+  .detail-header .fam-count{font-size:var(--fs-sm);color:var(--text-muted);letter-spacing:1px;}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(345px,1fr));gap:18px;}
   .card{background:linear-gradient(180deg,var(--surface-2),var(--surface));border:1px solid var(--border);border-radius:14px;padding:18px 20px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s;}
-  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--fam-color,var(--gold));opacity:0.85;}
   .card:hover{border-color:var(--border-strong);transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,0.5);}
-  .card .brand{font-size:10.5px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;}
+  .card .brand{font-size:var(--fs-xs);letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;}
   .card .names{margin:4px 0 8px;}
-  .card .name-en{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--text);}
-  .card .name-zh{font-size:13px;color:var(--text-2);margin-left:3px;}
+  .card .name-en{font-family:var(--serif);font-size:var(--fs-lg);font-weight:600;color:var(--text);}
+  .card .name-zh{font-size:var(--fs-sm);color:var(--text-2);margin-left:3px;}
   .fam-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center;}
-  .fam-badge{font-size:10px;padding:2px 9px;border-radius:10px;color:#fff;font-weight:600;letter-spacing:0.5px;}
-  .vial-badge{font-size:9.5px;padding:2px 9px;border-radius:10px;color:#150f06;font-weight:700;letter-spacing:1px;background:var(--gold-grad);display:inline-flex;align-items:center;gap:4px;}
-  .stars{position:relative;display:inline-block;font-size:13px;letter-spacing:1px;line-height:1;}
+  .fam-badge{font-size:var(--fs-xs);padding:2px 9px;border-radius:10px;color:#fff;font-weight:600;letter-spacing:0.5px;}
+  .vial-badge{font-size:var(--fs-xs);padding:2px 9px;border-radius:10px;color:#150f06;font-weight:700;letter-spacing:1px;background:var(--gold-grad);display:inline-flex;align-items:center;gap:4px;}
+  .stars{position:relative;display:inline-block;font-size:var(--fs-sm);letter-spacing:1px;line-height:1;}
   .stars-off{color:#3a3225;}
   .stars-on{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:var(--gold);}
-  .rating-num{color:var(--gold-lt);font-weight:700;font-size:13px;}
+  .rating-num{color:var(--gold-lt);font-weight:700;font-size:var(--fs-sm);}
   .row{display:flex;align-items:center;gap:9px;margin-bottom:10px;flex-wrap:wrap;}
-  .votes{font-size:11px;color:var(--text-muted);}
-  .no-rating{color:var(--text-muted);font-size:12px;}
+  .votes{font-size:var(--fs-xs);color:var(--text-muted);}
+  .no-rating{color:var(--text-muted);font-size:var(--fs-sm);}
   .accord-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px;}
-  .accord-tag{font-size:10.5px;padding:2px 9px;border-radius:11px;background:color-mix(in srgb,var(--fam-color,var(--gold)) 20%,var(--surface-2));color:var(--text-2);border:1px solid color-mix(in srgb,var(--fam-color,var(--gold)) 42%,transparent);white-space:nowrap;}
+  .accord-tag{font-size:var(--fs-xs);padding:2px 9px;border-radius:11px;background:color-mix(in srgb,var(--fam-color,var(--gold)) 20%,var(--surface-2));color:var(--text-2);border:1px solid color-mix(in srgb,var(--fam-color,var(--gold)) 42%,transparent);white-space:nowrap;}
   .accord-tag.hit{background:var(--gold-grad);color:#150f06;font-weight:700;border-color:var(--gold);}
 
   /* note chips with image + chinese */
-  .note-label{font-size:10.5px;color:var(--gold);letter-spacing:0.5px;margin:2px 0 6px;}
+  .note-label{font-size:var(--fs-xs);color:var(--gold);letter-spacing:0.5px;margin:2px 0 6px;}
   .note-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
   .note-chip{display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:3px 10px 3px 3px;}
   .note-chip img{width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#241d13;}
-  .note-chip .nc-zh{font-size:11.5px;color:var(--text);line-height:1.1;}
-  .note-chip .nc-en{font-size:9px;color:var(--text-muted);line-height:1.1;}
+  .note-chip .nc-zh{font-size:var(--fs-xs);color:var(--text);line-height:1.1;}
+  .note-chip .nc-en{font-size:var(--fs-xs);color:var(--text-muted);line-height:1.1;}
   .note-chip.hit{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 22%,var(--surface-2));}
   .note-chip .nc-txt{display:flex;flex-direction:column;}
   .tier-row{margin-bottom:9px;}
-  .tier-tag{display:inline-block;font-size:9.5px;letter-spacing:1px;color:#150f06;font-weight:700;background:var(--gold-grad);padding:2px 8px;border-radius:5px;margin-bottom:6px;}
+  .tier-tag{display:inline-block;font-size:var(--fs-xs);letter-spacing:1px;color:#150f06;font-weight:700;background:var(--gold-grad);padding:2px 8px;border-radius:5px;margin-bottom:6px;}
 
   .perf-block{margin-bottom:11px;}
-  .perf-row{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--text-muted);margin-bottom:5px;}
+  .perf-row{display:flex;align-items:center;gap:9px;font-size:var(--fs-xs);color:var(--text-muted);margin-bottom:5px;}
   .perf-row .plabel{width:46px;flex-shrink:0;letter-spacing:0.5px;}
   .perf-bar-track{flex:1;height:6px;background:#2a2117;border-radius:3px;overflow:hidden;}
   .perf-bar-fill{height:100%;background:var(--gold-grad);border-radius:3px;}
-  .perf-val{min-width:30px;text-align:right;font-size:11px;color:var(--gold-lt);flex-shrink:0;font-weight:600;white-space:nowrap;}
-  .perf-word{font-weight:400;color:var(--text-2);margin-right:5px;font-size:10.5px;}
-  .perf-dist{display:flex;flex-wrap:wrap;gap:4px 9px;font-size:9.5px;color:var(--text-muted);margin:-1px 0 8px 55px;}
+  .perf-val{min-width:30px;text-align:right;font-size:var(--fs-xs);color:var(--gold-lt);flex-shrink:0;font-weight:600;white-space:nowrap;}
+  .perf-word{font-weight:400;color:var(--text-2);margin-right:5px;font-size:var(--fs-xs);}
+  .perf-dist{display:flex;flex-wrap:wrap;gap:4px 9px;font-size:var(--fs-xs);color:var(--text-muted);margin:-1px 0 8px 55px;}
   .perf-dist b{color:var(--text-2);font-weight:600;margin-left:3px;}
-  .perf-na{font-size:10.5px;color:var(--text-muted);font-style:italic;}
-  .perf-source{font-size:9.5px;color:var(--text-muted);margin-top:3px;}
-  .season-block{display:flex;align-items:center;gap:10px;font-size:11px;margin-bottom:4px;}
+  .perf-na{font-size:var(--fs-xs);color:var(--text-muted);font-style:italic;}
+  .perf-source{font-size:var(--fs-xs);color:var(--text-muted);margin-top:3px;}
+  .season-block{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);margin-bottom:4px;}
   .season-cells{display:flex;gap:4px;}
-  .season-cell{width:27px;height:23px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);}
+  .season-cell{width:27px;height:23px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);}
   .season-cell.on{background:color-mix(in srgb,var(--gold) 30%,var(--surface-2));color:var(--gold-lt);border-color:var(--gold-dk);font-weight:700;}
   .season-cell.voted{background:color-mix(in srgb,var(--gold) calc(var(--sv) * 0.34),var(--surface-2));flex-direction:column;line-height:1.05;}
-  .season-cell small{font-size:8.5px;font-weight:400;color:var(--text-muted);}
+  .season-cell small{font-size:var(--fs-xs);font-weight:400;color:var(--text-muted);}
   .modal-card .season-cell.voted{width:38px;height:34px;}
-  .dn-num{margin-left:6px;font-size:9.5px;color:var(--text-muted);}
-  .daynight{font-size:10.5px;color:var(--text-muted);letter-spacing:0.5px;}
-  .card-note{margin-top:11px;padding:9px 11px;background:rgba(201,169,106,0.07);border:1px solid rgba(201,169,106,0.28);border-radius:8px;font-size:10.5px;color:var(--gold-lt);line-height:1.65;}
-  .card-cta{margin-top:12px;font-size:11px;color:var(--gold);letter-spacing:1px;display:flex;align-items:center;gap:6px;}
-  .empty-state{display:flex;align-items:center;justify-content:center;height:320px;color:var(--text-muted);font-size:14px;text-align:center;line-height:1.9;}
+  .dn-num{margin-left:6px;font-size:var(--fs-xs);color:var(--text-muted);}
+  .daynight{font-size:var(--fs-xs);color:var(--text-muted);letter-spacing:0.5px;}
+  .card-note{margin-top:11px;padding:9px 11px;background:rgba(201,169,106,0.07);border:1px solid rgba(201,169,106,0.28);border-radius:8px;font-size:var(--fs-xs);color:var(--gold-lt);line-height:1.65;}
+  .card-cta{margin-top:12px;font-size:var(--fs-xs);color:var(--gold);letter-spacing:1px;display:flex;align-items:center;gap:6px;}
+  .empty-state{display:flex;align-items:center;justify-content:center;height:320px;color:var(--text-muted);font-size:var(--fs-base);text-align:center;line-height:1.9;}
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(3,2,1,0.82);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
   .modal-backdrop.open{opacity:1;pointer-events:auto;}
   .modal-card{background:linear-gradient(180deg,#191309,#0d0a06);border:1px solid var(--border-strong);border-radius:20px;max-width:900px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.7);position:relative;overflow:hidden;transform:translateY(14px) scale(0.985);transition:transform .28s;}
   .modal-backdrop.open .modal-card{transform:none;}
-  .modal-close{position:absolute;top:16px;right:18px;z-index:5;width:34px;height:34px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(10,8,6,0.6);color:var(--gold);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-close{position:absolute;top:16px;right:18px;z-index:5;width:34px;height:34px;border-radius:50%;border:1px solid var(--border-strong);background:rgba(10,8,6,0.6);color:var(--gold);font-size:var(--fs-lg);cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .modal-close:hover{background:var(--gold);color:#120d07;}
   .modal-top{display:grid;grid-template-columns:300px 1fr;gap:4px;}
   @media (max-width:720px){.modal-top{grid-template-columns:1fr;}}
   .modal-bottle{position:relative;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(closest-side at 50% 46%,rgba(201,169,106,0.22),rgba(201,169,106,0.05) 60%,transparent 78%);min-height:320px;}
   .modal-bottle img{max-height:320px;max-width:230px;object-fit:contain;filter:drop-shadow(0 18px 30px rgba(0,0,0,0.6));border-radius:6px;background:#fff2;}
-  .modal-bottle .noimg{color:var(--text-muted);font-size:12px;text-align:center;line-height:1.8;}
+  .modal-bottle .noimg{color:var(--text-muted);font-size:var(--fs-sm);text-align:center;line-height:1.8;}
   .modal-info{padding:40px 34px 30px 8px;}
   @media (max-width:720px){.modal-info{padding:6px 26px 30px;}}
-  .modal-info .m-brand{font-size:11px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
-  .modal-info .m-name{font-family:var(--serif);font-size:26px;color:var(--text);font-weight:600;margin:6px 0 2px;line-height:1.2;}
-  .modal-info .m-zh{font-size:15px;color:var(--text-2);margin-bottom:12px;}
+  .modal-info .m-brand{font-size:var(--fs-xs);letter-spacing:2px;color:var(--gold);text-transform:uppercase;}
+  .modal-info .m-name{font-family:var(--serif);font-size:var(--fs-xl);color:var(--text);font-weight:600;margin:6px 0 2px;line-height:1.2;}
+  .modal-info .m-zh{font-size:var(--fs-md);color:var(--text-2);margin-bottom:12px;}
   .modal-rating{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-  .m-section-label{font-size:10.5px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin:20px 0 10px;display:flex;align-items:center;gap:10px;}
+  .m-section-label{font-size:var(--fs-xs);letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;margin:20px 0 10px;display:flex;align-items:center;gap:10px;}
   .m-section-label::after{content:"";flex:1;height:1px;background:var(--border);}
   .modal-block{padding:0 34px 8px 34px;}
   @media (max-width:720px){.modal-block{padding:0 26px 8px;}}
   .modal-perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
   @media (max-width:500px){.modal-perf-grid{grid-template-columns:1fr;gap:10px;}}
   .m-3d{margin-right:0;background:transparent;color:var(--gold-lt);border:1px solid var(--gold);}
-  .m-link{display:inline-flex;align-items:center;gap:8px;margin:8px 34px 34px;padding:11px 22px;background:var(--gold-grad);color:#150f06;font-weight:700;font-size:12.5px;letter-spacing:1px;border-radius:30px;text-decoration:none;}
+  .m-link{display:inline-flex;align-items:center;gap:8px;margin:8px 34px 34px;padding:11px 22px;background:var(--gold-grad);color:#150f06;font-weight:700;font-size:var(--fs-sm);letter-spacing:1px;border-radius:30px;text-decoration:none;}
   .m-link:hover{filter:brightness(1.07);}
-  .m-note{margin:4px 34px 20px;padding:11px 14px;background:rgba(201,169,106,0.08);border:1px solid rgba(201,169,106,0.3);border-radius:10px;font-size:11px;color:var(--gold-lt);line-height:1.7;}
-  footer{max-width:1320px;margin:54px auto 0;padding-top:22px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-muted);line-height:2;}
+  .m-note{margin:4px 34px 20px;padding:11px 14px;background:rgba(201,169,106,0.08);border:1px solid rgba(201,169,106,0.3);border-radius:10px;font-size:var(--fs-xs);color:var(--gold-lt);line-height:1.7;}
+  footer{max-width:1320px;margin:54px auto 0;padding-top:22px;border-top:1px solid var(--border);font-size:var(--fs-xs);color:var(--text-muted);line-height:2;}
   footer b{color:var(--gold);font-weight:600;letter-spacing:1px;}
   /* 今日香氛 */
   .today{max-width:720px;margin:0 auto 30px;background:linear-gradient(180deg,rgba(29,24,17,0.92),rgba(20,16,11,0.92));
     border:1px solid var(--border-strong);border-radius:18px;padding:20px 22px;}
   .today-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
-  .today-label{font-family:var(--serif);font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;}
-  .today-place{color:var(--text);font-size:17px;margin-top:6px;font-weight:600;}
-  .today-time{color:var(--text-muted);font-size:12px;font-weight:400;margin-left:10px;}
-  .today-btn{background:transparent;border:1px solid var(--border-strong);color:var(--text-2);border-radius:20px;padding:5px 14px;font-size:12px;font-family:inherit;cursor:pointer;flex-shrink:0;}
-  .today-btn:hover,.today-btn:focus-visible{color:var(--gold);border-color:var(--gold);outline:none;}
-  .today-msg{color:var(--text-2);font-size:13.5px;margin-top:10px;line-height:1.7;}
+  .today-label{font-family:var(--serif);font-size:var(--fs-xs);letter-spacing:3px;color:var(--gold);text-transform:uppercase;}
+  .today-place{color:var(--text);font-size:var(--fs-lg);margin-top:6px;font-weight:600;}
+  .today-time{color:var(--text-muted);font-size:var(--fs-sm);font-weight:400;margin-left:10px;}
+  .today-btn{background:transparent;border:1px solid var(--border-strong);color:var(--text-2);border-radius:20px;padding:5px 14px;font-size:var(--fs-sm);font-family:inherit;cursor:pointer;flex-shrink:0;}
+  .today-btn:hover,.today-btn:focus-visible{color:var(--gold);border-color:var(--gold);}
+  .today-msg{color:var(--text-2);font-size:var(--fs-base);margin-top:10px;line-height:1.7;}
   .wx-row{display:flex;align-items:center;gap:22px;margin:16px 0 18px;flex-wrap:wrap;}
   .wx-big{font-family:var(--serif);font-size:46px;color:var(--text);line-height:1;display:flex;align-items:baseline;gap:10px;}
-  .wx-big span{font-family:var(--sans);font-size:14px;color:var(--gold-lt);}
+  .wx-big span{font-family:var(--sans);font-size:var(--fs-base);color:var(--gold-lt);}
   .wx-stats{display:grid;grid-template-columns:repeat(4,auto);gap:4px 18px;flex:1;min-width:0;}
   .wx-stats div{display:flex;flex-direction:column;gap:2px;}
-  .wx-stats span{font-size:11px;color:var(--text-muted);letter-spacing:.5px;}
-  .wx-stats b{font-size:15px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
+  .wx-stats span{font-size:var(--fs-xs);color:var(--text-muted);letter-spacing:.5px;}
+  .wx-stats b{font-size:var(--fs-md);color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
   @media (max-width:480px){.wx-stats{grid-template-columns:repeat(2,auto);}}
   .picks{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;}
   @media (max-width:700px){.picks{grid-template-columns:1fr;}}
@@ -220,30 +220,84 @@
     background:var(--surface);border:1px solid var(--border);transition:border-color .2s;min-width:0;}
   .pick:hover,.pick:focus-visible{border-color:var(--gold);}
   .pick-main{border-color:var(--border-strong);background:linear-gradient(160deg,rgba(201,169,106,0.14),var(--surface) 60%);}
-  .pick-rank{font-size:10.5px;letter-spacing:2px;color:var(--gold);}
-  .pick-brand{font-size:11px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;}
-  .pick-name{font-family:var(--serif);font-size:17px;color:var(--text);line-height:1.3;}
-  .pick-main .pick-name{font-size:20px;}
-  .pick-zh{font-family:var(--sans);font-size:12.5px;color:var(--text-2);}
-  .pick-why{font-size:12.5px;color:var(--text-2);line-height:1.65;margin-top:4px;}
+  .pick-rank{font-size:var(--fs-xs);letter-spacing:2px;color:var(--gold);}
+  .pick-brand{font-size:var(--fs-xs);letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;}
+  .pick-name{font-family:var(--serif);font-size:var(--fs-lg);color:var(--text);line-height:1.3;}
+  .pick-main .pick-name{font-size:var(--fs-lg);}
+  .pick-zh{font-family:var(--sans);font-size:var(--fs-sm);color:var(--text-2);}
+  .pick-why{font-size:var(--fs-sm);color:var(--text-2);line-height:1.65;margin-top:4px;}
   .pick-why b{color:var(--gold-lt);font-weight:500;}
-  .today-src{font-size:11px;color:var(--text-muted);margin-top:14px;line-height:1.7;}
+  .today-src{font-size:var(--fs-xs);color:var(--text-muted);margin-top:14px;line-height:1.7;}
   .city-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
-  .city{background:var(--surface);border:1px solid var(--border);color:var(--text-2);border-radius:16px;padding:5px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;}
-  .city:hover,.city:focus-visible{border-color:var(--gold);color:var(--gold);outline:none;}
+  .city{background:var(--surface);border:1px solid var(--border);color:var(--text-2);border-radius:16px;padding:5px 12px;font-size:var(--fs-sm);font-family:inherit;cursor:pointer;}
+  .city:hover,.city:focus-visible{border-color:var(--gold);color:var(--gold);}
   .city-picker[hidden]{display:none;}
+
+  /* ---- 體檢修正 ---- */
+  .card .brand::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--fam-color,var(--gold));margin-right:7px;vertical-align:1px;}
+  .note-chip.more{padding:3px 11px;color:var(--text-muted);font-size:var(--fs-xs);font-variant-numeric:tabular-nums;}
+  .ic{width:14px;height:14px;flex-shrink:0;}
+  .card-note,.m-note{display:flex;gap:8px;align-items:flex-start;}
+  .card-note .ic,.m-note .ic{margin-top:3px;color:var(--gold);}
+  .modal-close svg{width:16px;height:16px;}
+  .bottle-frame{border-radius:14px;padding:18px;background:linear-gradient(180deg,#f4efe6,#e2dacb);display:flex;align-items:center;justify-content:center;}
+  .bottle-frame img{max-height:300px;max-width:210px;object-fit:contain;mix-blend-mode:multiply;display:block;}
+  .bottle-frame.is3d{padding:0;background:#0d0b08;overflow:hidden;}
+  .bottle-frame.is3d img{max-height:none;max-width:none;width:240px;height:320px;object-fit:cover;mix-blend-mode:normal;}
+  /* 今日香氛：首選一張完整卡，其餘兩支是精簡列 */
+  .today-title{font-family:var(--serif);font-size:var(--fs-lg);color:var(--gold-lt);margin:0;font-weight:600;letter-spacing:.5px;}
+  .picks{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;}
+  .picks-more{display:flex;flex-direction:column;gap:8px;min-width:0;}
+  .picks-cap{font-size:var(--fs-sm);color:var(--text-muted);padding-left:2px;}
+  .pick-alt{padding:11px 14px;gap:2px;}
+  .pick-alt .pick-name{font-size:var(--fs-md);}
+  .pick-alt .pick-why{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;}
+  @media (max-width:700px){ .picks{grid-template-columns:1fr;} }
+  /* 手機：香調環換成可橫向滑動的香調列（停在頂端，切換時不用往回滑） */
+  .fam-strip{display:none;}
+  .fam-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border-strong);border-radius:30px;padding:0 15px;min-height:44px;font-size:var(--fs-sm);color:var(--text-2);font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .fam-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c);}
+  .fam-chip b{font-weight:500;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+  .fam-chip.active{border-color:var(--c);color:var(--text);background:color-mix(in srgb,var(--c) 20%,var(--surface));}
+  .fam-chip.active b{color:var(--text-2);}
+  @media (max-width:640px){
+    .fam-strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:20;background:var(--bg);margin:0 -20px 20px;padding:10px 20px;border-bottom:1px solid var(--border);}
+    .fam-strip::-webkit-scrollbar{display:none;}
+    .wheel-wrap{display:none !important;}
+    #vb-all{display:none;}
+    .layout{gap:0;}
+    .toolbar{margin-bottom:16px;}
+  }
+  /* 觸控：手指操作的按鈕至少 44px 高 */
+  .today-btn,.vb-btn,.seg button,.city,.search-clear{display:inline-flex;align-items:center;justify-content:center;}
+  @media (pointer:coarse){ .today-btn,.vb-btn,.seg button,.city,.search-clear{min-height:44px;} .seg button{padding:0 18px;} .today-btn{padding:0 16px;} }
+  /* 瀏覽器外觀：選取、游標、捲軸、焦點框、數字 */
+  ::selection{background:rgba(201,169,106,.38);color:#fff;}
+  input{caret-color:var(--gold);}
+  html{scrollbar-color:#3d3322 var(--bg);}
+  ::-webkit-scrollbar{width:10px;height:10px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:#3d3322;border-radius:10px;border:2px solid var(--bg);}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  .rating-num,.votes,.perf-val,.fam-count,.node-count,.mini-rate,.hub-sub,.season-cell small,.dn-num,.perf-dist b{font-variant-numeric:tabular-nums;}
+  @media (prefers-reduced-motion:reduce){ .card:hover,.node:hover,.node.active,.modal-card{transform:none !important;} }
+  .bottle-frame img{filter:none;background:none;border-radius:0;}
+  .card-head{margin-bottom:12px;}
+  .subtitle{text-wrap:balance;max-width:34em;margin-left:auto;margin-right:auto;}
+  .picks{align-items:stretch;}
+  .pick-main{flex-direction:row;align-items:center;gap:16px;}
+  .pick-main .thumb{width:96px;height:128px;}
+  .pick-body{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .search-hint,.today-src,.pick-why{text-wrap:pretty;}
+  .search-hint{text-wrap:balance;}
 </style>
 </head>
 <body>
 <div class="page">
   <header>
-    <div class="wordmark">Yoyo · Fragrance Collection</div>
-    <h1>我的香水<span class="ital"> 香調環</span></h1>
-    <div class="flourish"></div>
-    <div class="subtitle">30 支收藏，依主香調排成一圈；點節點瀏覽，點卡片看瓶身、香調金字塔與香材圖鑑</div>
+    <h1>Yoyo 的<span class="ital">香調環</span></h1>
+    <div class="subtitle" id="subtitle">30 支收藏，依主香調排成一圈；點節點瀏覽，點卡片看瓶身、香調金字塔與香材圖鑑</div>
   </header>
 
-  <section class="today" id="today" aria-live="polite"></section>
+  <section class="today" id="today" aria-label="今日香氛"></section>
 
   <div class="toolbar">
     <div class="modeswitch" style="display:none">
@@ -252,15 +306,17 @@
     </div>
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="search-input" type="text" placeholder="搜尋香材、香調或香水名稱，例如：vetiver、茶、海鹽、木質、Le Labo" autocomplete="off">
+      <input id="search-input" type="text" placeholder="搜尋香材、香調或品牌" aria-label="搜尋香材、香調或品牌" autocomplete="off">
       <button class="search-clear" id="search-clear">清除</button>
     </div>
-    <div class="search-hint">支援中英文香材名與品牌，命中的香材以<b>金色</b>標示。</div>
+    <div class="search-hint">例如 vetiver、茶、海鹽、木質、Le Labo；命中的香材以<b>金色</b>標示</div>
     <div class="viewbar" id="viewbar">
       <button type="button" class="vb-btn" id="vb-all">全部收藏 <b id="vb-count"></b></button>
       <div class="seg" role="group" aria-label="檢視方式"><button type="button" data-view="detail">詳細</button><button type="button" data-view="grid">總覽</button></div>
     </div>
   </div>
+
+  <nav class="fam-strip" id="fam-strip" aria-label="香調"></nav>
 
   <div class="layout" id="layout">
     <div class="wheel-wrap" id="wheel-wrap">
@@ -323,6 +379,19 @@ sampleList.forEach(p => {
 
 let activeFamily=null, mode='main';
 
+const ACCORD_ZH = {'citrus':'柑橘','aquatic':'水生','marine':'海洋','ozonic':'臭氧','salty':'鹹','fresh':'清新','green':'綠葉',
+    'herbal':'草本','tropical':'熱帶','aromatic':'芳香','lavender':'薰衣草','soapy':'皂感','fruity':'果香','aldehydic':'醛香',
+    'fresh spicy':'清爽辛香','white floral':'白花','floral':'花香','yellow floral':'黃花','rose':'玫瑰','musky':'麝香',
+    'iris':'鳶尾','conifer':'針葉','mossy':'苔蘚','powdery':'粉感','earthy':'土壤','woody':'木質','soft spicy':'柔和辛香',
+    'patchouli':'廣藿香','animalic':'動物','sweet':'甜感','nutty':'堅果','warm spicy':'溫暖辛香','leather':'皮革',
+    'smoky':'煙燻','cinnamon':'肉桂','amber':'琥珀','balsamic':'香脂','oud':'沉香','vanilla':'香草','chocolate':'巧克力','cacao':'可可'};
+const ICON = {
+  note:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  arrow:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  ext:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M18 14v5H5V6h5"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+const accordZh = a => ACCORD_ZH[a] || a;
 const famName = f => f.replace(/^\d+\.\s*/,'');
 const ALL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>';
 let viewMode = (()=>{ try{ return localStorage.getItem('fw-view')==='grid'?'grid':'detail'; }catch(e){ return 'detail'; } })();
@@ -332,6 +401,8 @@ function miniCardHtml(p,famColor,opts){ opts=opts||{}; const pkey=(opts.is_sampl
   return `<div class="card mini" data-pkey="${pkey}" style="--fam-color:${famColor}">${thumbHtml(p)}<div class="brand">${p.brand}</div><div class="mini-name">${p.name_en}</div>${p.name_zh?`<div class="mini-zh">${p.name_zh}</div>`:''}<div class="mini-rate">${p.rating?'★ '+p.rating.toFixed(2):'尚無評分'}</div></div>`; }
 function cardsHtml(list){ return `<div class="cards${viewMode==='grid'?' compact':''}">${list.map(x=>viewMode==='grid'?miniCardHtml(x.p,x.famColor,x.opts):cardHtml(x.p,x.famColor,x.opts)).join('')}</div>`; }
 function syncViewbar(){ document.getElementById('vb-all').classList.toggle('active', mode==='all' && !searchInput.value.trim());
+  const strip=document.getElementById('fam-strip'); if(strip){ const q=searchInput.value.trim(); strip.querySelectorAll('.fam-chip').forEach(c=>{ const on=!q && ((mode==='all'&&c.dataset.fam==='__all')||(mode==='main'&&c.dataset.fam===activeFamily)); c.classList.toggle('active',on); c.setAttribute('aria-pressed',on);
+    if(on){ const l=c.offsetLeft-20, r=l+c.offsetWidth+40; if(l<strip.scrollLeft||r>strip.scrollLeft+strip.clientWidth) strip.scrollLeft=l; } }); }
   document.querySelectorAll('#viewbar .seg button').forEach(b=>b.classList.toggle('active', b.dataset.view===viewMode)); }
 
 function starsHtml(rating){ if(!rating) return '<span class="no-rating">尚無評分</span>';
@@ -371,7 +442,8 @@ function noteChip(name, terms){
 function flatNotes(notes){ if(!notes) return []; if(notes.top&&notes.top.length) return [...notes.top,...notes.middle,...notes.base]; return notes.flat||[]; }
 function cardNoteChips(notes, terms){
   const all = flatNotes(notes); if(!all.length) return '';
-  return `<div class="note-label">主要香材</div><div class="note-chips">${all.slice(0,14).map(n=>noteChip(n,terms)).join('')}</div>`;
+  const shown = all.slice(0,6), more = all.length-shown.length;
+  return `<div class="note-label">主要香材</div><div class="note-chips">${shown.map(n=>noteChip(n,terms)).join('')}${more>0?`<span class="note-chip more">＋${more}</span>`:''}</div>`;
 }
 function modalNotes(notes, terms){
   if(!notes) return '';
@@ -386,9 +458,9 @@ function modalNotes(notes, terms){
 function cardHtml(p, famColor, opts){
   opts=opts||{}; const terms=opts.terms||[];
   const votes=p.votes?`${p.votes.toLocaleString()} 人評分`:'';
-  const accordTags=(p.accords||[]).slice(0,6).map(a=>`<span class="accord-tag ${terms.some(t=>a.toLowerCase().includes(t))?'hit':''}">${a}</span>`).join('');
+  const accordTags=(p.accords||[]).slice(0,6).map(a=>`<span class="accord-tag ${terms.some(t=>a.toLowerCase().includes(t)||accordZh(a).includes(t))?'hit':''}">${accordZh(a)}</span>`).join('');
   const dn=p.day_night?`<span class="daynight">${dayNightText(p,false)}</span>`:'';
-  const note=p.note?`<div class="card-note">⚑ ${p.note}</div>`:'';
+  const note=p.note?`<div class="card-note">${ICON.note}<span>${p.note}</span></div>`:'';
   const srcText=perfSourceText(p.perf_source);
   const vial = opts.is_sample?`<span class="vial-badge">🧪 SCENT VIAL 試香</span>`:'';
   let famBadges='';
@@ -407,7 +479,6 @@ function cardHtml(p, famColor, opts){
     <div class="accord-tags">${accordTags}</div>
     ${cardNoteChips(p.notes,terms)}
     ${perfBlock}${seasonBlock}${note}
-    <div class="card-cta">點擊查看瓶身與香材圖鑑 →</div>
   </div>`;
 }
 
@@ -418,15 +489,15 @@ function openModal(pkey){
   const votes=p.votes?`${p.votes.toLocaleString()} 人評分`:'';
   const srcText=perfSourceText(p.perf_source);
   const fb = (p.img_fallback && p.img_fallback!==p.img) ? p.img_fallback : '';
-  const bottle=p.img?`<img src="${p.img}" alt="${p.name_en}" loading="lazy" data-fb="${fb}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.style.display='none';this.parentNode.querySelector('.noimg').style.display='block';}"><div class="noimg" style="display:none">瓶身圖暫時無法載入</div>`:`<div class="noimg">暫無瓶身圖</div>`;
-  const accords=(p.accords||[]).map(a=>`<span class="accord-tag" style="--fam-color:${famColor}">${a}</span>`).join('');
+  const bottle=p.thumb?`<div class="bottle-frame is3d"><img src="${p.thumb}" alt="${p.name_en} 3D 瓶身"></div>`:p.img?`<div class="bottle-frame"><img src="${p.img}" alt="${p.name_en}" loading="lazy" data-fb="${fb}" onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb='';}else{this.parentNode.style.display='none';this.closest('.modal-bottle').querySelector('.noimg').style.display='block';}"></div><div class="noimg" style="display:none">瓶身圖暫時無法載入</div>`:`<div class="noimg">暫無瓶身圖</div>`;
+  const accords=(p.accords||[]).map(a=>`<span class="accord-tag" style="--fam-color:${famColor}" title="${a}">${accordZh(a)}</span>`).join('');
   const vial=isv?`<span class="vial-badge">🧪 SCENT VIAL 試香</span>`:'';
   const badges=vial+families.map(f=>`<span class="fam-badge" style="background:${familyColors[f]}">${f.split('. ')[1]}</span>`).join('');
   const dn=p.day_night?`<span class="daynight" style="margin-left:10px">${dayNightText(p,true)}</span>`:'';
   const perfSec = isv?'':`<div class="modal-block"><div class="m-section-label">表現 · Performance</div><div class="modal-perf-grid"><div>${perfRowHtml('持香度',p.longevity,'longevity',p.longevity_votes,p.perf_note)}${perfDistHtml('longevity',p.longevity_votes)}</div><div>${perfRowHtml('擴香度',p.sillage,'sillage',p.sillage_votes)}${perfDistHtml('sillage',p.sillage_votes)}</div></div>${srcText?`<div class="perf-source">來源：${srcText}${perfVotesText(p)}</div>`:''}</div>`;
   const seasonSec = isv?'':`<div class="modal-block"><div class="m-section-label">適用季節 · Season（Fragrantica 投票）</div><div class="season-block">${p.season_votes?`<div class="season-cells">${seasonCellsHtml(p.season_tags,p.season_votes,true)}</div>${dn}`:'<div class="perf-na">沒有投票資料</div>'}</div></div>`;
   modal.innerHTML=`<div class="modal-card" style="--fam-color:${famColor}">
-    <button class="modal-close" aria-label="關閉">&times;</button>
+    <button class="modal-close" aria-label="關閉">${ICON.close}</button>
     <div class="modal-top">
       <div class="modal-bottle">${bottle}</div>
       <div class="modal-info">
@@ -441,8 +512,8 @@ function openModal(pkey){
     </div>
     ${perfSec}${seasonSec}
     <div class="modal-block"><div class="m-section-label">主香調 · Accords${p.accords_note?`（${p.accords_note}）`:''}</div><div class="accord-tags">${accords||'<span class="perf-na">資料缺漏</span>'}</div></div>
-    ${p.note?`<div class="m-note">⚑ ${p.note}</div>`:''}
-    ${p.model3d?`<a class="m-link m-3d" href="${p.model3d}">以 3D 檢視瓶身與香材 →</a>`:''}${p.url?`<a class="m-link" href="${p.url}" target="_blank" rel="noopener">查看 ${p.url_label||'Fragrantica 原文'} ↗</a>`:''}
+    ${p.note?`<div class="m-note">${ICON.note}<span>${p.note}</span></div>`:''}
+    ${p.model3d?`<a class="m-link m-3d" href="${p.model3d}">以 3D 檢視瓶身與香材 ${ICON.arrow}</a>`:''}${p.url?`<a class="m-link" href="${p.url}" target="_blank" rel="noopener">查看 ${p.url_label||'Fragrantica 原文'} ${ICON.ext}</a>`:''}
   </div>`;
   modal.classList.add('open'); document.body.style.overflow='hidden';
 }
@@ -486,7 +557,7 @@ function renderVials(){
   document.getElementById('wheel-wrap').style.display='none';
   document.querySelectorAll('.node').forEach(n=>n.classList.remove('active'));
   document.getElementById('layout').style.gridTemplateColumns='1fr';
-  detail.innerHTML=`<div class="detail-header" style="--fam-color:var(--gold)"><span class="hdr-icon" style="font-size:24px">🧪</span><h2>試香櫃 Scent Vials</h2><div class="fam-count">${sampleList.length} 支試香小香</div></div>`+cardsHtml(sampleList.map(p=>({p,famColor:familyColors[p.family],opts:{is_sample:true,families:[p.family]}})));
+  detail.innerHTML=`<div class="detail-header" style="--fam-color:var(--gold)"><span class="hdr-icon" style="font-size:var(--fs-xl)">🧪</span><h2>試香櫃 Scent Vials</h2><div class="fam-count">${sampleList.length} 支試香小香</div></div>`+cardsHtml(sampleList.map(p=>({p,famColor:familyColors[p.family],opts:{is_sample:true,families:[p.family]}})));
   syncViewbar();
 }
 function backToMain(){ document.getElementById('layout').style.gridTemplateColumns=''; if(mode==='all') renderAll(); else renderFamily(activeFamily||categories[0]); }
@@ -523,6 +594,13 @@ document.getElementById('mode-vial').addEventListener('click',renderVials);
 document.getElementById('vb-count').textContent=Object.values(perfIndex).filter(e=>!e.is_sample).length;
 document.getElementById('vb-all').addEventListener('click',renderAll);
 hub.addEventListener('click',renderAll);
+document.getElementById('subtitle').textContent = `${Object.values(perfIndex).filter(e=>!e.is_sample).length} 支收藏，依主香調分類；點香水看瓶身、香調金字塔與香材`;
+const famStrip=document.getElementById('fam-strip');
+famStrip.innerHTML=`<button type="button" class="fam-chip" data-fam="__all" style="--c:var(--gold)"><span class="dot"></span>全部<b>${Object.values(perfIndex).filter(e=>!e.is_sample).length}</b></button>`+
+  categories.map(c=>`<button type="button" class="fam-chip" data-fam="${c}" style="--c:${familyColors[c]}"><span class="dot"></span>${famName(c)}<b>${database[c].length}</b></button>`).join('');
+famStrip.addEventListener('click',e=>{ const b=e.target.closest('.fam-chip'); if(!b) return;
+  if(b.dataset.fam==='__all') renderAll(); else renderFamily(b.dataset.fam);
+  const top=detail.getBoundingClientRect().top+window.scrollY-famStrip.offsetHeight-8; if(window.scrollY>top) window.scrollTo({top}); });
 document.querySelectorAll('#viewbar .seg button').forEach(b=>b.addEventListener('click',()=>{ viewMode=b.dataset.view; try{ localStorage.setItem('fw-view',viewMode); }catch(e){}
   const q=searchInput.value.trim(); if(q) runSearch(q); else if(mode==='all') renderAll(); else if(mode==='vial') renderVials(); else renderFamily(activeFamily||categories[0]); }));
 
@@ -622,12 +700,11 @@ renderFamily(categories[0]);
 
   function pickCard(r, wx, rank){
     const p=r.p; const key=p.brand+'|'+p.name_en;
-    return `<button class="pick ${rank===0?'pick-main':''}" data-pkey="${key}">
-      <span class="pick-rank">${rank===0?'今日首選':'也適合'}</span>
-      <span class="pick-brand">${p.brand}</span>
+    const body=`<span class="pick-brand">${p.brand}</span>
       <span class="pick-name">${p.name_en}${p.name_zh?` <span class="pick-zh">${p.name_zh}</span>`:''}</span>
-      <span class="pick-why">${reason(r,wx)}</span>
-    </button>`;
+      <span class="pick-why">${reason(r,wx)}</span>`;
+    return rank===0 ? `<button class="pick pick-main" data-pkey="${key}">${thumbHtml(p)}<span class="pick-body">${body}</span></button>`
+      : `<button class="pick pick-alt" data-pkey="${key}">${body}</button>`;
   }
 
   // 隨機性：只在「夠適合」的候選（與最高分差距 1.3 內、最多 12 支）裡依分數加權抽 3 支（越適合越容易抽中，抽中的順序就是推薦順序）；
@@ -658,7 +735,7 @@ renderFamily(categories[0]);
     box.innerHTML = `
       <div class="today-head">
         <div>
-          <div class="today-label">今日香氛 · Today's Scent</div>
+          <h2 class="today-title">今日香氛</h2>
           <div class="today-place">${place}<span class="today-time">${wx.isDay?'白天':'夜晚'} ${new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</span></div>
         </div>
         <div class="today-btns"><button class="today-btn" id="today-shuffle" type="button">換一組</button><button class="today-btn" id="today-change" type="button">換地點</button></div>
@@ -672,8 +749,8 @@ renderFamily(categories[0]);
           <div><span>${wx.rainLabel}</span><b>${wx.rainText}</b></div>
         </div>
       </div>
-      <div class="picks">${recs.map((r,i)=>pickCard(r,wx,i)).join('')}</div>
-      <div class="today-src">天氣：${wx.src}（每次打開即時更新）· 推薦依主香調輕重、體感溫度、濕度、降雨、季節與日夜計算，再從合適的香水中隨機挑選（每天不同，可按「換一組」）</div>
+      <div class="picks">${recs.length?pickCard(recs[0],wx,0):''}${recs.length>1?`<div class="picks-more"><div class="picks-cap">也適合</div>${recs.slice(1).map((r,i)=>pickCard(r,wx,i+1)).join('')}</div>`:''}</div>
+      <div class="today-src">天氣：${wx.src}，打開時即時更新。依香調輕重、體感、濕度、降雨、季節與日夜，從合適的香水裡挑選，每天不同。</div>
       <div class="city-picker" id="city-picker" hidden>
         <button class="city" type="button" data-geo="1">目前位置</button>
         ${CITIES.map(c=>`<button class="city" type="button" data-city="${c[0]}">${c[0]}</button>`).join('')}
@@ -687,7 +764,7 @@ renderFamily(categories[0]);
     }));
   }
 
-  function msg(t){ box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">${t}</div>
+  function msg(t){ box.innerHTML = `<h2 class="today-title">今日香氛</h2><div class="today-msg">${t}</div>
     <div class="city-picker">${CITIES.map(c=>`<button class="city" type="button" data-city="${c[0]}">${c[0]}</button>`).join('')}</div>`;
     box.querySelectorAll('.city').forEach(b=>b.addEventListener('click',()=>{ const c=CITIES.find(x=>x[0]===b.dataset.city); save(c[0]); load(c[1],c[2],c[0]); }));
   }
@@ -747,7 +824,7 @@ renderFamily(categories[0]);
   }
 
   async function load(lat,lon,label){
-    box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">正在讀取${label||'所在地'}的天氣…</div>`;
+    box.innerHTML = `<h2 class="today-title">今日香氛</h2><div class="today-msg">正在讀取${label||'所在地'}的天氣…</div>`;
     const placeP = label?Promise.resolve(label):placeName(lat,lon);
     let wx=null;
     try{ wx = await fromOpenMeteo(lat,lon); }catch(e){}
@@ -760,7 +837,7 @@ renderFamily(categories[0]);
     const city = saved();
     if(city){ const c=CITIES.find(x=>x[0]===city); if(c) return load(c[1],c[2],c[0]); }
     if(!navigator.geolocation){ return msg('這個瀏覽器無法定位，請選城市：'); }
-    box.innerHTML = `<div class="today-label">今日香氛 · Today's Scent</div><div class="today-msg">正在取得你的位置…（請允許瀏覽器使用位置）</div>`;
+    box.innerHTML = `<h2 class="today-title">今日香氛</h2><div class="today-msg">正在取得你的位置…（請允許瀏覽器使用位置）</div>`;
     navigator.geolocation.getCurrentPosition(
       pos=>load(pos.coords.latitude.toFixed(3), pos.coords.longitude.toFixed(3)),
       ()=>msg('沒有取得位置權限，請選城市：'),
