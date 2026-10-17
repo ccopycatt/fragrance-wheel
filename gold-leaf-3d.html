@@ -341,7 +341,7 @@ function buildWorld(target, detailed){
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 64, 32), skyMaterial()); sky.renderOrder=-10; sky.frustumCulled=false; target.add(sky);
   mountainRings(target, detailed); cloudSea(target);
   // 地面：台地是夯實的紅土與碎石，茶行之間是深色的土壤，邊坡長草
-  const ring = new THREE.RingGeometry(0, 330, detailed?220:60, detailed?120:30); ring.rotateX(-Math.PI/2);
+  const ring = new THREE.RingGeometry(.8, 330, detailed?220:60, detailed?120:30);   // 內徑不能是 0：圓心疊點會讓法向／凹凸計算出 NaN ring.rotateX(-Math.PI/2);
   const rp=ring.attributes.position, col=[]; const cRed=C('#8a6a48'), cSoil=C('#5e4a32'), cGrass=C('#5f7a34'), cDry=C('#8a8550'), tmp=new THREE.Color();
   for(let i=0;i<rp.count;i++){ const x=rp.getX(i), z=rp.getZ(i); rp.setY(i, terrainH(x,z)); const d=Math.hypot(x,z);
     const n=fbm(x*.08,2,z*.08,3), n2=fbm(x*.25,5,z*.25,2);
@@ -357,7 +357,7 @@ function buildWorld(target, detailed){
     for(let i=0;i<260;i++){ const x=r()*w, y=r()*h, s=5+r()*9, a=r()*6.28; g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=['#5a4a2c','#6e5a34','#4e5a2c','#7a6a40'][(r()*4)|0]; g.globalAlpha=.5+r()*.4;
       g.beginPath(); g.moveTo(-s,0); g.quadraticCurveTo(0,-s*.5,s,0); g.quadraticCurveTo(0,s*.5,-s,0); g.fill(); g.restore(); } g.globalAlpha=1; });
   floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(70,70);
-  const ground = new THREE.Mesh(ring, new THREE.MeshStandardMaterial({ vertexColors:true, map:floorTex, bumpMap:floorTex, bumpScale:1.4, roughness:.95 }));
+  const ground = new THREE.Mesh(ring, new THREE.MeshStandardMaterial(Object.assign({ vertexColors:true, map:floorTex, roughness:.95 }, detailed?{ bumpMap:floorTex, bumpScale:1.4 }:{})));
   ground.receiveShadow=true; target.add(ground);
   if(!detailed){ // 反射探針用：茶行的低模
     const m=new THREE.MeshStandardMaterial({ color:C('#3f6a2c'), roughness:.9 });
@@ -1189,7 +1189,7 @@ function frame(){
   camera.position.set(dist*.18, target.y+dist*.1, dist); camera.updateProjectionMatrix(); window.scrollTo(0,RUNWAY.t); controls.maxDistance=Math.max(56,dist*1.08); controls.minDistance=16;
 }
 frame(); addEventListener('resize', frame);
-window.__dbg={camera,controls,target,targetGoal,THREE,items,bottle,rings,renderer,scene,glass};
+window.__dbg={camera,controls,target,targetGoal,THREE,items,bottle,rings,renderer,scene,glass,envScene};
 
 // 香調圖例
 const tiersEl=document.getElementById('tiers'); let focusTier=-1;
