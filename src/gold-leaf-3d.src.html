@@ -958,10 +958,10 @@ const BUILD_GL = {
     const lm=vcMat({ roughness:.26, clearcoat:.85, clearcoatRoughness:.1, sheen:.15, sheenColor:C('#e8f0d0') });
     const pm=M.stem('#8a9a56');
     const ell=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.97+.03)),.62)*(1-.18*t);
-    const mature=leafGeo({ len:1.05, wid:.5, prof:ell, serr:24, serrAmp:.06, cup:.2, droop:.2, curl:.02, veins:8, veinDepth:.016, mid:.022, wave:.012, base:'#24461b', tip:'#2f5a22', edge:'#3a6a28', vein:'#5b8a3a', seed:2 });
-    const young=leafGeo({ len:.72, wid:.34, prof:ell, serr:20, serrAmp:.05, cup:.34, droop:.06, curl:.06, veins:7, veinDepth:.01, base:'#5c8c2c', tip:'#7eae3e', edge:'#9cc452', vein:'#a8c86a', seed:5 });
-    const young2=leafGeo({ len:.5, wid:.22, prof:ell, serr:18, serrAmp:.04, cup:.5, droop:0, curl:.12, veins:6, veinDepth:.008, base:'#6e9c34', tip:'#94bc4c', edge:'#b0d064', vein:'#b8d47c', seed:7 });
-    [[.12,mature,1,0,.42],[.38,mature,.9,2.6,.5],[.66,young,1,4.7,.72],[.84,young2,1,7.2,.95]].forEach(([t,geo,s,yaw,elev])=>g.add(leafStalk(geo,lm,pm,stem.getPointAt(t),{ yaw, elev, roll:(r()-.5)*.2+.15, s, pet:.06 })));
+    const mature=leafGeo({ len:1.0, wid:.6, prof:ell, serr:24, serrAmp:.06, cup:.1, droop:.2, curl:.02, veins:8, veinDepth:.016, mid:.022, wave:.012, base:'#24461b', tip:'#2f5a22', edge:'#3a6a28', vein:'#5b8a3a', seed:2 });
+    const young=leafGeo({ len:.7, wid:.42, prof:ell, serr:20, serrAmp:.05, cup:.16, droop:.06, curl:.06, veins:7, veinDepth:.01, base:'#5c8c2c', tip:'#7eae3e', edge:'#9cc452', vein:'#a8c86a', seed:5 });
+    const young2=leafGeo({ len:.48, wid:.28, prof:ell, serr:18, serrAmp:.04, cup:.28, droop:0, curl:.12, veins:6, veinDepth:.008, base:'#6e9c34', tip:'#94bc4c', edge:'#b0d064', vein:'#b8d47c', seed:7 });
+    [[.12,mature,1,.9,.3,-.5],[.38,mature,.9,3.9,.4,.45],[.66,young,1,.6,.62,-.35],[.84,young2,1,3.6,.85,.3]].forEach(([t,geo,s,yaw,elev,roll])=>g.add(leafStalk(geo,lm,pm,stem.getPointAt(t),{ yaw, elev, roll, s, pet:.06 })));
     // 芽：紡錘形、覆著白毫（銀白的絨毛光澤）
     const bp=[]; for(let i=0;i<=24;i++){ const t=i/24; bp.push(new THREE.Vector2(Math.max(.002,.075*Math.pow(Math.sin(Math.PI*Math.min(1,t*.95+.05)),.7)*(1-.35*t)), t*.62)); }
     const bud=new THREE.Mesh(new THREE.LatheGeometry(bp,24), new THREE.MeshPhysicalMaterial({ color:C('#b8cc8a'), roughness:.55, sheen:1, sheenRoughness:.35, sheenColor:C('#ffffff') }));
@@ -971,7 +971,7 @@ const BUILD_GL = {
       q.setFromUnitVectors(new THREE.Vector3(0,1,0),n); const p=new THREE.Vector3(Math.cos(a)*rad,t*.62,Math.sin(a)*rad).applyEuler(bud.rotation).add(tp).addScaledVector(n,.02); m.compose(p,q,new THREE.Vector3(1,1,1)); hair.setMatrixAt(i,m); }
     g.add(hair);
     // 揉捻成球的烏龍（深綠帶一點焙火的褐）
-    const ball=mergeVertices(new THREE.IcosahedronGeometry(.16,3)); ball.deleteAttribute('normal'); ball.deleteAttribute('uv'); displace(ball,.05,10,3,3); ball.computeVertexNormals();
+    const ball=mergeVertices(new THREE.IcosahedronGeometry(.105,3)); ball.deleteAttribute('normal'); ball.deleteAttribute('uv'); displace(ball,.032,15,3,3); ball.computeVertexNormals();
     const bm=new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.7, sheen:.4, sheenColor:C('#a8b080') }); const im=new THREE.InstancedMesh(ball,bm,9);
     for(let i=0;i<9;i++){ q.setFromEuler(new THREE.Euler(r()*6,r()*6,r()*6)); const s=.85+r()*.4; m.compose(new THREE.Vector3(.4+(r()-.5)*.8,-.86+r()*.06,(r()-.5)*.7), q, new THREE.Vector3(s,s*.85,s)); im.setMatrixAt(i,m); im.setColorAt(i,C(['#3e4c24','#4a5628','#34401e','#55562a'][(r()*4)|0])); }
     g.add(im);
@@ -997,7 +997,7 @@ const BUILD_GL = {
         m.compose(bp.clone().add(new THREE.Vector3(0,-.25*sc,0)), q.setFromEuler(new THREE.Euler(Math.PI,0,0)), new THREE.Vector3(1,1,1)); cim.setMatrixAt(k,m); k++; } });
     im.count=k; cim.count=k; g.add(im, cim);
     const lg=palmateLeaf({ R:.95, seed:3 }); const lm=vcMat({ roughness:.55, sheen:.4, sheenColor:C('#d8e4c0') });
-    [[.1,-.6,.3,.1],[.9,2.4,.4,-.2],[.6,1.1,-.1,.25]].forEach(([t,yaw,elev,roll])=>{ const p=twig.getPointAt(t); g.add(leafStalk(lg,lm,sm,p,{ yaw, elev, roll, s:1, pet:.35 })); });
+    [[.1,-.6,.85,.5],[.9,2.4,.75,-.55],[.55,1.2,.95,.4]].forEach(([t,yaw,elev,roll])=>{ const p=twig.getPointAt(t); g.add(leafStalk(lg,lm,sm,p,{ yaw, elev, roll, s:1, pet:.35 })); });
     return g;
   },
   // 保加利亞玫瑰（大馬士革玫瑰）：半重瓣、粉紅、花心露出黃色雄蕊；一個花苞、羽狀複葉與帶刺的莖
