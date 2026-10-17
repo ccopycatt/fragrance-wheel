@@ -274,7 +274,7 @@ function buildWorld(target, detailed){
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 64, 32), skyMaterial()); sky.renderOrder=-10; sky.frustumCulled=false; target.add(sky);
   // 森林地面：泥土、青苔、秋天的落葉
   const ring = new THREE.RingGeometry(0, 260, detailed?150:50, detailed?80:24); ring.rotateX(-Math.PI/2);
-  const rp=ring.attributes.position, col=[]; const cSoil=C('#54442f'), cMoss=C('#56692f'), cLeaf=C('#8a5a2a'), tmp=new THREE.Color();
+  const rp=ring.attributes.position, col=[]; const cSoil=C('#54442f'), cMoss=C('#4f6a2a'), cLeaf=C('#8a5a2a'), tmp=new THREE.Color();
   for(let i=0;i<rp.count;i++){ const x=rp.getX(i), z=rp.getZ(i); rp.setY(i, terrainH(x,z));
     const n=fbm(x*.06,2,z*.06,3), n2=fbm(x*.15,5,z*.15,2); tmp.copy(cSoil).lerp(cMoss, Math.min(1,Math.max(0,n*1.8+.45))).lerp(cLeaf, Math.max(0,n2*1.5)*.5); col.push(tmp.r,tmp.g,tmp.b); }
   ring.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); ring.computeVertexNormals();
@@ -312,7 +312,7 @@ function buildWorld(target, detailed){
   // 雪松：分層水平枝，枝上成簇的針葉
   const tuft=(()=>{ const parts=[]; for(let i=0;i<9;i++){ const n=new THREE.CylinderGeometry(.008,.016,.55,3,1,true); n.translate(0,.27,0); n.rotateZ(.5+r()*.5); n.rotateY(i/9*6.28); n.deleteAttribute('uv'); parts.push(n.toNonIndexed()); }
     const g=mergeGeometries(parts); const c=new Float32Array(g.attributes.position.count*3).fill(1); g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
-  placeRing(72,125,24,(p,k)=>{ const H=26+k*14; tubeTaper([p.clone(), p.clone().add(new V(.3,H*.5,.2)), p.clone().add(new V(-.2,H,.1))], 1.1+k*.5, .12, 10, 9);
+  placeRing(64,128,42,(p,k)=>{ const H=26+k*14; tubeTaper([p.clone(), p.clone().add(new V(.3,H*.5,.2)), p.clone().add(new V(-.2,H,.1))], 1.1+k*.5, .12, 10, 9);
     const tiers=Math.floor(14+k*8); for(let i=0;i<tiers;i++){ const t=.32+.66*(i/tiers); const y=p.y+H*t; const R=(9+k*4)*(1-t*.75);
       for(let b=0;b<3;b++){ const a=r()*6.28; const b0=new V(p.x,y,p.z), b1=b0.clone().add(new V(Math.cos(a)*R, R*.08, Math.sin(a)*R));
         tubeTaper([b0, b0.clone().lerp(b1,.5).add(new V(0,R*.05,0)), b1], .16*(1-t*.5), .25, 5, 5);
@@ -321,7 +321,7 @@ function buildWorld(target, detailed){
 
   // 樹蕨：纖維質樹幹 + 一圈拱形大葉
   const bigFrond=frondGeometry({ len:5.2, pinnae:30, pinnaLen:1.25, pinnaWid:.22, arch:.75, seed:7 });
-  placeRing(58,84,15,(p,k)=>{ const H=4+k*4; tubeTaper([p.clone(), p.clone().add(new V((r()-.5)*.6,H*.5,(r()-.5)*.6)), p.clone().add(new V((r()-.5)*.8,H,(r()-.5)*.8))], .55, .8, 8, 9);
+  placeRing(56,76,26,(p,k)=>{ const H=4+k*4; tubeTaper([p.clone(), p.clone().add(new V((r()-.5)*.6,H*.5,(r()-.5)*.6)), p.clone().add(new V((r()-.5)*.8,H,(r()-.5)*.8))], .55, .8, 8, 9);
     const top=p.clone().add(new V(0,H,0)); const n=11+Math.floor(k*6);
     for(let i=0;i<n;i++){ const a=i/n*6.28+r()*.3; e.set(0,a,(r()-.5)*.25 - .1); q.setFromEuler(e); const s=.85+r()*.4; addI('bigFrond',bigFrond,m4().compose(top,q,sc.set(s,s,s)), C(['#4f6e2a','#5a7a31','#46632a'][(r()*3)|0])); } });
 
@@ -339,7 +339,7 @@ function buildWorld(target, detailed){
   // 杜松灌叢（低矮，可在鏡頭與瓶身之間而不擋視線）
   const scaleSpray=(()=>{ const g=petalGeometry({ len:.35, wid:.07, cup:-.2, curl:.04, frill:.01, frillFreq:12, base:'#ffffff', tip:'#ffffff', segL:5, segW:2 }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
   const jBerry=new THREE.SphereGeometry(.06,10,8);
-  placeRing(16,52,26,(p,k)=>{ const R=.9+k*.9, Hh=1.0+k*1.4; const n=Math.floor(260+k*260);
+  placeRing(16,52,34,(p,k)=>{ const R=.9+k*.9, Hh=1.0+k*1.4; const n=Math.floor(260+k*260);
     for(let j=0;j<n;j++){ const u=r()*6.28, v=Math.acos(r()*1.6-.6), rr=Math.cbrt(r()); const c=p.clone().add(new V(Math.cos(u)*Math.sin(v)*R*rr, Math.cos(v)*Hh*.5*rr+Hh*.45, Math.sin(u)*Math.sin(v)*R*rr));
       e.set((r()-.5)*1.5,r()*6.28,.4+r()*.8); q.setFromEuler(e); const s=.9+r()*.6; addI('spray',scaleSpray,m4().compose(c,q,sc.set(s,s,s)), C(['#45624a','#3c5841','#56705a','#4a6a4e'][(r()*4)|0]));
       if(r()<.05) addI('jberry',jBerry,m4().compose(c.clone().add(new V(0,.05,0)),q.identity(),sc.set(1,1,1)), C(['#38507a','#4a6290','#2e4468'][(r()*3)|0])); } });
@@ -374,13 +374,67 @@ function buildWorld(target, detailed){
     mush.forEach((P,i)=>{ const s=.6+r()*.9; const st=new THREE.Mesh(stG,stM); st.position.copy(P); st.scale.setScalar(s); const cp=new THREE.Mesh(capG,capM); cp.position.copy(P).add(new V(0,.33*s,0)); cp.scale.setScalar(s); cp.rotation.z=(r()-.5)*.3; target.add(st,cp); }); }
   placeRing(7.2,10.5,46,(p,k)=>{ const n=4+Math.floor(r()*4); const isAut=r()<.25;
     for(let i=0;i<n;i++){ e.set(0,i/n*6.28+r()*.5,(r()-.5)*.3); q.setFromEuler(e); const s=.42+r()*.22; addI('frondB',frondB,m4().compose(p,q,sc.set(s,s,s)), C((isAut&&r()<.8?autumn:greens)[(r()*3)|0])); } });
+  // ---------- 地被：苔蘚毯、地衣、林下草叢、酢漿草、長地衣的石頭 ----------
+  const withCol=(g,c=[1,1,1])=>{ if(g.attributes.uv) g.deleteAttribute('uv'); const a=new Float32Array(g.attributes.position.count*3); for(let i=0;i<a.length;i+=3){ a[i]=c[0]; a[i+1]=c[1]; a[i+2]=c[2]; } g.setAttribute('color',new THREE.BufferAttribute(a,3)); return g.index?g.toNonIndexed():g; };
+  const groundPt=(minD,maxD,bias=1)=>{ const a=r()*6.28, d=minD+Math.pow(r(),bias)*(maxD-minD); const x=Math.cos(a)*d, z=Math.sin(a)*d; return new V(x,terrainH(x,z)-.12,z); };
+  // 林下草叢（莎草、細草）：成簇生長，下暗上亮
+  const blade=(()=>{ const pos=[], col=[], idx=[]; const N=5;
+    for(let i=0;i<=N;i++){ const t=i/N, w=.028*(1-t*.92), z=.32*t*t, y=t*.95; pos.push(-w,y,z, w,y,z); const c=.45+.55*t; col.push(c,c,c, c,c,c); }
+    for(let i=0;i<N;i++){ const a=i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
+  const grassCols=['#4f6a2c','#5d7a33','#6b8338','#7d8a42','#9a9152','#b3a466','#43602a'].map(C);
+  for(let c=0;c<1500;c++){ const p=groundPt(6.9,60,1.35); const n=14+(r()*22|0); const dry=r()<.3; const sk=.7+r()*.8;
+    for(let j=0;j<n;j++){ const P=p.clone().add(new V((r()-.5)*.55,0,(r()-.5)*.55)); e.set((r()-.5)*.5,r()*6.28,(r()-.5)*.5); q.setFromEuler(e); const s=sk*(.6+r()*.7);
+      addI('blade',blade,m4().compose(P,q,sc.set(s,s*(.8+r()*.6),s)), grassCols[dry?3+(r()*3|0):(r()*4|0)]); } }
+  // 苔蘚毯：依雜訊成片分布
+  const cushion=withCol(new THREE.IcosahedronGeometry(.16,0)); cushion.scale(1,.32,1);
+  const mossCols=['#4e6a27','#5a7a2c','#3f5a22','#6c8634','#7f9440','#35501f'].map(C);
+  for(let i=0,k=0;i<60000 && k<14000;i++){ const p=groundPt(6.6,48,1.5); if(fbm(p.x*.18,0,p.z*.18,3) < -.02) continue; k++;
+    e.set((r()-.5)*.2,r()*6.28,(r()-.5)*.2); q.setFromEuler(e); const s=.6+r()*1.4; addI('cushion',cushion,m4().compose(p.setY(p.y+.08),q,sc.set(s,s*(.7+r()*.6),s)), mossCols[(r()*6)|0]); }
+  // 地衣（石蕊類）：灰白綠色、珊瑚般的小枝叢
+  const lichen=(()=>{ const parts=[]; const rr=rng(17); for(let i=0;i<11;i++){ const h=.07+rr()*.08; const c=new THREE.CylinderGeometry(.006,.013,h,4,1,true); c.translate(0,h/2,0);
+      c.rotateZ((rr()-.5)*.8); c.rotateY(rr()*6.28); c.translate((rr()-.5)*.09,0,(rr()-.5)*.09); parts.push(withCol(c,[.85+rr()*.15,.85+rr()*.15,.8])); }
+    for(let i=0;i<8;i++){ const b=new THREE.IcosahedronGeometry(.016,0); b.translate((rr()-.5)*.12,.07+rr()*.07,(rr()-.5)*.12); parts.push(withCol(b,[1,1,.95])); }
+    return mergeGeometries(parts); })();
+  const lichenCols=['#c9cfb2','#b6c09a','#d6d9c4','#aab38e','#c4c8a4'].map(C);
+  for(let c=0;c<420;c++){ const p=groundPt(7,46,1.3); const n=4+(r()*9|0);
+    for(let j=0;j<n;j++){ const P=p.clone().add(new V((r()-.5)*.5,0,(r()-.5)*.5)); e.set(0,r()*6.28,0); q.setFromEuler(e); const s=1+r()*1.4; addI('lichen',lichen,m4().compose(P,q,sc.set(s,s,s)), lichenCols[(r()*5)|0]); } }
+  // 酢漿草：三片心形小葉
+  const oxalis=(()=>{ const parts=[]; const st=new THREE.CylinderGeometry(.006,.008,.16,4); st.translate(0,.08,0); parts.push(withCol(st,[.75,.8,.55]));
+    for(let i=0;i<3;i++){ const L=.11; const lg=petalGeometry({ len:L, wid:.13, segL:5, segW:2, cup:.15, curl:-.03, base:'#ffffff', tip:'#ffffff', profile:t=>Math.pow(t,.7)*(1-Math.pow(t,5)*.6)+.05 });
+      const p=lg.attributes.position; for(let v=0;v<p.count;v++){ const x=p.getX(v), z=p.getZ(v); const u=Math.min(1,Math.abs(z)/.06); p.setX(v, x - .035*Math.max(0,1-u*1.8)*Math.pow(x/L,3)); }
+      lg.computeVertexNormals(); lg.rotateZ(-.25); lg.rotateY(i*2.094); lg.translate(0,.16,0); parts.push(withCol(lg)); }
+    return mergeGeometries(parts); })();
+  const oxCols=['#5c8a35','#6a9a3e','#4f7a2e','#7aa848'].map(C);
+  for(let c=0;c<380;c++){ const p=groundPt(7,40,1.4); const n=6+(r()*10|0);
+    for(let j=0;j<n;j++){ const P=p.clone().add(new V((r()-.5)*.7,0,(r()-.5)*.7)); e.set(0,r()*6.28,0); q.setFromEuler(e); const s=.9+r()*.8; addI('oxalis',oxalis,m4().compose(P,q,sc.set(s,s,s)), oxCols[(r()*4)|0]); } }
+  // 長地衣與青苔的石頭
+  { const rockG=[]; const cG=C('#77746a'), cD=C('#4a4840'), cLi=C('#a9b38c'), cOr=C('#b98a3e'), cMo=C('#4f6a28'), tc=new THREE.Color();
+    for(let i=0;i<30;i++){ const p=groundPt(8.5,54,1.2); const s=.45+Math.pow(r(),2)*1.9; const g=mergeVertices(new THREE.IcosahedronGeometry(1,4)); g.deleteAttribute('normal'); g.deleteAttribute('uv');
+      g.scale(1+r()*.5,.55+r()*.35,1+r()*.4); displace(g,.34,1.0,4,i*7); displace(g,.06,4.5,3,i*3+1); displace(g,.025,12,2,i*5+2); g.computeVertexNormals();
+      const pp=g.attributes.position, nn=g.attributes.normal, col=[];
+      for(let v=0;v<pp.count;v++){ const x=pp.getX(v), y=pp.getY(v), z=pp.getZ(v); tc.copy(cG).lerp(cD, Math.max(0,-y)*.8+Math.max(0,noise3(x*3,y*3,z*3+i))*.3);
+        const li=fbm(x*2.6+i,y*2.6,z*2.6,3); if(li>.16) tc.lerp(cLi, Math.min(.85,(li-.16)*6)); if(fbm(x*5,y*5+i,z*5,2)>.32) tc.lerp(cOr,.8);
+        if(nn.getY(v)>.55 && fbm(x*1.5,i,z*1.5,3)>-.05) tc.lerp(cMo, Math.min(1,(nn.getY(v)-.55)*3)); col.push(tc.r,tc.g,tc.b); }
+      g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.rotateY(r()*6.28); g.scale(s,s,s); g.translate(p.x,p.y+s*.15,p.z); rockG.push(g.index?g.toNonIndexed():g); }
+    const rm=new THREE.Mesh(mergeGeometries(rockG), new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.92 })); rm.castShadow=rm.receiveShadow=true; target.add(rm); }
+  // 秋天的闊葉樹：金黃、橙褐的葉子，和雪松交錯，讓森林更靠近、更密
+  const aLeaf=(()=>{ const g=petalGeometry({ len:.62, wid:.38, segL:4, segW:2, cup:.12, curl:-.08, base:'#ffffff', tip:'#ffffff' }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
+  const autCols=['#c98a2e','#d9a441','#b8642a','#a8782e','#8a8a3a','#e0b450','#9c4f24'].map(C);
+  placeRing(60,92,16,(p,k)=>{ const tint=r(); const grow=(p0,dir,len,rad,lvl)=>{ const pts=[p0.clone()]; let pp=p0.clone(); const d=dir.clone();
+      for(let i=1;i<=4;i++){ d.add(new V((r()-.5)*.35,lvl===0?.04:.02,(r()-.5)*.35)).normalize(); pp=pp.clone().addScaledVector(d,len/4); pts.push(pp); }
+      const cv=tubeTaper(pts,rad,.62);
+      if(lvl>=3){ for(let j=0;j<70;j++){ const c=cv.getPointAt(.15+.85*r()).add(new V((r()-.5)*1.8,(r()-.5)*1.2,(r()-.5)*1.8)); e.set((r()-.5)*2,r()*6.28,(r()-.5)*2); q.setFromEuler(e); const s=.9+r()*.6;
+          addI('aleaf',aLeaf,m4().compose(c,q,sc.set(s,s,s)), autCols[Math.min(6,(r()*3+tint*4)|0)]); } return; }
+      const n=lvl===0?4:3; for(let c=0;c<n;c++){ const st=cv.getPointAt(lvl===0?.45+.55*r():.5+.5*r()); const nd=d.clone().applyAxisAngle(new V(0,1,0),c/n*6.28+r()).add(new V(0,lvl===0?-.1:.25,0)).normalize().lerp(new V(0,1,0),.35).normalize(); grow(st,nd,len*.66,rad*.58,lvl+1); } };
+    grow(p,new V(0,1,0),11+k*6,.75+k*.3,0); });
   // 統一建立
   const bm=new THREE.Mesh(mergeGeometries(branches), barkM); bm.castShadow=true; bm.receiveShadow=true; target.add(bm);
   const mats={ tuft:windMaterial({ roughness:.8 },.5), bigFrond:windMaterial({ roughness:.55 },.03), pepperLeaf:windMaterial({ roughness:.6 },.5), spray:windMaterial({ roughness:.7 },.4),
-    frondA:windMaterial({ roughness:.55 },.12), mossTuft:windMaterial({ roughness:.85 },.2), frondB:windMaterial({ roughness:.55 },.16),
+    frondA:windMaterial({ roughness:.55 },.12), blade:windMaterial({ roughness:.7 },.9), cushion:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95 }), lichen:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85 }), oxalis:windMaterial({ roughness:.5 },.6), aleaf:windMaterial({ roughness:.6 },.35), mossTuft:windMaterial({ roughness:.85 },.2), frondB:windMaterial({ roughness:.55 },.16),
     berry:new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.3, clearcoat:.7, clearcoatRoughness:.15 }), jberry:new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.6, sheen:1, sheenColor:C('#b8c4dc') }) };
   Object.entries(inst).forEach(([k,v])=>{ const im=new THREE.InstancedMesh(v.geo, mats[k], v.xf.length); v.xf.forEach((m,i)=>{ im.setMatrixAt(i,m); im.setColorAt(i,v.cl[i]); });
-    im.castShadow=!['berry','jberry','frondA','frondB','mossTuft','spray'].includes(k); im.receiveShadow=true; target.add(im); });
+    im.castShadow=!['berry','jberry','frondA','frondB','mossTuft','spray','blade','cushion','lichen','oxalis'].includes(k); im.receiveShadow=true; target.add(im); });
   return { sky, ground };
 }
 
