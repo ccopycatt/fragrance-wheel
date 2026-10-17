@@ -167,8 +167,7 @@
   .card-cta{margin-top:12px;font-size:var(--fs-xs);color:var(--gold);letter-spacing:1px;display:flex;align-items:center;gap:6px;}
   .empty-state{display:flex;align-items:center;justify-content:center;height:320px;color:var(--text-muted);font-size:var(--fs-base);text-align:center;line-height:1.9;}
 
-  .modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
-  .modal-backdrop::before{content:"";position:fixed;inset:0;z-index:-1;background:rgba(3,2,1,0.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+  .modal-backdrop{position:fixed;inset:14px 0;z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:26px 18px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .25s;}
   .modal-backdrop.open{opacity:1;pointer-events:auto;}
   .modal-backdrop:not(.show){display:none;}
   .modal-card{background:linear-gradient(180deg,#191309,#0d0a06);border:1px solid var(--border-strong);border-radius:30px;max-width:900px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.7);position:relative;overflow:hidden;transform:translateY(14px) scale(0.985);transition:transform .28s;}
@@ -307,14 +306,17 @@
   .sort-btn .sb-dot{display:none;position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--gold);}
   .sort-btn:hover,.sort-btn[aria-expanded="true"]{border-color:var(--gold);}
   @media (max-width:1000px){
-    .tabbar{height:auto;margin:0 calc(50% - 50vw);padding:10px 0;}
-    .tabbar::before{display:block;inset:0;height:auto;opacity:1;z-index:-1;background:rgba(10,8,6,.84);-webkit-backdrop-filter:blur(14px) saturate(1.15);backdrop-filter:blur(14px) saturate(1.15);}
-    .tabbar .fam-strip{display:flex;flex:1;min-width:0;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:0 20px;transition:padding .2s;}
+    /* iOS 26 Safari 會在畫面頂端往內 4px 處取樣，取到滿版的 fixed／sticky 元素就把狀態列、網址列塗成它的顏色（而且不會恢復）。
+       取樣只認寬度達畫面 90% 的元素，所以分頁列做成浮在離頂端 14px、寬度 82vw 的膠囊；捲動經過畫面底部時也不會被取樣。 */
+    .tabbar{height:auto;top:14px;width:min(100%,82vw);margin:0 auto;padding:6px;border-radius:999px;}
+    .tabbar::before{display:block;inset:0;height:auto;opacity:1;z-index:-1;border-radius:inherit;background:rgba(22,17,11,.84);
+      -webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);border:1px solid var(--border-strong);box-shadow:0 10px 28px rgba(0,0,0,.5);}
+    .tabbar .fam-strip{display:flex;flex:1;min-width:0;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:0;border-radius:18px;}
     .tabbar .fam-strip::-webkit-scrollbar{display:none;}
-    .sort-wrap{position:static;display:none;padding:0 20px 0 6px;}
+    .sort-wrap{position:static;display:none;padding:0 0 0 6px;}
     .collapsed .sort-wrap{display:block;position:relative;top:auto;}
-    .collapsed .tabbar .fam-strip{padding-right:12px;}
-    .sort-wrap::before{content:"";position:absolute;left:-18px;top:0;bottom:0;width:24px;background:linear-gradient(90deg,transparent,rgba(10,8,6,.9));pointer-events:none;}
+    .collapsed .tabbar .fam-strip{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);}
+    .fam-chip{background:rgba(20,16,11,.6);}
   }
   @media (max-width:640px){
     .sort-btn .sb-cur{display:none;}
@@ -344,15 +346,14 @@
   .sp-seg button small{font-size:var(--fs-xs);font-weight:400;color:var(--text-muted);}
   .sp-none{font-size:var(--fs-sm);color:var(--text-muted);padding:10px 2px;}
   .sp-done{all:unset;box-sizing:border-box;display:none;width:100%;margin-top:16px;min-height:48px;border-radius:var(--ir);background:var(--gold-grad);color:var(--ink-on-gold);font-weight:700;font-size:var(--fs-base);text-align:center;line-height:48px;cursor:pointer;letter-spacing:1px;}
-  .sort-scrim{position:fixed;inset:0;z-index:90;}
-  .sort-scrim::before{content:"";position:absolute;inset:0;background:rgba(3,2,1,.6);}
+  .sort-scrim{position:absolute;left:0;top:0;width:100%;z-index:90;background:rgba(3,2,1,.8);opacity:0;transition:opacity .25s;}
+  .sort-scrim.on{opacity:1;}
   @media (max-width:640px){
-    .sort-panel{--R:24px;--p:16px;position:fixed;top:auto !important;left:0 !important;right:0;bottom:0;width:auto;max-width:none;z-index:95;}
-    .sp-body{border-radius:var(--R) var(--R) 0 0;border-bottom:none;padding:18px var(--p) calc(var(--p) + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;overscroll-behavior:contain;}
+    .sort-panel{--R:28px;--p:16px;position:fixed;top:auto !important;left:10px !important;right:10px;bottom:14px;width:auto;max-width:none;z-index:95;}
+    .sp-body{padding:18px var(--p) var(--p);max-height:calc(100vh - 120px);overflow-y:auto;overscroll-behavior:contain;}
     .sp-done{display:block;}
     .sp-opt,.sp-seg button{min-height:40px;}
   }
-  @media (min-width:641px){ .sort-scrim{display:none !important;} }
 
 
   /* 展開的排序列（分頁列置頂前看得到；捲到分頁列下面後收進「排序」鈕） */
@@ -686,9 +687,9 @@ function openModal(pkey){
     ${p.note?`<div class="m-note">${ICON.note}<span>${p.note}</span></div>`:''}
     ${p.model3d?`<a class="m-link m-3d" href="${p.model3d}">走進香境 ${ICON.arrow}</a>`:''}${p.url?`<a class="m-link" href="${p.url}" target="_blank" rel="noopener">查看 ${p.url_label||'Fragrantica 原文'} ${ICON.ext}</a>`:''}
   </div>`;
-  clearTimeout(modal._hideT); modal.classList.add('show'); void modal.offsetWidth; modal.classList.add('open'); document.body.style.overflow='hidden';
+  clearTimeout(modal._hideT); modal.classList.add('show'); void modal.offsetWidth; modal.classList.add('open'); showDim(); document.body.style.overflow='hidden';
 }
-function closeModal(){ if(!modal.classList.contains('open')) return; modal.classList.remove('open'); document.body.style.overflow=''; modal._hideT=setTimeout(()=>modal.classList.remove('show'),280); }
+function closeModal(){ if(!modal.classList.contains('open')) return; modal.classList.remove('open'); document.body.style.overflow=''; hideDim(); modal._hideT=setTimeout(()=>modal.classList.remove('show'),280); }
 modal.addEventListener('click',e=>{ if(e.target===modal||e.target.closest('.modal-close')) { closeModal(); return; }
   const sw=e.target.closest('.bottle-switch button'); if(!sw) return; const v=sw.dataset.bv; try{ localStorage.setItem('fw-bottle',v); }catch(err){}
   modal.querySelectorAll('.bottle-frame').forEach(f=>f.hidden=f.dataset.v!==v);
@@ -774,9 +775,11 @@ famStrip.innerHTML=`<button type="button" class="fam-chip" data-fam="__all" styl
   categories.map(c=>`<button type="button" class="fam-chip" data-fam="${c}" style="--c:${familyColors[c]}"><span class="dot"></span>${famName(c)}<b>${database[c].length}</b></button>`).join('');
 famStrip.addEventListener('click',e=>{ const b=e.target.closest('.fam-chip'); if(!b) return;
   if(b.dataset.fam==='__all') renderAll(); else renderFamily(b.dataset.fam);
-  const top=detail.getBoundingClientRect().top+window.scrollY-document.getElementById('tabbar').offsetHeight-10; if(window.scrollY>top) window.scrollTo({top}); });
+  const top=detail.getBoundingClientRect().top+window.scrollY-document.getElementById('tabbar').offsetHeight-28; if(window.scrollY>top) window.scrollTo({top}); });
 // 排序與顯示面板
 const sortBtn=document.getElementById('sort-btn'), sortPanel=document.getElementById('sort-panel'), sortScrim=document.getElementById('sort-scrim');
+function showDim(){ sortScrim.style.height=Math.max(document.documentElement.scrollHeight, window.scrollY+window.innerHeight)+'px'; sortScrim.hidden=false; void sortScrim.offsetWidth; sortScrim.classList.add('on'); }
+function hideDim(){ if(modal.classList.contains('open')||!sortPanel.hidden) return; sortScrim.classList.remove('on'); clearTimeout(sortScrim._t); sortScrim._t=setTimeout(()=>{ if(!sortScrim.classList.contains('on')) sortScrim.hidden=true; },260); }
 const sortInline=document.getElementById('sort-inline');
 const CHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 function renderInline(){ const d=SORT_BY[sortKey];
@@ -812,14 +815,14 @@ function placePanel(){ if(window.matchMedia('(max-width:640px)').matches || !pan
   const r=panelTrigger.getBoundingClientRect(); const w=sortPanel.offsetWidth;
   const left=Math.max(16, Math.min(r.left, document.documentElement.clientWidth-w-16));
   sortPanel.style.left=(left+window.scrollX)+'px'; sortPanel.style.top=(r.bottom+8+window.scrollY)+'px'; }
-function openSortPanel(trigger){ panelTrigger=trigger||sortBtn; sortPanel.innerHTML=`<div class="sp-body">${panelHtml()}</div>`; sortPanel.hidden=false; sortScrim.hidden=false; placePanel(); panelScrollY=window.scrollY;
+function openSortPanel(trigger){ panelTrigger=trigger||sortBtn; sortPanel.innerHTML=`<div class="sp-body">${panelHtml()}</div>`; sortPanel.hidden=false; if(window.matchMedia('(max-width:640px)').matches) showDim(); placePanel(); panelScrollY=window.scrollY;
   document.querySelectorAll('#sort-btn,#si-sort').forEach(b=>b.setAttribute('aria-expanded', b===panelTrigger));
   (sortPanel.querySelector('.sp-opt[aria-checked="true"]')||sortPanel.querySelector('button')).focus({preventScroll:true}); }
-function closeSortPanel(focusBtn){ if(sortPanel.hidden) return; sortPanel.hidden=true; sortScrim.hidden=true;
+function closeSortPanel(focusBtn){ if(sortPanel.hidden) return; sortPanel.hidden=true; hideDim();
   document.querySelectorAll('#sort-btn,#si-sort').forEach(b=>b.setAttribute('aria-expanded','false'));
   if(focusBtn&&panelTrigger&&panelTrigger.isConnected) panelTrigger.focus({preventScroll:true}); }
 sortBtn.addEventListener('click',()=>{ sortPanel.hidden?openSortPanel(sortBtn):closeSortPanel(); });
-sortScrim.addEventListener('click',()=>closeSortPanel());
+sortScrim.addEventListener('click',()=>{ if(modal.classList.contains('open')) closeModal(); else closeSortPanel(); });
 window.addEventListener('scroll',()=>{ if(!sortPanel.hidden && !window.matchMedia('(max-width:640px)').matches && Math.abs(window.scrollY-panelScrollY)>60) closeSortPanel(); },{passive:true});
 window.addEventListener('resize',()=>{ if(!sortPanel.hidden) placePanel(); });
 function setSort(patch){ if(patch.k!==undefined && patch.k!==sortKey){ sortKey=patch.k; sortRev=false; }
@@ -833,7 +836,7 @@ sortInline.addEventListener('click',e=>{ const b=e.target.closest('button'); if(
   const again=sortInline.querySelector(`button[data-rev="${b.dataset.rev}"],button[data-view="${b.dataset.view}"]`); if(again&&e.detail!==0) again.focus({preventScroll:true}); });
 // 展開的排序列捲到分頁列下面時，收進分頁列的「排序」鈕
 const detailCol=document.querySelector('.detail-col'); let colTick=false;
-function syncCollapsed(){ colTick=false; detailCol.classList.toggle('collapsed', sortInline.getBoundingClientRect().bottom < 60); }
+function syncCollapsed(){ colTick=false; detailCol.classList.toggle('collapsed', sortInline.getBoundingClientRect().bottom < (window.matchMedia('(max-width:1000px)').matches?68:60)); }
 window.addEventListener('scroll',()=>{ if(!colTick){ colTick=true; requestAnimationFrame(syncCollapsed); } },{passive:true});
 window.addEventListener('resize',syncCollapsed); window.addEventListener('pageshow',syncCollapsed);
 sortPanel.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
