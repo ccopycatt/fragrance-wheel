@@ -288,40 +288,46 @@
   .search-hint,.today-src,.pick-why{text-wrap:pretty;}
   .search-hint{text-wrap:balance;}
 
-  /* 置頂分頁列：香調列（香調環在旁邊時不顯示）＋排序開關 */
+  /* 浮動快捷列：排序列捲到上面之後才出現。一層膠囊，裡面的按鈕不再各自有框；
+     離頂端 14px、最寬 82vw，避開 iOS 26 Safari 的狀態列取樣（貼邊、寬度 ≥ 90% 的 fixed 元素會被拿去塗狀態列） */
   .detail-col{min-width:0;}
-  .tabbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;height:0;margin:0;}
-  .tabbar::before{content:"";position:absolute;left:0;right:0;top:0;height:57px;background:var(--bg);border-bottom:1px solid var(--border);opacity:0;pointer-events:none;transition:opacity .2s;}
-  .collapsed .tabbar::before{opacity:1;}
-  .tabbar .fam-strip{display:none;}
-  .sort-wrap{position:absolute;top:10px;left:0;flex-shrink:0;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .2s,transform .2s,visibility 0s .2s;}
-  .collapsed .sort-wrap{opacity:1;visibility:visible;transform:none;transition:opacity .2s,transform .2s;}
-  .sort-btn{position:relative;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px 0 13px;border-radius:999px;background:var(--surface);border:1px solid var(--border-strong);color:var(--text);font-family:inherit;font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;}
-  .sort-btn svg{width:17px;height:17px;color:var(--gold);flex-shrink:0;}
+  .sort-inline{transition:opacity .2s;}
+  .sort-inline.tucked{opacity:0;pointer-events:none;}
+  .fbar{--R:23px;--p:4px;position:fixed;top:14px;left:50%;z-index:40;display:flex;align-items:center;height:46px;max-width:82vw;padding:var(--p);border-radius:var(--R);
+    background:rgba(22,17,11,.86);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);border:1px solid var(--border-strong);box-shadow:0 10px 28px rgba(0,0,0,.5);
+    transform:translate(-50%,-6px);opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility 0s .2s;}
+  .fbar.show{transform:translate(-50%,0);opacity:1;visibility:visible;transition:opacity .2s,transform .2s;}
+  .fb-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:calc(var(--R) - var(--p) - 1px);
+    color:var(--text);font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;min-width:0;transition:background .15s;}
+  .fb-btn:hover,.fb-btn[aria-expanded="true"]{background:rgba(201,169,106,.15);}
+  .fb-btn:focus-visible{outline:2px solid var(--gold);outline-offset:-2px;}
+  .fb-btn svg{width:16px;height:16px;color:var(--gold);flex-shrink:0;}
+  .fb-fam svg{width:14px;height:14px;}
+  .fb-fam #fam-label{overflow:hidden;text-overflow:ellipsis;}
+  .fb-dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--gold));flex-shrink:0;}
+  .fb-sep{width:1px;height:18px;background:var(--border-strong);margin:0 2px;flex-shrink:0;}
   .sort-btn .sb-cur{color:var(--gold-lt);}
   .sort-btn .sb-cur:empty{display:none;}
-  .sort-btn .sb-k{color:var(--text);}
-  .sort-btn .sb-cur:not(:empty){margin-left:2px;}
   .sort-btn:has(.sb-cur:not(:empty)) .sb-k{color:var(--text-muted);}
-  .sort-btn .sb-dot{display:none;position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--gold);}
-  .sort-btn:hover,.sort-btn[aria-expanded="true"]{border-color:var(--gold);}
-  @media (max-width:1000px){
-    /* iOS 26 Safari 會在畫面頂端往內 4px 處取樣，取到滿版的 fixed／sticky 元素就把狀態列、網址列塗成它的顏色（而且不會恢復）。
-       取樣只認寬度達畫面 90% 的元素，所以分頁列做成浮在離頂端 14px、寬度 82vw 的膠囊；捲動經過畫面底部時也不會被取樣。 */
-    .tabbar{height:auto;top:14px;width:min(100%,82vw);margin:0 auto;padding:6px;border-radius:999px;}
-    .tabbar::before{display:block;inset:0;height:auto;opacity:1;z-index:-1;border-radius:inherit;background:rgba(22,17,11,.84);
-      -webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);border:1px solid var(--border-strong);box-shadow:0 10px 28px rgba(0,0,0,.5);}
-    .tabbar .fam-strip{display:flex;flex:1;min-width:0;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;padding:0;border-radius:18px;}
-    .tabbar .fam-strip::-webkit-scrollbar{display:none;}
-    .sort-wrap{position:static;display:none;padding:0 0 0 6px;}
-    .collapsed .sort-wrap{display:block;position:relative;top:auto;}
-    .collapsed .tabbar .fam-strip{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);}
-    .fam-chip{background:rgba(20,16,11,.6);}
-  }
-  @media (max-width:640px){
-    .sort-btn .sb-cur{display:none;}
-    .sort-btn.on .sb-dot{display:block;}
-  }
+  .sort-btn .sb-dot{display:none;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:-2px;}
+  @media (min-width:1001px){ .fb-fam,.fb-sep{display:none;} }
+  @media (max-width:1000px){ .sort-btn .sb-cur{display:none;} .sort-btn.on .sb-dot{display:block;} }
+  /* 香調環選取（快捷列的香調鈕打開） */
+  .pw{--ws:min(340px,calc(100vw - 52px));position:relative;width:var(--ws);height:var(--ws);margin:6px auto 2px;}
+  .pw::before{content:"";position:absolute;inset:2px;border:1px dashed var(--border-strong);border-radius:50%;}
+  .pw-node{--s:clamp(54px,calc(var(--ws) * .19),64px);width:var(--s);height:var(--s);left:calc(50% - var(--s) / 2);top:calc(50% - var(--s) / 2);padding:0;font:inherit;color:inherit;
+    translate:calc(cos(var(--a)) * (var(--ws) / 2 - var(--s) / 2 - 4px)) calc(sin(var(--a)) * (var(--ws) / 2 - var(--s) / 2 - 4px));}
+  .pw-node .node-icon svg{width:16px;height:16px;}
+  .pw-node .node-name{font-size:12px;margin-top:2px;}
+  .pw-node .node-count{font-size:12px;}
+  .pw-node:hover,.pw-node.active{transform:scale(1.06);}
+  .pw-hub{all:unset;box-sizing:border-box;position:absolute;left:50%;top:50%;width:calc(var(--ws) * .36);height:calc(var(--ws) * .36);transform:translate(-50%,-50%);border-radius:50%;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;background:radial-gradient(circle at 50% 40%,#1a140d,#0b0805);border:1px solid var(--border-strong);}
+  .pw-hub svg{width:24px;height:24px;color:var(--gold);}
+  .pw-hub b{font-family:var(--serif);font-weight:600;color:var(--text);font-size:var(--fs-md);}
+  .pw-hub small{font-size:var(--fs-xs);color:var(--text-muted);}
+  .pw-hub.active{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+  .pw-hub:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
   .sort-note{color:var(--gold-lt);}
   .detail-header{flex-wrap:wrap;row-gap:4px;}
 
@@ -422,12 +428,6 @@
       </div>
     </div>
     <div class="detail-col">
-      <div class="tabbar" id="tabbar">
-        <nav class="fam-strip" id="fam-strip" aria-label="香調"></nav>
-        <div class="sort-wrap" id="sort-wrap">
-          <button type="button" class="sort-btn" id="sort-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="sort-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg><span class="sb-k">排序</span><span class="sb-cur" id="sort-label"></span><span class="sb-dot" aria-hidden="true"></span></button>
-        </div>
-      </div>
       <div class="sort-inline" id="sort-inline"></div>
       <div class="detail-panel" id="detail">
         <div class="empty-state">← 點擊左側香調節點，或於上方搜尋香材</div>
@@ -435,6 +435,11 @@
     </div>
   </div>
   <footer id="footer"></footer>
+</div>
+<div class="fbar" id="fbar" role="toolbar" aria-label="快速切換">
+  <button type="button" class="fb-btn fb-fam" id="fam-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="sort-panel"><span class="fb-dot" id="fam-dot"></span><span id="fam-label">全部收藏</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+  <span class="fb-sep" aria-hidden="true"></span>
+  <button type="button" class="fb-btn sort-btn" id="sort-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="sort-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg><span class="sb-k">排序</span><span class="sb-cur" id="sort-label"></span><span class="sb-dot" aria-hidden="true"></span></button>
 </div>
 <div class="sort-scrim" id="sort-scrim" hidden></div>
 <div class="sort-panel" id="sort-panel" role="dialog" aria-label="排序與顯示" hidden></div>
@@ -563,7 +568,7 @@ function thumbHtml(p){ const src=p.thumb||p.img; const fb=(p.img_fallback&&p.img
 function miniCardHtml(p,famColor,opts){ opts=opts||{}; const pkey=(opts.is_sample?'VIAL|':'')+p.brand+'|'+p.name_en;
   return `<div class="card mini" data-pkey="${pkey}" style="--fam-color:${famColor}">${thumbHtml(p)}<div class="brand">${p.brand}</div><div class="mini-name">${p.name_en}</div>${p.name_zh?`<div class="mini-zh">${p.name_zh}</div>`:''}<div class="mini-rate">${sortMeta(p)}</div></div>`; }
 function cardsHtml(list){ return `<div class="cards${viewMode==='grid'?' compact':''}">${list.map(x=>viewMode==='grid'?miniCardHtml(x.p,x.famColor,x.opts):cardHtml(x.p,x.famColor,x.opts)).join('')}</div>`; }
-function syncViewbar(){ document.getElementById('vb-all').classList.toggle('active', mode==='all' && !searchInput.value.trim());
+function syncViewbar(){ syncFamBtn(); document.getElementById('vb-all').classList.toggle('active', mode==='all' && !searchInput.value.trim());
   const strip=document.getElementById('fam-strip'); if(strip){ const q=searchInput.value.trim(); strip.querySelectorAll('.fam-chip').forEach(c=>{ const on=!q && ((mode==='all'&&c.dataset.fam==='__all')||(mode==='main'&&c.dataset.fam===activeFamily)); c.classList.toggle('active',on); c.setAttribute('aria-pressed',on);
     if(on){ const l=c.offsetLeft-20, r=l+c.offsetWidth+40; if(l<strip.scrollLeft||r>strip.scrollLeft+strip.clientWidth) strip.scrollLeft=l; } }); }
   syncSortbar(); }
@@ -770,14 +775,18 @@ document.getElementById('vb-count').textContent=Object.values(perfIndex).filter(
 document.getElementById('vb-all').addEventListener('click',renderAll);
 hub.addEventListener('click',renderAll);
 document.getElementById('subtitle').textContent = `${Object.values(perfIndex).filter(e=>!e.is_sample).length} 支收藏，依主香調分類；點香水看瓶身、香調金字塔與香材`;
-const famStrip=document.getElementById('fam-strip');
-famStrip.innerHTML=`<button type="button" class="fam-chip" data-fam="__all" style="--c:var(--gold)"><span class="dot"></span>全部<b>${Object.values(perfIndex).filter(e=>!e.is_sample).length}</b></button>`+
-  categories.map(c=>`<button type="button" class="fam-chip" data-fam="${c}" style="--c:${familyColors[c]}"><span class="dot"></span>${famName(c)}<b>${database[c].length}</b></button>`).join('');
-famStrip.addEventListener('click',e=>{ const b=e.target.closest('.fam-chip'); if(!b) return;
-  if(b.dataset.fam==='__all') renderAll(); else renderFamily(b.dataset.fam);
-  const top=detail.getBoundingClientRect().top+window.scrollY-document.getElementById('tabbar').offsetHeight-28; if(window.scrollY>top) window.scrollTo({top}); });
 // 排序與顯示面板
 const sortBtn=document.getElementById('sort-btn'), sortPanel=document.getElementById('sort-panel'), sortScrim=document.getElementById('sort-scrim');
+const fbar=document.getElementById('fbar'), famBtn=document.getElementById('fam-btn');
+let panelMode='sort';
+function syncFamBtn(){ const q=searchInput.value.trim(); const lab=q?'搜尋結果':mode==='all'?'全部收藏':activeFamily?famName(activeFamily):'全部收藏';
+  document.getElementById('fam-label').textContent=lab; famBtn.style.setProperty('--c', (!q&&mode==='main'&&activeFamily)?familyColors[activeFamily]:'var(--gold)');
+  famBtn.setAttribute('aria-label','選擇香調，目前 '+lab); }
+function famPickerHtml(){ const n=categories.length, q=searchInput.value.trim(), total=Object.values(perfIndex).filter(e=>!e.is_sample).length;
+  return `<div class="sp-title">選擇香調</div><div class="pw">`
+    + categories.map((c,i)=>{ const on=!q&&mode==='main'&&activeFamily===c; return `<button type="button" class="node pw-node${on?' active':''}" data-fam="${c}" aria-pressed="${on}" style="--node-color:${familyColors[c]};--node-glow:${familyColors[c]}80;--a:${(i*360/n-90).toFixed(2)}deg"><span class="node-icon">${familyIcons[c]}</span><span class="node-name">${famName(c)}</span><span class="node-count">${database[c].length} 款</span></button>`; }).join('')
+    + `<button type="button" class="pw-hub${!q&&mode==='all'?' active':''}" data-fam="__all" aria-pressed="${!q&&mode==='all'}">${ALL_ICON}<b>全部收藏</b><small>${total} 款</small></button></div>
+    <button type="button" class="sp-done">關閉</button>`; }
 function showDim(){ sortScrim.style.height=Math.max(document.documentElement.scrollHeight, window.scrollY+window.innerHeight)+'px'; sortScrim.hidden=false; void sortScrim.offsetWidth; sortScrim.classList.add('on'); }
 function hideDim(){ if(modal.classList.contains('open')||!sortPanel.hidden) return; sortScrim.classList.remove('on'); clearTimeout(sortScrim._t); sortScrim._t=setTimeout(()=>{ if(!sortScrim.classList.contains('on')) sortScrim.hidden=true; },260); }
 const sortInline=document.getElementById('sort-inline');
@@ -790,6 +799,7 @@ function syncSortbar(){ renderInline(); const on=sortKey!=='default'; document.g
   sortBtn.classList.toggle('on', on||viewMode==='grid');
   sortBtn.setAttribute('aria-label', '排序與顯示'+(on?'，目前 '+sortSummary():'')+(viewMode==='grid'?'，總覽':'')); }
 function panelHtml(){
+  if(panelMode==='fam') return famPickerHtml();
   const d=SORT_BY[sortKey];
   const opts=SORTS.map(x=>{ const off=x.need&&!x.need(); return `<button type="button" class="sp-opt" role="radio" data-k="${x.k}" aria-checked="${x.k===sortKey}"${off?' aria-disabled="true" title="'+x.needMsg+'"':''}>${x.label}</button>`; }).join('');
   const off=d.need&&!d.need();
@@ -815,13 +825,15 @@ function placePanel(){ if(window.matchMedia('(max-width:640px)').matches || !pan
   const r=panelTrigger.getBoundingClientRect(); const w=sortPanel.offsetWidth;
   const left=Math.max(16, Math.min(r.left, document.documentElement.clientWidth-w-16));
   sortPanel.style.left=(left+window.scrollX)+'px'; sortPanel.style.top=(r.bottom+8+window.scrollY)+'px'; }
-function openSortPanel(trigger){ panelTrigger=trigger||sortBtn; sortPanel.innerHTML=`<div class="sp-body">${panelHtml()}</div>`; sortPanel.hidden=false; if(window.matchMedia('(max-width:640px)').matches) showDim(); placePanel(); panelScrollY=window.scrollY;
-  document.querySelectorAll('#sort-btn,#si-sort').forEach(b=>b.setAttribute('aria-expanded', b===panelTrigger));
-  (sortPanel.querySelector('.sp-opt[aria-checked="true"]')||sortPanel.querySelector('button')).focus({preventScroll:true}); }
+function openSortPanel(trigger, pm){ panelMode=pm||'sort'; panelTrigger=trigger||sortBtn; sortPanel.innerHTML=`<div class="sp-body">${panelHtml()}</div>`; sortPanel.hidden=false; if(window.matchMedia('(max-width:640px)').matches) showDim(); placePanel(); panelScrollY=window.scrollY;
+  document.querySelectorAll('#sort-btn,#si-sort,#fam-btn').forEach(b=>b.setAttribute('aria-expanded', b===panelTrigger));
+  (sortPanel.querySelector('.sp-opt[aria-checked="true"],.pw [aria-pressed="true"]')||sortPanel.querySelector('button')).focus({preventScroll:true}); }
 function closeSortPanel(focusBtn){ if(sortPanel.hidden) return; sortPanel.hidden=true; hideDim();
-  document.querySelectorAll('#sort-btn,#si-sort').forEach(b=>b.setAttribute('aria-expanded','false'));
+  document.querySelectorAll('#sort-btn,#si-sort,#fam-btn').forEach(b=>b.setAttribute('aria-expanded','false'));
   if(focusBtn&&panelTrigger&&panelTrigger.isConnected) panelTrigger.focus({preventScroll:true}); }
-sortBtn.addEventListener('click',()=>{ sortPanel.hidden?openSortPanel(sortBtn):closeSortPanel(); });
+sortBtn.addEventListener('click',()=>{ if(!sortPanel.hidden&&panelTrigger===sortBtn) closeSortPanel(); else openSortPanel(sortBtn,'sort'); });
+famBtn.addEventListener('click',()=>{ if(!sortPanel.hidden&&panelTrigger===famBtn) closeSortPanel(); else openSortPanel(famBtn,'fam'); });
+function scrollToList(){ const top=detail.getBoundingClientRect().top+window.scrollY-76; if(window.scrollY>top) window.scrollTo({top}); }
 sortScrim.addEventListener('click',()=>{ if(modal.classList.contains('open')) closeModal(); else closeSortPanel(); });
 window.addEventListener('scroll',()=>{ if(!sortPanel.hidden && !window.matchMedia('(max-width:640px)').matches && Math.abs(window.scrollY-panelScrollY)>60) closeSortPanel(); },{passive:true});
 window.addEventListener('resize',()=>{ if(!sortPanel.hidden) placePanel(); });
@@ -834,13 +846,16 @@ sortInline.addEventListener('click',e=>{ const b=e.target.closest('button'); if(
   if(b.id==='si-sort'){ if(sortPanel.hidden||panelTrigger!==b) openSortPanel(b); else closeSortPanel(); return; }
   if(b.dataset.rev!==undefined) setSort({rev:b.dataset.rev==='1'}); else if(b.dataset.view) setSort({view:b.dataset.view});
   const again=sortInline.querySelector(`button[data-rev="${b.dataset.rev}"],button[data-view="${b.dataset.view}"]`); if(again&&e.detail!==0) again.focus({preventScroll:true}); });
-// 展開的排序列捲到分頁列下面時，收進分頁列的「排序」鈕
+// 展開的排序列捲到畫面上方後，出現浮動快捷列（香調、排序）
 const detailCol=document.querySelector('.detail-col'); let colTick=false;
-function syncCollapsed(){ colTick=false; detailCol.classList.toggle('collapsed', sortInline.getBoundingClientRect().bottom < (window.matchMedia('(max-width:1000px)').matches?68:60)); }
+function syncCollapsed(){ colTick=false; const on=sortInline.getBoundingClientRect().bottom < 70; fbar.classList.toggle('show', on); sortInline.classList.toggle('tucked', on);
+  if(!on && !sortPanel.hidden && (panelTrigger===sortBtn||panelTrigger===famBtn)) closeSortPanel();
+  if(window.matchMedia('(min-width:1001px)').matches){ const r=detailCol.getBoundingClientRect(); fbar.style.left=(r.left+r.width/2)+'px'; } else fbar.style.left=''; }
 window.addEventListener('scroll',()=>{ if(!colTick){ colTick=true; requestAnimationFrame(syncCollapsed); } },{passive:true});
 window.addEventListener('resize',syncCollapsed); window.addEventListener('pageshow',syncCollapsed);
 sortPanel.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
   if(b.classList.contains('sp-done')){ closeSortPanel(e.detail===0); return; }
+  if(b.dataset.fam){ closeSortPanel(); if(b.dataset.fam==='__all') renderAll(); else renderFamily(b.dataset.fam); scrollToList(); return; }
   if(b.dataset.k){ if(b.getAttribute('aria-disabled')==='true') return; setSort({k:b.dataset.k}); }
   else if(b.dataset.rev!==undefined) setSort({rev:b.dataset.rev==='1'});
   else if(b.dataset.view) setSort({view:b.dataset.view});
@@ -851,7 +866,7 @@ sortPanel.addEventListener('keydown',e=>{
   const grid=e.target.closest('.sp-grid'); if(!grid) return; const opts=[...grid.querySelectorAll('.sp-opt')]; const i=opts.indexOf(e.target);
   const step={ArrowRight:1,ArrowLeft:-1,ArrowDown:3,ArrowUp:-3}[e.key]; if(step===undefined) return; e.preventDefault();
   opts[Math.max(0,Math.min(opts.length-1,i+step))].focus(); });
-document.addEventListener('click',e=>{ if(!sortPanel.hidden && e.target.isConnected && !e.target.closest('#sort-panel,#sort-btn,#si-sort,#sort-scrim')) closeSortPanel(); });
+document.addEventListener('click',e=>{ if(!sortPanel.hidden && e.target.isConnected && !e.target.closest('#sort-panel,#sort-btn,#si-sort,#fam-btn,#sort-scrim')) closeSortPanel(); });
 
 document.getElementById('footer').innerHTML=`
   <div><b>資料製作說明</b></div>
