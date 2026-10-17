@@ -713,9 +713,9 @@ glass.position.y = GH/2; glass.layers.set(1); bottle.add(glass);
 
 // 白色紙標（取自官方去背照）
 {
-  const LW=3.43, LH=4.63, LT=.018, LY=5.04;
+  const LW=3.40, LH=4.56, LT=.018, LY=4.88;   // 依官方正面照：標籤上緣在瓶身由上往下 6.5%、下緣 51.7%
   const map=tex(TEX.label), bump=tex(TEX.labelBump,false);
-  const front=new THREE.MeshStandardMaterial({ map, bumpMap:bump, bumpScale:1.2, roughness:.9, metalness:0 });
+  const front=new THREE.MeshStandardMaterial({ map, bumpMap:bump, bumpScale:.7, roughness:.9, metalness:0 });
   const paper=new THREE.MeshStandardMaterial({ color:C('#ebe9e2'), roughness:.95 });
   const label=new THREE.Mesh(new THREE.BoxGeometry(LW,LH,LT), [paper,paper,paper,paper,front,paper]);
   label.position.set(0, LY+LH/2, D/2+LT/2+.004); label.castShadow=true; bottle.add(label);

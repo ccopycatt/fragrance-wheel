@@ -630,7 +630,7 @@ glass.position.y = GH/2; glass.layers.set(1); bottle.add(glass);
 {
   const LW=3.03, LH=8.08, LT=.05;
   const map=tex(TEX.label), bump=tex(TEX.labelBump,false);
-  const front=new THREE.MeshStandardMaterial({ map, bumpMap:bump, bumpScale:1.6, roughness:.78, metalness:0 });
+  const front=new THREE.MeshStandardMaterial({ map, bumpMap:bump, bumpScale:.55, roughness:.78, metalness:0 });   // 高解析凹凸圖的斜率較大，強度要調低
   const woodBack=new THREE.MeshStandardMaterial({ map:canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#d9bd78'; g.fillRect(0,0,w,h); const r=rng(7);
       for(let i=0;i<70;i++){ g.strokeStyle=`rgba(150,110,50,${.05+r()*.12})`; g.lineWidth=.6+r()*1.6; g.beginPath(); let x=r()*w; g.moveTo(x,0); for(let y=0;y<=h;y+=16){ x+= (r()-.5)*3; g.lineTo(x,y);} g.stroke(); } }), roughness:.85 });
   const edge=new THREE.MeshStandardMaterial({ color:C('#a77d3e'), roughness:.8 });
