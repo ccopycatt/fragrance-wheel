@@ -500,7 +500,7 @@ const world = buildWorld(scene, true);
 // 箱蓋有一道裂痕，用金箔修補（金繕）——呼應品牌說的「如茶葉受了傷才能綻放醇香」，也呼應 Gold Leaf 這個名字。
 const CHEST = { W:10.6, D:7.8, H:3.6, LID:.38 };
 const flakes = (()=>{
-  const { W:CW, D:CD, H:CH, LID } = CHEST; const S=2048;
+  const { W:CW, D:CD, H:CH, LID } = CHEST; const S=1024;
   // 木板材質：一片片直向木紋的樟木板，顏色各有深淺，板縫深、邊緣被手摸得較亮
   const planks=(seed, n, mode, opt={})=>canvasTex(S, S, (g)=>{ const r=rng(seed);
     const base={ color:'#8a5e36', bump:'#808080', rough:'#c8c8c8', metal:'#000000' }[mode];
@@ -555,9 +555,9 @@ const flakes = (()=>{
   const back=(mode)=>planks(13, 5, mode, { draw:(g,m,r)=>stencil(g,m,r,[['No. 18',S*.45,S*.12,S*.02],['NETT 40 LBS',S*.62,S*.07,S*.012,'600']]) });
   const side=(mode,seed,txt)=>planks(seed, 5, mode, { draw:(g,m,r)=>stencil(g,m,r,txt?[[txt,S*.55,S*.11,S*.02]]:[], txt?null:[S*.5,S*.5,S*.22]) });
   const lid=(mode)=>planks(17, 4, mode, { draw:(g,m)=>crack(g,m) });
-  const mat=(f)=>{ const map=f('color'), bump=f('bump'), rough=f('rough'), metal=f('metal');
-    return new THREE.MeshPhysicalMaterial({ map, bumpMap:bump, bumpScale:1.1, roughnessMap:rough, roughness:.95, metalnessMap:metal, metalness:1, clearcoat:.06, clearcoatRoughness:.6, sheen:.35, sheenRoughness:.7, sheenColor:C('#e8c8a0') }); };
-  const mFront=mat(front), mBack=mat(back), mR=mat((m)=>side(m,19,'NEW YORK')), mL=mat((m)=>side(m,23,null)), mLid=mat(lid);
+  const mat=(f,metal)=>{ const map=f('color'), bump=f('bump'), rough=f('rough');
+    return new THREE.MeshPhysicalMaterial({ map, bumpMap:bump, bumpScale:1.1, roughnessMap:rough, roughness:.95, metalnessMap:metal?f('metal'):null, metalness:metal?1:0, clearcoat:.06, clearcoatRoughness:.6, sheen:.35, sheenRoughness:.7, sheenColor:C('#e8c8a0') }); };
+  const mFront=mat(front), mBack=mat(back), mR=mat((m)=>side(m,19,'NEW YORK')), mL=mat((m)=>side(m,23,null)), mLid=mat(lid,true);
   const mPlain=mat((m)=>planks(29,4,m));
   // 箱身（BoxGeometry 的面序：+x, -x, +y, -y, +z, -z）
   const body=new THREE.Mesh(new THREE.BoxGeometry(CW, CH-LID, CD), [mR, mL, mPlain, mPlain, mFront, mBack]);
@@ -647,7 +647,7 @@ const glassGeo=new ConvexGeometry([...oct(W/2-BB,D/2-BB,CHF-BB*.42,0), ...oct(W/
 const PLANES=(()=>{ const p=glassGeo.attributes.position, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3(), n=new THREE.Vector3(), mid=new THREE.Vector3(0,GH/2,0); const out=[];
   for(let i=0;i<p.count;i+=3){ a.fromBufferAttribute(p,i); b.fromBufferAttribute(p,i+1); c.fromBufferAttribute(p,i+2);
     n.subVectors(b,a).cross(c.clone().sub(a)); if(n.length()<1e-6) continue; n.normalize(); if(n.dot(a.clone().sub(mid))<0) n.negate();
-    const h=n.dot(a); if(!out.some(q=>q.distanceTo(new THREE.Vector4(n.x,n.y,n.z,h))<2e-3)) out.push(new THREE.Vector4(n.x,n.y,n.z,h)); }
+    const h=n.dot(a); if(!out.some(q=>Math.abs(q.x-n.x)+Math.abs(q.y-n.y)+Math.abs(q.z-n.z)+Math.abs(q.w-h)<3e-3)) out.push(new THREE.Vector4(n.x,n.y,n.z,h)); }
   while(out.length<40) out.push(new THREE.Vector4(0,1,0,1e4)); return out.slice(0,40); })();
 
 const MSAA = Math.min(4, renderer.capabilities.maxSamples||4);
