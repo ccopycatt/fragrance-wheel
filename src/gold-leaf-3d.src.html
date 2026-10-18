@@ -368,17 +368,18 @@ function buildWorld(target, detailed){
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 64, 32), skyMaterial()); sky.renderOrder=-10; sky.frustumCulled=false; target.add(sky);
   mountainRings(target, detailed); teaHills(target, detailed); cloudSea(target);
   // 地面：台地是夯實的紅土與碎石，茶行之間是深色的土壤，邊坡長草
-  const ring = new THREE.RingGeometry(.8, 330, detailed?220:60, detailed?120:30);   // 內徑不能是 0：圓心疊點會讓法向／凹凸計算出 NaN ring.rotateX(-Math.PI/2);
-  const rp=ring.attributes.position, col=[]; const cRed=C('#8a6a48'), cSoil=C('#5e4a32'), cGrass=C('#5f7a34'), cDry=C('#8a8550'), tmp=new THREE.Color();
+  // 內徑不能是 0：圓心疊點會讓法向／凹凸計算出 NaN
+  const ring = new THREE.RingGeometry(.8, 330, detailed?320:60, detailed?220:30); ring.rotateX(-Math.PI/2);
+  const rp=ring.attributes.position, col=[]; const cRed=C('#7c5036'), cSoil=C('#5e3c28'), cGrass=C('#55702e'), cDry=C('#7a6a42'), tmp=new THREE.Color();   // 台灣茶園的紅土
   for(let i=0;i<rp.count;i++){ const x=rp.getX(i), z=rp.getZ(i); rp.setY(i, terrainH(x,z)); const d=Math.hypot(x,z);
     const n=fbm(x*.08,2,z*.08,3), n2=fbm(x*.25,5,z*.25,2);
-    tmp.copy(cRed).lerp(cSoil, sstep(9,16,d)).lerp(cGrass, sstep(11,18,d)*Math.min(1,Math.max(0,n*1.5+.5))).lerp(cDry, Math.max(0,n2)*.35);
+    tmp.copy(cRed).lerp(cSoil, Math.max(0,n2)*.6).lerp(cGrass, sstep(16,30,d)*Math.min(1,Math.max(0,n*1.6+.2))*.55).lerp(cDry, Math.max(0,-n2)*.25);
     col.push(tmp.r,tmp.g,tmp.b); }
   ring.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); ring.computeVertexNormals();
   // 圓環內徑 0：圓心那圈頂點疊在一起，算出的法向是 0/0（NaN），打光後會讓反射探針整張變黑，改成朝上
   { const nr=ring.attributes.normal; for(let i=0;i<nr.count;i++){ if(!(Math.abs(nr.getX(i))+Math.abs(nr.getY(i))+Math.abs(nr.getZ(i))>.5)) nr.setXYZ(i,0,1,0); } }
-  const floorTex=canvasTex(1024,1024,(g,w,h)=>{ g.fillStyle='#9b8a72'; g.fillRect(0,0,w,h); const r=rng(31);
-    for(let i=0;i<22000;i++){ g.fillStyle=`rgba(${r()<.5?'70,52,36':'190,170,140'},${r()*.35})`; g.fillRect(r()*w,r()*h,1+r()*3,1+r()*2); }
+  const floorTex=canvasTex(1024,1024,(g,w,h)=>{ g.fillStyle='#a07c62'; g.fillRect(0,0,w,h); const r=rng(31);
+    for(let i=0;i<22000;i++){ g.fillStyle=`rgba(${r()<.5?'80,46,28':'200,150,110'},${r()*.35})`; g.fillRect(r()*w,r()*h,1+r()*3,1+r()*2); }
     for(let i=0;i<900;i++){ const x=r()*w,y=r()*h, s=2+r()*6; g.fillStyle=`rgba(${120+r()*50|0},${105+r()*40|0},${85+r()*30|0},${.5+r()*.4})`; g.beginPath(); g.ellipse(x,y,s,s*(.6+r()*.4),r()*3,0,7); g.fill(); g.fillStyle='rgba(40,30,20,.35)'; g.beginPath(); g.ellipse(x+1,y+1.5,s,s*.4,r()*3,0,3.14); g.fill(); }
     // 落下的老茶葉
     for(let i=0;i<260;i++){ const x=r()*w, y=r()*h, s=5+r()*9, a=r()*6.28; g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=['#5a4a2c','#6e5a34','#4e5a2c','#7a6a40'][(r()*4)|0]; g.globalAlpha=.5+r()*.4;
@@ -425,15 +426,21 @@ function buildWorld(target, detailed){
   const teaCols=['#ffffff','#f2f7e8','#e4ecd8','#fbffef','#dfe8cf'].map(C);
   const plantRow=(fz, x0, x1, step=.92)=>{ let x=x0; while(x<=x1){ const z=fz(x); const d=Math.hypot(x,z); const far=d>40;
       const z2=fz(x+.3); const skip = d<14.5 || (Math.abs(x-pathX(z))<1.4 && z<-8) || d>300;
-      if(!skip){ const yaw=-Math.atan2(z2-z,.3); const y=terrainH(x,z); e.set(0,yaw+(r()-.5)*.12,0); q.setFromEuler(e); const s=.95+r()*.15;
-        addI(far?'teaFar':'tea', far?teaFar:teaBush, m4().compose(new V(x,y-.05,z), q, sc.set((far?2.5:1.05)*s, (.9+r()*.2)*s, .95*s)), teaCols[(r()*5)|0]); }
+      if(!skip){ const yaw=-Math.atan2(z2-z,.3); const half=(far?2.5:1.05)*.82; const dx=Math.cos(yaw)*half, dz=-Math.sin(yaw)*half;
+        const y=Math.min(terrainH(x,z), terrainH(x+dx,z+dz), terrainH(x-dx,z-dz)) - (far?.25:.12); e.set(0,yaw+(r()-.5)*.12,0); q.setFromEuler(e); const s=.95+r()*.15;
+        addI(far?'teaFar':'tea', far?teaFar:teaBush, m4().compose(new V(x,y,z), q, sc.set((far?2.5:1.05)*s, (.9+r()*.2)*s, .95*s)), teaCols[(r()*5)|0]); }
       x += step*(far?2.4:1)*(.9+r()*.2); } };
   for(let c=3; c<112; c+=2.45){ const half=Math.min(150, 24+c*.95); plantRow((x)=>-12-c+.0042*x*x, -half, half); }
   for(let c=1.8; c<100; c+=2.45){ const half=Math.min(150, 48+c*1.2); plantRow((x)=>15+c+.0032*x*x, -half, half); }
   // 台地兩側：繞著山頭的弧形茶行（銜接後坡與前坡）
   for(let R=16; R<44; R+=2.45){ for(let a=0;a<6.283;a+=.92/R){ const x=Math.cos(a)*R, z=Math.sin(a)*R; if(z<-9-.0042*x*x*.5 || z>14) continue; if(Math.abs(x)<14) continue;
-      const far=R>40; const y=terrainH(x,z); e.set(0,-a+Math.PI/2+(r()-.5)*.1,0); q.setFromEuler(e); const s=.95+r()*.15;
-      addI(far?'teaFar':'tea', far?teaFar:teaBush, m4().compose(new V(x,y-.05,z), q, sc.set(1.05*s,(.9+r()*.2)*s,.95*s)), teaCols[(r()*5)|0]); } }
+      const far=R>40; const tx=-Math.sin(a)*.86, tz=Math.cos(a)*.86; const y=Math.min(terrainH(x,z),terrainH(x+tx,z+tz),terrainH(x-tx,z-tz))-.12; e.set(0,-a+Math.PI/2+(r()-.5)*.1,0); q.setFromEuler(e); const s=.95+r()*.15;
+      addI(far?'teaFar':'tea', far?teaFar:teaBush, m4().compose(new V(x,y,z), q, sc.set(1.05*s,(.9+r()*.2)*s,.95*s)), teaCols[(r()*5)|0]); } }
+  // 台地：茶箱四周也種滿茶樹，一行行平行排列，只留出茶箱本身與往下坡的石階茶路
+  for(let z=-14.2; z<=14.6; z+=2.45){ for(let x=-15; x<=15; x+=.92*(.9+r()*.2)){ const d=Math.hypot(x,z); if(d>14.8) continue;
+      if(Math.abs(x)<6.0 && Math.abs(z)<4.6) continue; if(z<-6 && Math.abs(x-pathX(Math.min(z,-8.5)))<1.35) continue;
+      e.set(0,(r()-.5)*.12,0); q.setFromEuler(e); const s=.95+r()*.15;
+      addI('tea', teaBush, m4().compose(new V(x, Math.min(terrainH(x,z),terrainH(x+.86,z),terrainH(x-.86,z))-.1, z), q, sc.set(1.05*s,(.9+r()*.2)*s,.95*s)), teaCols[(r()*5)|0]); } }
 
   // ---------- 茶路：石階從台地往下坡走進霧裡 ----------
   { const sg=mergeVertices(new THREE.IcosahedronGeometry(1,3)); sg.deleteAttribute('normal'); sg.deleteAttribute('uv'); displace(sg,.12,2.2,3,9); sg.scale(.62,.16,.42); sg.computeVertexNormals();
@@ -443,7 +450,7 @@ function buildWorld(target, detailed){
         e.set((r()-.5)*.08, yaw+(r()-.5)*.4, (r()-.5)*.08); q.setFromEuler(e); const s=.9+r()*.35;
         addI('stone', sg, m4().compose(new V(px, terrainH(px,pz)+.04, pz), q, sc.set(s,s*(.8+r()*.4),s)), stoneCols[(r()*5)|0]); } }
     // 台地上：茶箱旁的幾塊鋪石
-    for(let i=0;i<26;i++){ const a=r()*6.28, d=7.5+r()*5.5; const x=Math.cos(a)*d, z=Math.sin(a)*d; e.set(0,r()*6.28,0); q.setFromEuler(e); const s=.8+r()*.6;
+    for(let i=0;i<0;i++){ const a=r()*6.28, d=7.5+r()*5.5; const x=Math.cos(a)*d, z=Math.sin(a)*d; e.set(0,r()*6.28,0); q.setFromEuler(e); const s=.8+r()*.6;
       addI('stone', sg, m4().compose(new V(x, terrainH(x,z)+.03, z), q, sc.set(s,s,s)), stoneCols[(r()*5)|0]); } }
 
   // ---------- 草：台地邊緣、茶行之間與邊坡 ----------
@@ -452,8 +459,7 @@ function buildWorld(target, detailed){
     for(let i=0;i<N;i++){ const a=i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
   const grassCols=['#5a7a30','#6a8a38','#7a9a42','#8aa84c','#9ab062','#b0b070','#4f6a2a'].map(C);
-  for(let c=0;c<4200;c++){ const a=r()*6.28, d=9+Math.pow(r(),1.6)*70; const x=Math.cos(a)*d, z=Math.sin(a)*d; const n=10+(r()*18|0); const sk=.7+r()*.8; const dry=r()<.25;
-    if(d<15 && r()<.5) continue;
+  for(let c=0;c<4200;c++){ const a=r()*6.28, d=15+Math.pow(r(),1.6)*64; const x=Math.cos(a)*d, z=Math.sin(a)*d; const n=10+(r()*18|0); const sk=.7+r()*.8; const dry=r()<.25;
     for(let j=0;j<n;j++){ const P=new V(x+(r()-.5)*.6,0,z+(r()-.5)*.6); P.y=terrainH(P.x,P.z)-.05; e.set((r()-.5)*.5,r()*6.28,(r()-.5)*.5); q.setFromEuler(e); const s=sk*(.6+r()*.7);
       addI('blade',blade,m4().compose(P,q,sc.set(s,s*(.8+r()*.6),s)), grassCols[dry?4+(r()*2|0):(r()*4|0)]); } }
 
