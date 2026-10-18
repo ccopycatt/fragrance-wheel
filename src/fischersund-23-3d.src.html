@@ -308,7 +308,7 @@ const SPRUCE=[]; { const r=((s)=>()=>(s=(s*16807)%2147483647)/2147483647)(91);
   for(let i=0;i<70;i++){ const x=-28+r()*70, z=44+r()*26; if(Math.abs(x-12)<5 && z<52) continue; SPRUCE.push([x,z]); }
   for(let i=0;i<24;i++){ SPRUCE.push([-60+r()*30, 30+r()*30]); SPRUCE.push([55+r()*25, 30+r()*30]); } }
 // 火山：內陸山坡後方一座正在噴發的火山錐（像 Fagradalsfjall），火山口發紅，熔岩沿坡流下
-const VOLC={ x:-14, z:255, R:95, H:88, crater:12 };   // 遠在樹林後方，從樹梢上方露出整座火山錐的剪影
+const VOLC={ x:-14, z:235, R:52, H:62, crater:8 };   // 遠在樹林後方，從樹梢上方露出整座火山錐的剪影
 const FIRE={ x:-22, z:20, s:2.2 };   // 營火放在內陸山坡那側，放大
 const WHALE={ x:4, z:-27.6, yaw:-.08, s:1.35 };   // 擱淺在浪線上、半泡在海裡，身體橫向朝著鏡頭
 function terrainH(x,z){
@@ -407,7 +407,10 @@ function buildWorld(target, detailed){
     tmp.lerp(n>0?cMead:cMead2, sstep(9,16,z)*sstep(-2,6,dz));
     const lava=sstep(-30,-48,x)*sstep(-8,4,dz); tmp.lerp(n2>-.1?cMoss:cRock, lava*.95);
     tmp.lerp(cFar, sstep(70,120,d)*sstep(-5,10,dz)*.7);
-    { const dv=Math.hypot(x-VOLC.x,z-VOLC.z); tmp.lerp(C('#26211e'), sstep(VOLC.R*1.7,VOLC.R*.9,dv)*.95).lerp(C('#4a2a1a'), sstep(VOLC.crater*2.2,VOLC.crater*.8,dv)*.8); }   // 火山：新鮮的黑色熔岩與火山渣
+    { const dv=Math.hypot(x-VOLC.x,z-VOLC.z); tmp.lerp(C('#1c1918'), sstep(VOLC.R*1.5,VOLC.R*.8,dv)*.95);
+      const gully=Math.pow(Math.abs(Math.sin(Math.atan2(z-VOLC.z,x-VOLC.x)*11+fbm(x*.05,3,z*.05,2)*4)),2);
+      tmp.lerp(C('#e8ecf0'), sstep(VOLC.R*.62,VOLC.R*.32,dv)*(.55+.45*gully)*(1-sstep(VOLC.crater*1.6,VOLC.crater,dv)));   // 山頂的積雪，順著溝谷往下
+      tmp.lerp(C('#3a2218'), sstep(VOLC.crater*1.6,VOLC.crater*.8,dv)*.9); }   // 火山：新鮮的黑色熔岩與火山渣
     col.push(tmp.r,tmp.g,tmp.b); }
   ring.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); ring.computeVertexNormals();
   { const nr=ring.attributes.normal; for(let i=0;i<nr.count;i++){ if(!(Math.abs(nr.getX(i))+Math.abs(nr.getY(i))+Math.abs(nr.getZ(i))>.5)) nr.setXYZ(i,0,1,0); } }
@@ -649,20 +652,20 @@ function buildWorld(target, detailed){
           float c=cells(p*2.2) ; float c2=cells(p*5.+7.);
           float crack = 1.-smoothstep(.02,.16, c*.8+c2*.25);              // 硬殼之間的裂縫
           float core = (1.-smoothstep(.1,.85,across));                     // 熔岩流中間比較熱
-          float heat = clamp(crack*(.55+.6*core) + core*core*.25*(1.-vUv.y*.6), 0., 1.);
+          float heat = clamp(crack*(.7+.6*core) + core*core*.5*(1.-vUv.y*.4), 0., 1.);
           vec3 crust = vec3(.035,.025,.022);
           vec3 hot = mix(vec3(1.4,.22,.03), vec3(4.,1.6,.3), heat*heat);
           vec3 col = mix(crust, hot, heat);
           float edge = smoothstep(1.,.85,across);
           vec3 c = col*edge + crust*(1.-edge);
           float dist = length(vW-cameraPosition);                   // 遠處的空氣感：硬殼融進霧裡，只剩熔岩的光透出來
-          c = mix(c, uHaze*.55, smoothstep(60.,320.,dist)*(1.-heat*.7)*.85);
+          c = mix(c, uHaze*.6, smoothstep(80.,340.,dist)*(1.-heat)*.6);
           gl_FragColor = vec4(c, 1.);
         }` });
     const flows=[]; const vy=terrainH(VOLC.x,VOLC.z);
-    [[-1.9,6.5],[-1.2,5],[-.4,6],[.5,4.5],[-2.6,4.2],[1.6,5]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*.9, z=VOLC.z+Math.sin(a0)*VOLC.crater*.9; const pts=[];
+    [[-1.9,4],[-1.2,3.2],[-.4,3.8],[.5,3],[-2.6,2.8],[1.6,3.2]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*.9, z=VOLC.z+Math.sin(a0)*VOLC.crater*.9; const pts=[];
       for(let i=0;i<60;i++){ pts.push([x,z]); const e=.8; const gx=terrainH(x+e,z)-terrainH(x-e,z), gz=terrainH(x,z+e)-terrainH(x,z-e); const gl=Math.hypot(gx,gz)+1e-4;
-        const wob=Math.sin(i*.4+fi)*.35; let dx=-gx/gl, dz=-gz/gl; const c=Math.cos(wob), s2=Math.sin(wob); [dx,dz]=[dx*c-dz*s2, dx*s2+dz*c]; x+=dx*2.4; z+=dz*2.4; if(Math.hypot(x-VOLC.x,z-VOLC.z)>VOLC.R*1.05) break; }
+        const wob=Math.sin(i*.4+fi)*.35; let dx=-gx/gl, dz=-gz/gl; const c=Math.cos(wob), s2=Math.sin(wob); [dx,dz]=[dx*c-dz*s2, dx*s2+dz*c]; x+=dx*1.7; z+=dz*1.7; if(Math.hypot(x-VOLC.x,z-VOLC.z)>VOLC.R*1.05) break; }
       const pos=[], uv=[], idx=[]; const N=pts.length;
       for(let i=0;i<N;i++){ const [px,pz]=pts[i], [qx,qz]=pts[Math.min(N-1,i+1)], [ox,oz]=pts[Math.max(0,i-1)]; let tx=qx-ox, tz=qz-oz; const tl=Math.hypot(tx,tz)||1; tx/=tl; tz/=tl;
         const w=w0*(.6+.6*Math.min(1,i/8))*(1+.25*Math.sin(i*.7+fi)) * (i>N-6? (N-i)/6 : 1);
