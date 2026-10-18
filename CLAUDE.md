@@ -9,6 +9,7 @@
 - `esencia-3d.html`：LOEWE Esencia（100ml）的 3D 詳細頁；原始碼 `src/esencia-3d.src.html`，標籤貼圖 `src/tex_esencia_label*.jpg`
 - `gold-leaf-3d.html`：Ormonde Jayne Gold Leaf 茶路（88ml）的香境；原始碼 `src/gold-leaf-3d.src.html`，燙金字遮罩 `src/tex_gl_foil.png`（由 `tools/gl_foil.py` 依量測位置排字產生）
 - `fischersund-23-3d.html`：Fischersund No. 23（50ml）的香境；原始碼 `src/fischersund-23-3d.src.html`，印字遮罩 `src/tex_fs23_print.png`（`tools/fs23_print.py`，Inter SemiBold）。香材分層依品牌公布的金字塔（Fragrantica 只列平的 10 種），菸草放中調、海藻放後調
+- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木
 - 建置：`python3 tools/build3d.py all`（把 `__TEX_*__` 換成 data URI、輸出根目錄的 `*-3d.html`）
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
