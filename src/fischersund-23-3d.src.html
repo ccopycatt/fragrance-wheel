@@ -637,7 +637,7 @@ function buildWorld(target, detailed){
           pos.push(0,y0+.02,0, Math.cos(a)*rr, y0-drop-(jag-1)*.05, Math.sin(a)*rr); const dk=.55+.25*f; col.push(.16*dk,.28*dk,.19*dk, .3,.46,.32); }
         for(let k=0;k<N;k++){ const a=k*2; idx.push(a,a+2,a+1, a+1,a+2,a+3); }
         const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); parts.push(g.toNonIndexed()); }
-      const tr=new THREE.CylinderGeometry(.012,.02,.3,5); tr.translate(0,.15,0); parts.push(withCol(tr,[.22,.18,.15]));
+      const tr=new THREE.CylinderGeometry(.012,.02,.3,5); tr.translate(0,.15,0); const tw=withCol(tr,[.22,.18,.15]); tw.deleteAttribute('normal'); parts.push(tw);   // 屬性要和樹冠一致（沒有法向），否則合併會失敗
       const m=mergeGeometries(parts); m.computeVertexNormals(); return m; })();
     const trunks=[];
     SPRUCE.forEach(([x,z])=>{ const H=9+r()*7, y0=terrainH(x,z)-.3; const d=Math.hypot(x,z);
