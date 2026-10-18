@@ -309,7 +309,7 @@ const WHALE={ x:27, z:-26.5, yaw:-.5 };
 function terrainH(x,z){
   const zs=shoreZ(x), dz=z-zs;
   let h;
-  if(dz>=0){ h = SEA_Y + .35 + dz*.075 + Math.pow(Math.max(0,z-10),1.3)*.09;     // 沙灘往內陸升起，牧草地坡度大一點
+  if(dz>=0){ h = SEA_Y + .35 + dz*.07 + Math.pow(Math.max(0,z-14),1.25)*.04;     // 沙灘往內陸升起，牧草地坡度大一點
     h += Math.sin(dz*.9+x*.05)*.06*sstep(0,6,dz)*(1-sstep(10,20,dz));              // 浪打上岸留下的沙脊
   } else h = SEA_Y + .35 + dz*.18;                                                   // 海裡往下
   h += fbm(x*.04,1.3,z*.04,4)*1.2*sstep(-10,10,dz) + fbm(x*.2,4.1,z*.2,2)*.12;
@@ -468,10 +468,10 @@ function buildWorld(target, detailed){
     for(let i=0;i<40;i++){ const x=(r()-.5)*160; const z=shoreZ(x)-3-r()*20; put(x,z, .3+r()*.9, .6); }
     [[6.5,5.2,.85],[-5.8,7.4,.55],[9.4,-2.5,.7],[-13.5,2.6,.95],[3.2,10.5,.4],[16,6,.8]].forEach(([x,z,s])=>put(x,z,s)); }
   // 遠處海上的冰山：平頂的、尖的，背光那側藍一點
-  { const bc=[]; [[-62,-150,12,6,1,1],[44,-190,15,9,2,0],[115,-235,22,7,3,1],[-150,-240,24,9,4,1],[22,-112,5,4,5,0],[-28,-78,3,2.2,6,0],[180,-320,30,12,7,1]].forEach(([x,z,w,h,s,tab])=>{
-      const g=mergeVertices(new THREE.IcosahedronGeometry(1,3)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.25,1.6,3,s*3); const p=g.attributes.position;
+  { const bc=[]; [[-62,-150,9,5,1,1],[44,-190,11,8,2,0],[115,-235,15,6,3,1],[-150,-240,13,7,4,0],[22,-112,4,3.5,5,0],[-28,-78,2.6,2,6,0],[180,-320,20,9,7,1]].forEach(([x,z,w,h,s,tab])=>{
+      let g=mergeVertices(new THREE.IcosahedronGeometry(1,2)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.3,1.8,3,s*3); const p=g.attributes.position;
       for(let i=0;i<p.count;i++){ let yy=p.getY(i); if(tab){ if(yy>.35) yy=.35+(yy-.35)*.1; } else { yy=yy>0? Math.pow(yy,1.4)*1.3 : yy; } p.setY(i, yy); }
-      g.computeVertexNormals(); g.scale(w,h,w*(.55+((s*37)%10)/25)); g.rotateY(s); g.translate(x,SEA_Y+h*.15,z);
+      g=g.toNonIndexed(); g.computeVertexNormals(); g.scale(w,h,w*(.55+((s*37)%10)/25)); g.rotateY(s); g.translate(x,SEA_Y+h*.15,z);   // 冰山的稜面
       const c=new Float32Array(g.attributes.position.count*3); const tc=new THREE.Color();
       for(let i=0;i<c.length/3;i++){ const yy=g.attributes.position.getY(i)-SEA_Y; tc.set('#f6fafc').lerp(C('#7fbfe2'), Math.max(0,1-yy/(h*.6))*.6); c[i*3]=tc.r; c[i*3+1]=tc.g; c[i*3+2]=tc.b; }
       g.setAttribute('color',new THREE.BufferAttribute(c,3)); bc.push(g); });
@@ -686,9 +686,9 @@ const BASALT = { R:3.25 };
       for(let i=0;i<3;i++){ const y=r()*S; g.strokeStyle= mode==='color'?'rgba(16,16,18,.55)': mode==='bump'?'rgba(0,0,0,.7)':'rgba(255,255,255,.5)'; g.lineWidth=2+r()*3; g.beginPath(); g.moveTo(0,y); for(let x=0;x<=S;x+=30) g.lineTo(x,y+(r()-.5)*6); g.stroke(); }
     }
     // 地衣：橘色的石黃衣、灰綠的殼狀地衣（柱頂多、側面少）
-    const lichN = top?90:24;
-    for(let i=0;i<lichN;i++){ const x=r()*S, y=r()*S, rad=6+Math.pow(r(),2)*38; const orange=r()<.22;
-      for(let k=0;k<14;k++){ const a=r()*6.28, d=r()*rad; const xx=x+Math.cos(a)*d, yy=y+Math.sin(a)*d, s=2+r()*rad*.35;
+    const lichN = top?26:5;
+    for(let i=0;i<lichN;i++){ const x=r()*S, y=r()*S, rad=14+Math.pow(r(),2)*60; const orange=r()<.22;
+      for(let k=0;k<40;k++){ const a=r()*6.28, d=Math.sqrt(r())*rad; const xx=x+Math.cos(a)*d, yy=y+Math.sin(a)*d, s=2+r()*rad*.35;
         if(mode==='color') g.fillStyle= orange?`rgba(${200+r()*40|0},${110+r()*40|0},${30},${.55+r()*.35})`:`rgba(${150+r()*30|0},${160+r()*30|0},${130},${.4+r()*.4})`;
         else if(mode==='bump') g.fillStyle='rgba(255,255,255,.35)'; else g.fillStyle='rgba(255,255,255,.4)';
         g.beginPath(); g.ellipse(xx,yy,s,s*(.6+r()*.4),r()*3,0,7); g.fill(); } }
@@ -1449,6 +1449,7 @@ renderer.setAnimationLoop(()=>{
   });
   TIERS.forEach((T,i)=>{ T.ringMesh.material.opacity = (focusTier<0||focusTier===i)?.35:.08; });
   controls.update();
+  { const gy=terrainH(camera.position.x,camera.position.z)+2.5; if(camera.position.y<gy) camera.position.y=gy; }   // camera below terrain：轉到低角度時別鑽進地面
   camera.updateMatrixWorld(); uViewProj.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
   // 1) 不含玻璃的畫面 → 貼圖（香水水體在這一步已自行折射背景）
   renderer.shadowMap.needsUpdate = true; camera.layers.set(0); renderer.setRenderTarget(sceneRT); renderer.render(scene,camera);
