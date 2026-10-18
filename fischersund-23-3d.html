@@ -304,8 +304,8 @@ const POLES=[]; for(let x=-88; x<=72; x+=16) POLES.push([x, POLE_Z(x)]);
 const SPRUCE=[]; { const r=((s)=>()=>(s=(s*16807)%2147483647)/2147483647)(91);
   for(let i=0;i<34;i++){ const a=r()*6.28, d=Math.sqrt(r()); SPRUCE.push([-34+Math.cos(a)*d*12, 40+Math.sin(a)*d*9]); }
   for(let i=0;i<22;i++){ const a=r()*6.28, d=Math.sqrt(r()); SPRUCE.push([46+Math.cos(a)*d*10, 46+Math.sin(a)*d*7]); } }
-const FIRE={ x:-11, z:-5.5 };
-const WHALE={ x:27, z:-26.5, yaw:-.5 };
+const FIRE={ x:-15, z:22, s:2.0 };   // 營火放在內陸山坡那側，放大
+const WHALE={ x:8, z:-27.6, yaw:-.08, s:1.35 };   // 擱淺在浪線上、半泡在海裡，身體橫向朝著鏡頭
 function terrainH(x,z){
   const zs=shoreZ(x), dz=z-zs;
   let h;
@@ -502,7 +502,7 @@ function buildWorld(target, detailed){
     extra.push(new THREE.Mesh(mergeGeometries(wires), new THREE.MeshStandardMaterial({ color:C('#15130f'), roughness:.5, metalness:.3 }))); }
 
   // ---------- 擱淺的大翅鯨：側躺在浪線上，肚子脹起，一隻長長的胸鰭朝天 ----------
-  { const W=new THREE.Group(); W.position.set(WHALE.x, terrainH(WHALE.x,WHALE.z)+.6, WHALE.z); W.rotation.y=WHALE.yaw;
+  { const W=new THREE.Group(); W.position.set(WHALE.x, Math.max(terrainH(WHALE.x,WHALE.z),SEA_Y)+.9, WHALE.z); W.rotation.y=WHALE.yaw; W.scale.setScalar(WHALE.s);
     const L=15, SU=90, SV=48, pos=[], col=[], idx=[]; const dark=C('#22262c'), mid=C('#3b4048'), belly=C('#d9d6d0'), tc=new THREE.Color();
     for(let i=0;i<=SU;i++){ const u=i/SU; const R=1.75*Math.pow(Math.sin(Math.PI*Math.min(1,u*.93+.04)),.55)*(1-.72*Math.pow(u,2.2));
       for(let j=0;j<=SV;j++){ const th=j/SV*Math.PI*2; let ry=R*1.05, rz=R*(1.12+.25*Math.exp(-Math.pow((u-.38)/.18,2)));      // 腹部脹氣
@@ -628,8 +628,12 @@ function buildWorld(target, detailed){
 
   // ---------- 漂流木營火：被海水漂白的木頭，煙往風的方向斜飄 ----------
   { const fy=terrainH(FIRE.x,FIRE.z); const logs=[];
-    for(let k=0;k<7;k++){ const a=k/7*6.28+r()*.3; const b=new V(FIRE.x+Math.cos(a)*1.3, fy, FIRE.z+Math.sin(a)*1.3), t=new V(FIRE.x+Math.cos(a)*.15, fy+1.5+r()*.3, FIRE.z+Math.sin(a)*.15);
-      tubeTaper([b, b.clone().lerp(t,.5).add(new V((r()-.5)*.1,0,(r()-.5)*.1)), t], .12+r()*.05, .6, 6, 6, logs); }
+    const S=FIRE.s;
+    for(let k=0;k<11;k++){ const a=k/11*6.28+r()*.3; const b=new V(FIRE.x+Math.cos(a)*1.3*S, fy, FIRE.z+Math.sin(a)*1.3*S), t=new V(FIRE.x+Math.cos(a)*.15*S, fy+(1.5+r()*.3)*S, FIRE.z+Math.sin(a)*.15*S);
+      tubeTaper([b, b.clone().lerp(t,.5).add(new V((r()-.5)*.2,0,(r()-.5)*.2)), t], (.12+r()*.05)*S, .6, 6, 6, logs); }
+    // 圍著營火的幾根漂流木長凳
+    [[0,4.2],[2.1,4.4],[4.0,4.0]].forEach(([a,d])=>{ const cx=FIRE.x+Math.cos(a)*d*S*.75, cz=FIRE.z+Math.sin(a)*d*S*.75; const ta=a+Math.PI/2, L=4.5; const p1=new V(cx-Math.cos(ta)*L/2, 0, cz-Math.sin(ta)*L/2), p2=new V(cx+Math.cos(ta)*L/2, 0, cz+Math.sin(ta)*L/2);
+      p1.y=terrainH(p1.x,p1.z)+.35; p2.y=terrainH(p2.x,p2.z)+.35; tubeTaper([p1,p1.clone().lerp(p2,.5).add(new V(0,.08,0)),p2],.38,.75,10,8,logs); });
     // 旁邊幾根大的漂流木
     [[-15,-3.5,.2,5.5],[-7,-8.8,1.9,4.2],[8,-6,2.6,6.5],[-22,1,1.1,4.8],[13,4.5,.7,3.5]].forEach(([x,z,yaw,L])=>{ const dx=Math.cos(yaw)*L/2, dz=Math.sin(yaw)*L/2;
       const a=new V(x-dx,terrainH(x-dx,z-dz)+.18,z-dz), b=new V(x+dx,terrainH(x+dx,z+dz)+.15,z+dz); tubeTaper([a,a.clone().lerp(b,.5).add(new V(0,.1,0)),b],.28+r()*.1,.55,10,8,logs); });
@@ -637,9 +641,14 @@ function buildWorld(target, detailed){
     const lm=new THREE.Mesh(mergeGeometries(logs), new THREE.MeshStandardMaterial({ map:dt, bumpMap:dt, bumpScale:1.5, roughness:.9 })); lm.castShadow=true; lm.receiveShadow=true; extra.push(lm);
     // 營火周圍的石頭圈
     const sg=mergeVertices(new THREE.IcosahedronGeometry(1,2)); sg.deleteAttribute('normal'); sg.deleteAttribute('uv'); displace(sg,.15,1.5,2,4); sg.computeVertexNormals();
-    for(let k=0;k<11;k++){ const a=k/11*6.28; const x=FIRE.x+Math.cos(a)*1.9, z=FIRE.z+Math.sin(a)*1.9; const s=.3+r()*.15; e.set(r()*3,r()*3,r()*3); q.setFromEuler(e); addI('rock', sg, m4().compose(new V(x,terrainH(x,z)+.1,z), q, sc.set(s,s*.7,s)), C(['#2b2a2a','#3b3936'][(r()*2)|0])); }
+    for(let k=0;k<14;k++){ const a=k/14*6.28; const x=FIRE.x+Math.cos(a)*1.9*S, z=FIRE.z+Math.sin(a)*1.9*S; const s=(.3+r()*.15)*S*.8; e.set(r()*3,r()*3,r()*3); q.setFromEuler(e); addI('rock', sg, m4().compose(new V(x,terrainH(x,z)+.1,z), q, sc.set(s,s*.7,s)), C(['#2b2a2a','#3b3936'][(r()*2)|0])); }
     // 燒黑的炭與灰
-    const ash=new THREE.Mesh(new THREE.CircleGeometry(1.5,24), new THREE.MeshStandardMaterial({ color:C('#1a1716'), roughness:1 })); ash.rotation.x=-Math.PI/2; ash.position.set(FIRE.x,fy+.03,FIRE.z); extra.push(ash); }
+    const ash=new THREE.Mesh(new THREE.CircleGeometry(1.5*S,24), new THREE.MeshStandardMaterial({ color:C('#1a1716'), roughness:1 })); ash.rotation.x=-Math.PI/2; ash.position.set(FIRE.x,fy+.03,FIRE.z); extra.push(ash);
+    // 營火旁一個塗了柏油的舊木桶
+    { const bp=[]; for(let i=0;i<=20;i++){ const t=i/20; bp.push(new THREE.Vector2(.9+.12*Math.sin(Math.PI*t), t*2.2)); } const bg=new THREE.LatheGeometry(bp,32);
+      const barrel=new THREE.Mesh(bg,new THREE.MeshPhysicalMaterial({ color:C('#1a1410'), roughness:.35, clearcoat:.7, clearcoatRoughness:.2, side:THREE.DoubleSide })); const bx=FIRE.x+5.2, bz=FIRE.z-2.6; barrel.position.set(bx,terrainH(bx,bz)-.05,bz); barrel.castShadow=true; extra.push(barrel);
+      [.25,1.1,1.95].forEach(y=>{ const h=new THREE.Mesh(new THREE.TorusGeometry(.92+.12*Math.sin(Math.PI*y/2.2),.04,6,32), new THREE.MeshStandardMaterial({ color:C('#3a2e26'), metalness:.6, roughness:.5 })); h.rotation.x=Math.PI/2; h.position.set(bx,barrel.position.y+y,bz); extra.push(h); });
+      const top=new THREE.Mesh(new THREE.CircleGeometry(.9,32), new THREE.MeshPhysicalMaterial({ color:C('#060504'), roughness:.05, clearcoat:1 })); top.rotation.x=-Math.PI/2; top.position.set(bx,barrel.position.y+2.1,bz); extra.push(top); } }
 
   // 統一建立
   if(branches.length){ const bm=new THREE.Mesh(mergeGeometries(branches), new THREE.MeshStandardMaterial({ color:C('#5a4c3e'), roughness:.9 })); target.add(bm); }
@@ -717,8 +726,8 @@ const BASALT = { R:3.25 };
       const ya=(p)=>p.y>=H-1e-4? topY(p.x,p.z)-.06 : p.y;
       for(let k=0;k<6;k++){ const k2=(k+1)%6; const a0=A[k].clone(), a1=A[k2].clone(), b0=B[k].clone(), b1=B[k2].clone(); b0.y=ya(b0); b1.y=ya(b1);
         const u0=per[k]/4.5, u1=(per[k]+a0.distanceTo(a1))/4.5, v0=ys[i]/4.5, v1=ys[i+1]/4.5;
-        pos.push(...a0.toArray(),...a1.toArray(),...b1.toArray(), ...a0.toArray(),...b1.toArray(),...b0.toArray());
-        uv.push(u0,v0,u1,v0,u1,v1, u0,v0,u1,v1,u0,v1); } }
+        pos.push(...a0.toArray(),...b1.toArray(),...a1.toArray(), ...a0.toArray(),...b0.toArray(),...b1.toArray());   // 逆時針朝外
+        uv.push(u0,v0,u1,v1,u1,v0, u0,v0,u0,v1,u1,v1); } }
     const side=new THREE.BufferGeometry(); side.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); side.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); side.computeVertexNormals();
     // 柱頂：外圈往下磨圓一點，中間略有起伏
     const T=ringAt(H), tp=[], tuv=[], RINGS=6;
@@ -774,7 +783,7 @@ const fx=(()=>{
   const plume=(origin, n, color, size, rise, life, op)=>{ const ps=[]; for(let i=0;i<n;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C(color), transparent:true, depthWrite:false, opacity:0 }); const s=new THREE.Sprite(m); scene.add(s); ps.push({ s, m, age:i/n*life, rot:Math.random()*6.28 }); }
     plumes.push({ origin, ps, size, rise, life, op }); };
   const fy=terrainH(FIRE.x,FIRE.z);
-  plume(new THREE.Vector3(FIRE.x, fy+1.6, FIRE.z), 46, '#8c8a88', .7, 1.6, 14, .32);
+  plume(new THREE.Vector3(FIRE.x, fy+1.6*FIRE.s, FIRE.z), 56, '#8c8a88', .7*FIRE.s, 1.6*FIRE.s, 16, .36);
   if(window.__chimney) plume(window.__chimney.clone(), 36, '#9a9896', 1.2, 1.3, 16, .26);
   // 低低飄過沙灘的一層薄煙
   const haze=[]; for(let i=0;i<22;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C('#a4a8ac'), transparent:true, depthWrite:false, opacity:.09 }); const s=new THREE.Sprite(m); const x=(Math.random()-.5)*90, z=-25+Math.random()*40; s.position.set(x, terrainH(x,z)+1.5+Math.random()*2.5, z); s.scale.set(18+Math.random()*16, 4+Math.random()*3, 1); scene.add(s); haze.push({ s, x0:x, sp:.4+Math.random()*.6 }); }
@@ -786,23 +795,26 @@ const fx=(()=>{
       void main(){ vec2 p=vUv; float t=uT*1.8; float nn=n(vec2(p.x*5.,p.y*4.-t*2.))*.6+n(vec2(p.x*11.,p.y*9.-t*3.5))*.4;
         float shape=(1.-abs(p.x-.5)*2.2/(1.-p.y*.85+.05)) - p.y*.9 + (nn-.5)*.9; float a=smoothstep(.0,.35,shape);
         vec3 c=mix(vec3(1.,.35,.06), vec3(1.,.85,.45), smoothstep(.2,.9,shape)); gl_FragColor=vec4(c*a*1.6, a); }` });
-  const fg=new THREE.Group(); fg.position.set(FIRE.x, fy+.1, FIRE.z); for(let k=0;k<3;k++){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.5,2.2), flameM); pl.position.y=1.0; pl.rotation.y=k*Math.PI/3; fg.add(pl); } scene.add(fg);
-  const fireL=new THREE.PointLight(C('#ff8a3c'), 22, 22, 1.7); fireL.position.set(FIRE.x, fy+1.2, FIRE.z); scene.add(fireL);
+  const fg=new THREE.Group(); fg.position.set(FIRE.x, fy+.1, FIRE.z); fg.scale.setScalar(FIRE.s); for(let k=0;k<4;k++){ const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,2.5), flameM); pl.position.y=1.15; pl.rotation.y=k*Math.PI/4; fg.add(pl); } scene.add(fg);
+  const fireL=new THREE.PointLight(C('#ff8a3c'), 60, 40, 1.6); fireL.position.set(FIRE.x, fy+1.4*FIRE.s, FIRE.z); fireL.castShadow=true; fireL.shadow.mapSize.set(512,512); scene.add(fireL);
+  // 火光照亮的一圈地面
+  { const gt=canvasTex(128,128,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,140,60,.55)'); gr.addColorStop(1,'rgba(255,120,40,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
+    const glow=new THREE.Mesh(new THREE.PlaneGeometry(14,14), new THREE.MeshBasicMaterial({ map:gt, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); glow.rotation.x=-Math.PI/2; glow.position.set(FIRE.x, fy+.08, FIRE.z); scene.add(glow); }
   const embers=(()=>{ const N=60, g=new THREE.BufferGeometry(), p=new Float32Array(N*3); g.setAttribute('position',new THREE.BufferAttribute(p,3));
     const spr=canvasTex(32,32,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,200,120,1)'); gr.addColorStop(1,'rgba(255,120,40,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
-    const pts=new THREE.Points(g,new THREE.PointsMaterial({ size:.12, map:spr, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); scene.add(pts); return { g, p, N, seed:[...Array(N)].map(()=>Math.random()) }; })();
+    const pts=new THREE.Points(g,new THREE.PointsMaterial({ size:.2, map:spr, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); scene.add(pts); return { g, p, N, seed:[...Array(N)].map(()=>Math.random()) }; })();
   // 海鷗：在鯨魚上空盤旋
   const gulls=[]; { const wing=new THREE.BufferGeometry(); wing.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0, .9,.05,.25, .9,0,-.12, 0,0,0, -.9,.05,.25, -.9,0,-.12, 0,.02,.4, 0,-.05,-.45, .12,0,0],3)); wing.computeVertexNormals();
     const gm=new THREE.MeshStandardMaterial({ color:C('#e8e8e6'), side:THREE.DoubleSide, roughness:.7 });
-    for(let i=0;i<7;i++){ const b=new THREE.Mesh(wing,gm); b.scale.setScalar(.8+Math.random()*.4); scene.add(b); gulls.push({ b, r:4+Math.random()*7, h:5+Math.random()*6, sp:.25+Math.random()*.25, ph:Math.random()*6.28 }); } }
-  const wpos=window.__whale? window.__whale.position.clone() : new THREE.Vector3(27,-5,-26);
+    for(let i=0;i<9;i++){ const b=new THREE.Mesh(wing,gm); b.scale.setScalar(1.1+Math.random()*.5); scene.add(b); gulls.push({ b, r:5+Math.random()*9, h:6+Math.random()*7, sp:.25+Math.random()*.25, ph:Math.random()*6.28 }); } }
+  const wpos=window.__whale? window.__whale.localToWorld(new THREE.Vector3(7,0,0)) : new THREE.Vector3(17,-5,-27);
   const update=(t,dt=.016)=>{
     plumes.forEach(P=>{ P.ps.forEach(q=>{ q.age=(q.age+dt)%P.life; const k=q.age/P.life;
       const pos=P.origin.clone().addScaledVector(wind, k*k*P.life*.9).add(new THREE.Vector3(Math.sin(t*.4+q.rot)*.3*k, k*P.life*P.rise*(1-k*.35), Math.cos(t*.3+q.rot)*.3*k));
       q.s.position.copy(pos); const sz=P.size*(.6+k*5); q.s.scale.set(sz,sz,1); q.m.opacity=P.op*Math.sin(Math.PI*Math.min(1,k*1.15))*(1-k*.4); q.m.rotation=q.rot+t*.1; }); });
     haze.forEach(h=>{ h.s.position.x = h.x0 + ((t*h.sp)%60) - 30; });
-    flameM.uniforms.uT.value=t; fireL.intensity = 18 + Math.sin(t*13)*3 + Math.sin(t*7.3)*2.5 + Math.sin(t*23)*1.5;
-    for(let i=0;i<embers.N;i++){ const s=embers.seed[i]; const k=((t*.35+s)%1); embers.p[i*3]=FIRE.x+Math.sin(s*40+t)*.3*k+wind.x*k*2; embers.p[i*3+1]=fy+.6+k*4.5; embers.p[i*3+2]=FIRE.z+Math.cos(s*30+t)*.3*k+wind.z*k*2; } embers.g.attributes.position.needsUpdate=true;
+    flameM.uniforms.uT.value=t; fireL.intensity = 52 + Math.sin(t*13)*8 + Math.sin(t*7.3)*6 + Math.sin(t*23)*4;
+    for(let i=0;i<embers.N;i++){ const s=embers.seed[i]; const k=((t*.35+s)%1); embers.p[i*3]=FIRE.x+Math.sin(s*40+t)*.6*k+wind.x*k*4; embers.p[i*3+1]=fy+1.2+k*9; embers.p[i*3+2]=FIRE.z+Math.cos(s*30+t)*.6*k+wind.z*k*4; } embers.g.attributes.position.needsUpdate=true;
     gulls.forEach(g=>{ const a=t*g.sp+g.ph; g.b.position.set(wpos.x+Math.cos(a)*g.r, wpos.y+g.h+Math.sin(a*2)*.6, wpos.z+Math.sin(a)*g.r); g.b.rotation.set(0,-a,Math.sin(a)*.3); const fl=Math.sin(t*6+g.ph); g.b.scale.y=.8+fl*.6; });
   };
   update(0); return { update };
