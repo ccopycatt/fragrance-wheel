@@ -462,20 +462,20 @@ function buildWorld(target, detailed){
       e.set((r()-.5)*.3,r()*6.28,(r()-.5)*.3); q.setFromEuler(e); addI('pebble', pg, m4().compose(new V(x, terrainH(x,z)+s*.25, z), q, sc.set(s,s,s)), cols[(r()*5)|0]); } }
 
   // ---------- 鑽石沙灘：冰河崩下的碎冰被浪推上黑沙灘 ----------
-  { const ig=mergeVertices(new THREE.IcosahedronGeometry(1,3)); ig.deleteAttribute('normal'); ig.deleteAttribute('uv'); displace(ig,.22,1.1,3,7); displace(ig,.05,4,2,11); ig.computeVertexNormals();
+  { let ig=mergeVertices(new THREE.IcosahedronGeometry(1,1)); ig.deleteAttribute('normal'); ig.deleteAttribute('uv'); displace(ig,.3,1.3,3,7); ig=ig.toNonIndexed(); ig.computeVertexNormals();   // 有稜有角的碎冰
     const put=(x,z,s,sink=.35)=>{ e.set(r()*6.28,r()*6.28,r()*6.28); q.setFromEuler(e); addI('ice', ig, m4().compose(new V(x, Math.max(terrainH(x,z),SEA_Y)+s*(1-sink)*.6, z), q, sc.set(s*(.8+r()*.5), s*(.6+r()*.4), s*(.8+r()*.4))), C('#ffffff')); };
-    for(let i=0;i<150;i++){ const x=(r()-.5)*200; const z=shoreZ(x)+(r()*9-2.5); put(x,z, .25+Math.pow(r(),2.2)*1.9); }
-    for(let i=0;i<40;i++){ const x=(r()-.5)*160; const z=shoreZ(x)-3-r()*20; put(x,z, .4+r()*1.4, .6); }
-    [[6.5,5.2,1.25],[-5.8,7.4,.8],[9.4,-2.5,.95],[-13.5,2.6,1.35],[3.2,10.5,.55],[16,6,1.1]].forEach(([x,z,s])=>put(x,z,s)); }
+    for(let i=0;i<170;i++){ const x=(r()-.5)*200; const z=shoreZ(x)+(r()*9-2.5); put(x,z, .18+Math.pow(r(),2.6)*1.2); }
+    for(let i=0;i<40;i++){ const x=(r()-.5)*160; const z=shoreZ(x)-3-r()*20; put(x,z, .3+r()*.9, .6); }
+    [[6.5,5.2,.85],[-5.8,7.4,.55],[9.4,-2.5,.7],[-13.5,2.6,.95],[3.2,10.5,.4],[16,6,.8]].forEach(([x,z,s])=>put(x,z,s)); }
   // 遠處海上的冰山：平頂的、尖的，背光那側藍一點
-  { const bc=[]; [[-40,-90,14,9,1],[30,-120,20,12,2],[80,-160,26,7,3],[-120,-170,30,10,4],[150,-240,40,14,5],[-60,-260,34,18,6],[12,-62,6,4,7]].forEach(([x,z,w,h,s])=>{
-      const g=mergeVertices(new THREE.BoxGeometry(1,1,1,6,4,6)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position;
-      for(let i=0;i<p.count;i++){ const yy=p.getY(i); const k=1-Math.max(0,yy)*.35; p.setXYZ(i,p.getX(i)*k,yy,p.getZ(i)*k); }
-      displace(g,.18,2,3,s); g.computeVertexNormals(); g.scale(w,h,w*(.6+((s*37)%10)/20)); g.translate(x,SEA_Y+h*.35,z);
+  { const bc=[]; [[-62,-150,12,6,1,1],[44,-190,15,9,2,0],[115,-235,22,7,3,1],[-150,-240,24,9,4,1],[22,-112,5,4,5,0],[-28,-78,3,2.2,6,0],[180,-320,30,12,7,1]].forEach(([x,z,w,h,s,tab])=>{
+      const g=mergeVertices(new THREE.IcosahedronGeometry(1,3)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.25,1.6,3,s*3); const p=g.attributes.position;
+      for(let i=0;i<p.count;i++){ let yy=p.getY(i); if(tab){ if(yy>.35) yy=.35+(yy-.35)*.1; } else { yy=yy>0? Math.pow(yy,1.4)*1.3 : yy; } p.setY(i, yy); }
+      g.computeVertexNormals(); g.scale(w,h,w*(.55+((s*37)%10)/25)); g.rotateY(s); g.translate(x,SEA_Y+h*.15,z);
       const c=new Float32Array(g.attributes.position.count*3); const tc=new THREE.Color();
-      for(let i=0;i<c.length/3;i++){ const yy=g.attributes.position.getY(i)-SEA_Y; tc.set('#f2f8fc').lerp(C('#8cc4e2'), Math.max(0,1-yy/(h*.7))*.55); c[i*3]=tc.r; c[i*3+1]=tc.g; c[i*3+2]=tc.b; }
+      for(let i=0;i<c.length/3;i++){ const yy=g.attributes.position.getY(i)-SEA_Y; tc.set('#f6fafc').lerp(C('#7fbfe2'), Math.max(0,1-yy/(h*.6))*.6); c[i*3]=tc.r; c[i*3+1]=tc.g; c[i*3+2]=tc.b; }
       g.setAttribute('color',new THREE.BufferAttribute(c,3)); bc.push(g); });
-    extra.push(new THREE.Mesh(mergeGeometries(bc), new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.55, emissive:C('#9ec8e4'), emissiveIntensity:.12 }))); }
+    extra.push(new THREE.Mesh(mergeGeometries(bc), new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.6, emissive:C('#cfe4f2'), emissiveIntensity:.28 }))); }
 
   // ---------- 塗了柏油的電線桿：沿海岸一路排過去，電線下垂 ----------
   { const tarTex=(mode)=>canvasTex(256,1024,(g,w,h)=>{ g.fillStyle= mode==='color'?'#2a2018':'#808080'; g.fillRect(0,0,w,h); const rr=rng(mode==='color'?3:4);
@@ -565,8 +565,9 @@ function buildWorld(target, detailed){
 
   // ---------- 牧草地：剛割過的草一排排晾著，白色塑膠包的圓草捲 ----------
   { const tuft=(()=>{ const g=new THREE.SphereGeometry(1,8,5,0,Math.PI*2,0,Math.PI/2); g.scale(1,.35,1); return withCol(g,[1,1,1]); })();
-    for(let row=0; row<14; row++){ const z0=16+row*3.1; for(let x=-70; x<70; x+=.9){ const z=z0+Math.sin(x*.07+row)*.6; if(Math.hypot(x,z)>110) continue;
-        e.set(0,r()*6.28,0); q.setFromEuler(e); const s=.55+r()*.3; addI('hay', tuft, m4().compose(new V(x, terrainH(x,z)-.05, z), q, sc.set(s*1.4,s*(.8+r()*.5),s)), C(['#c8be7c','#b6ad6a','#d6cc8e','#a59f60'][(r()*4)|0])); } }
+    for(let row=0; row<9; row++){ const z0=18+row*4.2; let x=-60+r()*8; while(x<60){ const z=z0+Math.sin(x*.07+row)*.8; const gap=noise3(x*.08,row,3)>.35;
+        if(!gap && Math.hypot(x,z)<100){ e.set(0,r()*6.28,0); q.setFromEuler(e); const s=.4+r()*.25; addI('hay', tuft, m4().compose(new V(x, terrainH(x,z)-.08, z), q, sc.set(s*1.5,s*(.6+r()*.4),s)), C(['#a8a46a','#9a985e','#b4ae74','#8e8c56'][(r()*4)|0])); }
+        x+=.8+r()*.5; } }
     // 割草後的短草茬：一大片細小草葉
     const stub=(()=>{ const g=new THREE.ConeGeometry(.02,.25,3); g.translate(0,.12,0); return withCol(g,[1,1,1]); })();
     for(let i=0;i<14000;i++){ const x=(r()-.5)*150, z=13+r()*55; if(Math.hypot(x,z)>100) continue; e.set((r()-.5)*.4,0,(r()-.5)*.4); q.setFromEuler(e); const s=.7+r()*.8;
@@ -641,7 +642,7 @@ function buildWorld(target, detailed){
 
   // 統一建立
   if(branches.length){ const bm=new THREE.Mesh(mergeGeometries(branches), new THREE.MeshStandardMaterial({ color:C('#5a4c3e'), roughness:.9 })); target.add(bm); }
-  const iceMat=new THREE.MeshPhysicalMaterial({ color:C('#e8f6ff'), roughness:.06, transmission:1, thickness:1.2, ior:1.31, attenuationColor:C('#7cc0e6'), attenuationDistance:1.6, clearcoat:.6, clearcoatRoughness:.1, envMapIntensity:1.3 });
+  const iceMat=new THREE.MeshPhysicalMaterial({ color:C('#eef8ff'), roughness:.14, transmission:.92, thickness:.9, ior:1.31, attenuationColor:C('#8cc8ea'), attenuationDistance:1.2, clearcoat:.8, clearcoatRoughness:.05, envMapIntensity:1.4, sheen:.4, sheenColor:C('#ffffff') });
   const mats={ pebble:new THREE.MeshPhysicalMaterial({ roughness:.35, clearcoat:.5, clearcoatRoughness:.3 }), ice:iceMat, rock:new THREE.MeshStandardMaterial({ roughness:.85 }),
     hay:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95 }), stub:windMaterial({ roughness:.9 },.2), blade:windMaterial({ roughness:.7 },1.0),
     spruce:windMaterial({ roughness:.7 },.18), lava:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95 }) };
@@ -667,7 +668,7 @@ const BASALT = { R:3.25 };
 {
   const S=1024;
   const basaltTex=(mode, top)=>canvasTex(S,S,(g)=>{ const r=rng(top?71:73);
-    g.fillStyle={ color:top?'#3a3a3b':'#333334', bump:'#808080', rough:'#d0d0d0' }[mode]; g.fillRect(0,0,S,S);
+    g.fillStyle={ color:top?'#5a5a5c':'#4c4c4f', bump:'#808080', rough:'#d0d0d0' }[mode]; g.fillRect(0,0,S,S);
     // 細顆粒與氣孔
     for(let i=0;i<70000;i++){ const v=r(); const x=r()*S, y=r()*S, s=.6+r()*1.8;
       if(mode==='color') g.fillStyle= v<.5?`rgba(18,18,20,${r()*.5})`:`rgba(110,108,104,${r()*.3})`; else if(mode==='bump') g.fillStyle=`rgba(${v<.5?'0,0,0':'255,255,255'},${r()*.25})`; else g.fillStyle=`rgba(255,255,255,${r()*.15})`;
@@ -676,13 +677,13 @@ const BASALT = { R:3.25 };
       if(mode==='color'){ g.fillStyle='rgba(8,8,9,.85)'; } else if(mode==='bump'){ g.fillStyle='rgba(0,0,0,.9)'; } else g.fillStyle='rgba(255,255,255,.5)';
       g.beginPath(); g.ellipse(x,y,s,s*(top?1:.7),0,0,7); g.fill(); }
     if(!top){ // 側面：沿柱子往下的雨水痕、水平的節理
-      for(let i=0;i<120;i++){ const x=r()*S; if(mode==='color') g.strokeStyle=`rgba(${r()<.6?'14,14,16':'90,90,88'},${.08+r()*.18})`; else if(mode==='bump') g.strokeStyle=`rgba(0,0,0,${.1+r()*.2})`; else g.strokeStyle=`rgba(0,0,0,${r()*.2})`;
+      for(let i=0;i<50;i++){ const x=r()*S; if(mode==='color') g.strokeStyle=`rgba(${r()<.6?'20,20,22':'110,110,108'},${.05+r()*.12})`; else if(mode==='bump') g.strokeStyle=`rgba(0,0,0,${.1+r()*.2})`; else g.strokeStyle=`rgba(0,0,0,${r()*.2})`;
         g.lineWidth=2+r()*12; g.beginPath(); g.moveTo(x,0); let xx=x; for(let y=0;y<=S;y+=40){ xx+=(r()-.5)*6; g.lineTo(xx,y); } g.stroke(); }
-      for(let i=0;i<14;i++){ const y=r()*S; g.strokeStyle= mode==='color'?'rgba(10,10,12,.7)': mode==='bump'?'rgba(0,0,0,.85)':'rgba(255,255,255,.6)'; g.lineWidth=2+r()*3; g.beginPath(); g.moveTo(0,y); for(let x=0;x<=S;x+=30) g.lineTo(x,y+(r()-.5)*6); g.stroke(); }
+      for(let i=0;i<3;i++){ const y=r()*S; g.strokeStyle= mode==='color'?'rgba(16,16,18,.55)': mode==='bump'?'rgba(0,0,0,.7)':'rgba(255,255,255,.5)'; g.lineWidth=2+r()*3; g.beginPath(); g.moveTo(0,y); for(let x=0;x<=S;x+=30) g.lineTo(x,y+(r()-.5)*6); g.stroke(); }
     }
     // 地衣：橘色的石黃衣、灰綠的殼狀地衣（柱頂多、側面少）
-    const lichN = top?160:50;
-    for(let i=0;i<lichN;i++){ const x=r()*S, y=r()*S, rad=6+Math.pow(r(),2)*38; const orange=r()<.45;
+    const lichN = top?90:24;
+    for(let i=0;i<lichN;i++){ const x=r()*S, y=r()*S, rad=6+Math.pow(r(),2)*38; const orange=r()<.22;
       for(let k=0;k<14;k++){ const a=r()*6.28, d=r()*rad; const xx=x+Math.cos(a)*d, yy=y+Math.sin(a)*d, s=2+r()*rad*.35;
         if(mode==='color') g.fillStyle= orange?`rgba(${200+r()*40|0},${110+r()*40|0},${30},${.55+r()*.35})`:`rgba(${150+r()*30|0},${160+r()*30|0},${130},${.4+r()*.4})`;
         else if(mode==='bump') g.fillStyle='rgba(255,255,255,.35)'; else g.fillStyle='rgba(255,255,255,.4)';
@@ -710,7 +711,7 @@ const BASALT = { R:3.25 };
     for(let i=0;i<ys.length-1;i++){ const A=ringAt(ys[i]), B=ringAt(ys[i+1]);
       const ya=(p)=>p.y>=H-1e-4? topY(p.x,p.z)-.06 : p.y;
       for(let k=0;k<6;k++){ const k2=(k+1)%6; const a0=A[k].clone(), a1=A[k2].clone(), b0=B[k].clone(), b1=B[k2].clone(); b0.y=ya(b0); b1.y=ya(b1);
-        const u0=per[k]/3, u1=(per[k]+a0.distanceTo(a1))/3, v0=ys[i]/3, v1=ys[i+1]/3;
+        const u0=per[k]/4.5, u1=(per[k]+a0.distanceTo(a1))/4.5, v0=ys[i]/4.5, v1=ys[i+1]/4.5;
         pos.push(...a0.toArray(),...a1.toArray(),...b1.toArray(), ...a0.toArray(),...b1.toArray(),...b0.toArray());
         uv.push(u0,v0,u1,v0,u1,v1, u0,v0,u1,v1,u0,v1); } }
     const side=new THREE.BufferGeometry(); side.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); side.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); side.computeVertexNormals();
@@ -765,10 +766,10 @@ const fx=(()=>{
   const plume=(origin, n, color, size, rise, life, op)=>{ const ps=[]; for(let i=0;i<n;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C(color), transparent:true, depthWrite:false, opacity:0 }); const s=new THREE.Sprite(m); scene.add(s); ps.push({ s, m, age:i/n*life, rot:Math.random()*6.28 }); }
     plumes.push({ origin, ps, size, rise, life, op }); };
   const fy=terrainH(FIRE.x,FIRE.z);
-  plume(new THREE.Vector3(FIRE.x, fy+1.6, FIRE.z), 46, '#8c8a88', 1.0, 1.6, 14, .55);
-  if(window.__chimney) plume(window.__chimney.clone(), 36, '#9a9896', 1.6, 1.3, 16, .5);
+  plume(new THREE.Vector3(FIRE.x, fy+1.6, FIRE.z), 46, '#8c8a88', .7, 1.6, 14, .32);
+  if(window.__chimney) plume(window.__chimney.clone(), 36, '#9a9896', 1.2, 1.3, 16, .26);
   // 低低飄過沙灘的一層薄煙
-  const haze=[]; for(let i=0;i<22;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C('#a4a8ac'), transparent:true, depthWrite:false, opacity:.16 }); const s=new THREE.Sprite(m); const x=(Math.random()-.5)*90, z=-25+Math.random()*40; s.position.set(x, terrainH(x,z)+1.5+Math.random()*2.5, z); s.scale.set(18+Math.random()*16, 4+Math.random()*3, 1); scene.add(s); haze.push({ s, x0:x, sp:.4+Math.random()*.6 }); }
+  const haze=[]; for(let i=0;i<22;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C('#a4a8ac'), transparent:true, depthWrite:false, opacity:.09 }); const s=new THREE.Sprite(m); const x=(Math.random()-.5)*90, z=-25+Math.random()*40; s.position.set(x, terrainH(x,z)+1.5+Math.random()*2.5, z); s.scale.set(18+Math.random()*16, 4+Math.random()*3, 1); scene.add(s); haze.push({ s, x0:x, sp:.4+Math.random()*.6 }); }
   // 火焰：幾片交叉的面，著色器畫出往上竄的火舌
   const flameM=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, uniforms:{ uT:clockU },
     vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
@@ -811,8 +812,8 @@ const sun=new THREE.DirectionalLight(SCENE_CFG.sunColor, SCENE_CFG.sunIntensity)
 sun.position.copy(SCENE_CFG.sunDir).multiplyScalar(80); sun.castShadow=true;
 sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{ left:-34,right:34,top:34,bottom:-34,near:1,far:220 }); sun.shadow.bias=-.0004; sun.shadow.normalBias=.03;
 sun.layers.enable(1); scene.add(sun);                       // 印字在第 1 層，也要被照到
-const hemi=new THREE.HemisphereLight(C('#a9bbd4'), C('#2a2320'), .95); hemi.layers.enable(1); scene.add(hemi);
-const fillL=new THREE.DirectionalLight(C('#c8d4e6'), .9); fillL.position.set(-25,18,40); fillL.layers.enable(1); scene.add(fillL);   // 迎面的冷色天光
+const hemi=new THREE.HemisphereLight(C('#a9bbd4'), C('#2a2320'), 1.2); hemi.layers.enable(1); scene.add(hemi);
+const fillL=new THREE.DirectionalLight(C('#c8d4e6'), 1.25); fillL.position.set(-25,18,40); fillL.layers.enable(1); scene.add(fillL);   // 迎面的冷色天光
 // ---------- 瓶身：Fischersund 50ml 圓柱瓶，厚瓶底裡封著一座黑色冰山 ----------
 // 依 Fragrantica 官方高解析正面照（2721×3400）與 Woodberg、Ministry of Scent 商品照量測（單位：瓶寬 = 4.6）：
 // 玻璃直徑 4.6、高 7.4；黑色霧面圓柱蓋直徑 2.64、高 2.5；玻璃頂面有一圈凸起的細環。
@@ -847,7 +848,7 @@ const glassMat = new THREE.ShaderMaterial({
     // ---- 冰山的表面高度：幾座山峰＋崎嶇的稜線（ridged noise）＋細碎的皺褶
     float g2(vec2 q, vec2 c, float s){ vec2 d=q-c; return exp(-dot(d,d)/s); }
     float iceTop(vec2 q){
-      float h = 2.1 + .30*g2(q,vec2(-.95,.12),.75) + .50*g2(q,vec2(.02,-.18),.3) + .6*g2(q,vec2(.74,.22),.26) + .22*g2(q,vec2(-.3,-.95),.5) + .18*g2(q,vec2(1.1,-.8),.35);
+      float h = 2.08 + .30*g2(q,vec2(-.95,.15),.8) + .36*g2(q,vec2(.0,-.1),.28) + .7*g2(q,vec2(.72,.25),.22) + .24*g2(q,vec2(-.3,-.95),.5) + .2*g2(q,vec2(1.05,-.75),.3);
       float rn = 1.-abs(vn(vec3(q*2.3,1.7))*2.-1.); rn*=rn; h += (rn-.45)*.24;
       float rn2 = 1.-abs(vn(vec3(q*5.1,3.3))*2.-1.); h += (rn2*rn2-.4)*.07;
       h += (vn(vec3(q*12.,4.2))-.5)*.025;
@@ -863,7 +864,17 @@ const glassMat = new THREE.ShaderMaterial({
       if(d.y>1e-5){ float tt=(uGH-p.y)/d.y; if(tt<t){ t=tt; n=vec3(0.,1.,0.); } }
       if(d.y<-1e-5){ float tt=-p.y/d.y; if(tt<t){ t=tt; n=vec3(0.,-1.,0.); } }
       return max(t,0.); }
-    float marchCav(vec3 p, vec3 d, float tMax){ float t=0.; for(int i=0;i<48;i++){ float s=sdCav(p+d*t); if(s<1.5e-3) return t; t+=s; if(t>tMax) break; } return 1e4; }
+    // 內腔（圓柱）的解析交點：從玻璃射進內腔、與在內腔裡往外走；法向一律朝外（由內腔指向玻璃）
+    float hitCavIn(vec3 p, vec3 d, out vec3 n){ float t=1e4; n=vec3(0.,1.,0.); float r=uCav.x; vec2 o=p.xz, v=d.xz; float a=dot(v,v), b=dot(o,v), c=dot(o,o)-r*r;
+      if(c>0. && a>1e-6){ float disc=b*b-a*c; if(disc>0.){ float tt=(-b-sqrt(disc))/a; float y=p.y+d.y*tt; if(tt>0. && y>uCav.y && y<uCav.z){ t=tt; vec2 hh=o+v*tt; n=vec3(hh.x/r,0.,hh.y/r); } } }
+      if(p.y<uCav.y && d.y>1e-5){ float tt=(uCav.y-p.y)/d.y; vec2 hh=o+v*tt; if(tt<t && dot(hh,hh)<r*r){ t=tt; n=vec3(0.,-1.,0.); } }
+      if(p.y>uCav.z && d.y<-1e-5){ float tt=(uCav.z-p.y)/d.y; vec2 hh=o+v*tt; if(tt<t && dot(hh,hh)<r*r){ t=tt; n=vec3(0.,1.,0.); } }
+      return t; }
+    float exitCav(vec3 p, vec3 d, out vec3 n){ float t=1e4; n=vec3(0.,1.,0.); float r=uCav.x; vec2 o=p.xz, v=d.xz; float a=dot(v,v), b=dot(o,v), c=dot(o,o)-r*r;
+      if(a>1e-6){ float disc=max(b*b-a*c,0.); float tt=(-b+sqrt(disc))/a; if(tt>0.){ t=tt; vec2 hh=o+v*tt; n=vec3(hh.x/r,0.,hh.y/r); } }
+      if(d.y<-1e-5){ float tt=(uCav.y-p.y)/d.y; if(tt>0. && tt<t){ t=tt; n=vec3(0.,-1.,0.); } }
+      if(d.y>1e-5){ float tt=(uCav.z-p.y)/d.y; if(tt>0. && tt<t){ t=tt; n=vec3(0.,1.,0.); } }
+      return t; }
     float marchIce(vec3 p, vec3 d, float tMax, out int which){ which=0; if(p.y>3.2 && d.y>=0.) return 1e4; float t=0.;
       for(int i=0;i<90;i++){ vec3 q=p+d*t; float s=sdIce(q,which); if(s<1.2e-3){
           float a=t-max(s,.01)*2., b=t; for(int k=0;k<5;k++){ float m=(a+b)*.5; int w; if(sdIce(p+d*m,w)<0.) b=m; else a=m; } t=b; sdIce(p+d*t,which); return t; }
@@ -886,8 +897,8 @@ const glassMat = new THREE.ShaderMaterial({
       vec3 gg=vec3(vn(q+vec3(e2,0,0))-vn(q-vec3(e2,0,0)), vn(q+vec3(0,e2,0))-vn(q-vec3(0,e2,0)), vn(q+vec3(0,0,e2))-vn(q-vec3(0,0,e2)))/(2.*e2);
       vec3 q2=p*9.; vec3 gg2=vec3(vn(q2+vec3(e2,0,0))-vn(q2-vec3(e2,0,0)), vn(q2+vec3(0,e2,0))-vn(q2-vec3(0,e2,0)), vn(q2+vec3(0,0,e2))-vn(q2-vec3(0,0,e2)))/(2.*e2);
       vec3 nb=normalize(n + gg*.09 + gg2*.14);
-      float strata = .5+.5*sin((p.y + fbm(vec3(p.xz*1.3, 2.))*.35)*34.);
-      vec3 base = mix(vec3(.022,.011,.013), vec3(.055,.024,.022), strata*.6 + fbm(p*3.)*.4);
+      float strata = smoothstep(.55,.95, .5+.5*sin((p.y + fbm(vec3(p.xz*1.1, 2.))*1.2)*9.));   // 偶爾一道夾著火山灰的冰層
+      vec3 base = mix(vec3(.022,.011,.013), vec3(.05,.022,.02), strata*.35 + fbm(p*3.)*.5);
       vec3 V=-d; vec3 Rf=reflect(d, nb);
       float F = .05 + .6*pow(1.-max(dot(nb,V),0.), 4.);
       vec3 env = textureLod(tEnv, Rf, 1.5).rgb;
@@ -917,18 +928,17 @@ const glassMat = new THREE.ShaderMaterial({
       for(int seg=0; seg<4; seg++){
         if(done) break;
         vec3 nE; float tO=exitCyl(p+d*1e-3, d, nE);
-        float tC=marchCav(p+d*1e-3, d, tO);
+        vec3 nC; float tC=hitCavIn(p+d*1e-3, d, nC); if(tC>tO) tC=1e4;
         int which; float tI=marchIce(p+d*1e-3, d, min(tO,tC), which);
         if(tI<tO && tI<tC){ vec3 ph=p+d*tI; gPath+=tI; col=shadeIce(ph, d, which); done=true; break; }
         if(tC<tO){
-          vec3 p1=p+d*tC; gPath+=tC; vec3 nc=nCav(p1);
+          vec3 p1=p+d*tC; gPath+=tC; vec3 nc=nC;
           vec3 d2=refract(d, nc, p1.y>uLiqTop ? iorG : iorG/1.36);
           if(dot(d2,d2)<1e-4){ d=reflect(d,nc); p=p1; continue; }
-          float t2=.02; for(int i=0;i<48;i++){ float s=-sdCav(p1+d2*t2); if(s<1.5e-3 && t2>.05) break; t2+=max(s,.01); }
+          vec3 nc2; float t2=exitCav(p1+d2*1e-3, d2, nc2);
           vec3 p2=p1+d2*t2; float ya=p1.y, yb=p2.y;
           float f = abs(yb-ya)<1e-4 ? step(ya,uLiqTop) : clamp((uLiqTop-min(ya,yb))/abs(yb-ya), 0., 1.);
           lPath += t2*f;
-          vec3 nc2=nCav(p2);
           vec3 d3=refract(d2, -nc2, p2.y>uLiqTop ? 1./iorG : 1.36/iorG);
           if(dot(d3,d3)<1e-4) d3=reflect(d2,-nc2);
           p=p2; d=d3; continue;
