@@ -1,5 +1,5 @@
 """把 src/*-3d.src.html 的貼圖佔位（__TEX_*__）換成 data URI，輸出到根目錄的 *-3d.html。
-用法：python3 tools/build3d.py [summer|esencia|goldleaf|all]"""
+用法：python3 tools/build3d.py [summer|esencia|goldleaf|fischersund|all]"""
 import base64, sys, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = {
@@ -10,6 +10,8 @@ PAGES = {
       '__TEX_LABEL__':'src/tex_esencia_label.jpg', '__TEX_LABEL_BUMP__':'src/tex_esencia_label_bump.jpg'}),
   'goldleaf': ('src/gold-leaf-3d.src.html', 'gold-leaf-3d.html', {
       '__TEX_FOIL__':'src/tex_gl_foil.png'}),
+  'fischersund': ('src/fischersund-23-3d.src.html', 'fischersund-23-3d.html', {
+      '__TEX_FS_PRINT__':'src/tex_fs23_print.png'}),
 }
 def uri(p):
     mime = 'image/png' if p.endswith('.png') else 'image/jpeg'
