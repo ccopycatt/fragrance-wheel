@@ -992,6 +992,19 @@ const glassMat = new THREE.ShaderMaterial({
       vec3 n=normalize(vec3(-hx/(2.*e),1.,-hz/(2.*e)));
       vec3 q=p*24.; float e2=.08; vec3 gg=vec3(vn(q+vec3(e2,0,0))-vn(q-vec3(e2,0,0)), 0., vn(q+vec3(0,0,e2))-vn(q-vec3(0,0,e2)))/(2.*e2);
       return normalize(n+gg*.06); }
+    vec3 shadeMtn(vec3 p, vec3 d){
+      vec3 n=floorN(p); if(dot(n,d)>0.) n=-n;
+      vec3 q=p*30.; float e2=.08; vec3 gg=vec3(vn(q+vec3(e2,0,0))-vn(q-vec3(e2,0,0)), vn(q+vec3(0,e2,0))-vn(q-vec3(0,e2,0)), vn(q+vec3(0,0,e2))-vn(q-vec3(0,0,e2)))/(2.*e2);
+      vec3 nb=normalize(n+gg*.12);
+      vec3 V=-d, Rf=reflect(d,nb);
+      float F=.06+.55*pow(1.-max(dot(nb,V),0.),4.);
+      vec3 env=textureLod(tEnv, Rf, 1.2).rgb;
+      vec3 base=vec3(.016,.014,.013)*(.6+.4*vn(p*6.));                      // 透過玻璃看到的黑色台座
+      vec3 c=base + env*F*.85;
+      float glint=pow(max(dot(Rf,uSunDir),0.),260.)*10. + pow(max(dot(Rf,normalize(vec3(-.3,.9,.4))),0.),180.)*1.5;
+      float hue=vn(p*14.+7.);
+      vec3 tint=mix(vec3(1.,.55,.45), mix(vec3(1.,.85,.62), vec3(.6,.78,1.), smoothstep(.55,.85,hue)), smoothstep(.3,.6,hue));
+      return c + tint*glint*uSunCol; }
     // 從玻璃往上碰到山形底面（進入內腔）
     float floorUp(vec3 p, vec3 d, float tMax){ if(p.y>3.05 && d.y>=0.) return 1e4; float t=0., tp=0.;
       for(int i=0;i<120;i++){ vec3 q=p+d*t; float r=length(q.xz); float f=q.y-iceTop(q.xz);
@@ -1014,7 +1027,7 @@ const glassMat = new THREE.ShaderMaterial({
       float rough = .01 + smudge*.12 + scratch*.2;
       float iorG=1.5;
       vec3 d=refract(-v, n, 1./iorG); vec3 p=L;
-      float gPath=0., lPath=0.; bool done=false; vec3 col=vec3(0.); vec3 nO=vec3(0.,1.,0.);
+      float gPath=0., lPath=0., bPath=0.; bool done=false; vec3 col=vec3(0.); vec3 nO=vec3(0.,1.,0.);
       vec2 uv0=toUV(vW); float fz=gl_FragCoord.z; float blur=.012*rough;
       int med=0;                                   // 0 玻璃、1 香水、2 液面上方的空氣
       for(int seg=0; seg<9; seg++){
@@ -1023,12 +1036,11 @@ const glassMat = new THREE.ShaderMaterial({
           vec3 nE; float tO=exitCyl(p+d*1e-3, d, nE);
           vec3 nC; float tC=hitCavIn(p+d*1e-3, d, nC); if(tC>tO) tC=1e4;
           float tF=floorUp(p+d*1e-3, d, min(tO,tC));
-          if(tF<tO && tF<tC){ p+=d*(tF+1e-3); gPath+=tF; vec3 nU=floorN(p); bool liq=p.y<uLiqTop;
-            vec3 dn=refract(d, -nU, iorG/(liq?1.36:1.)); if(dot(dn,dn)<1e-4) d=reflect(d,nU); else { d=dn; med=liq?1:2; } continue; }
+          if(tF<tO && tF<tC){ p+=d*tF; gPath+=tF; col=shadeMtn(p,d); done=true; break; }
           if(tC<tO){ p+=d*(tC+1e-3); gPath+=tC; bool liq=p.y<uLiqTop;
             vec3 dn=refract(d, nC, iorG/(liq?1.36:1.)); if(dot(dn,dn)<1e-4) d=reflect(d,nC); else { d=dn; med=liq?1:2; } continue; }
           // 離開玻璃
-          vec3 pE=p+d*tO; gPath+=tO; nO=nE;
+          vec3 pE=p+d*tO; gPath+=tO; nO=nE; bPath += tO*clamp((3.0-.5*(p.y+pE.y))/1.2,0.,1.);
           vec3 dO=refract(d, -nO, iorG);
           if(dot(dO,dO)<1e-4){ d=reflect(d,nO); p=pE; continue; }
           float io[3]; io[0]=1.488; io[1]=1.5; io[2]=1.516;
@@ -1044,12 +1056,13 @@ const glassMat = new THREE.ShaderMaterial({
           p+=d*(tm+1e-3);
           if(tS<=tm){ if(med==1){ vec3 dr=refract(d, vec3(0.,-1.,0.), 1.36); if(dot(dr,dr)<1e-4) d.y=-d.y; else { d=dr; med=2; } }
                       else { d=refract(d, vec3(0.,1.,0.), 1./1.36); med=1; } continue; }
-          if(tF<=tm){ vec3 nU=floorN(p); vec3 dn=refract(d, nU, nIn/iorG); if(dot(dn,dn)<1e-4) d=reflect(d,nU); else { d=dn; med=0; } continue; }
+          if(tF<=tm){ col=shadeMtn(p,d); done=true; break; }
           vec3 dn=refract(d, -nE2, nIn/iorG); if(dot(dn,dn)<1e-4) d=reflect(d,nE2); else { d=dn; med=0; } continue;
         }
       }
       if(!done) col = textureLod(tEnv, d, 2.).rgb*.5;
       col *= exp(-uAbs*gPath) * exp(-uLiqK*lPath);
+      col *= .12+.88*exp(-vec3(.8,.85,.9)*bPath);   // 厚瓶底：底下是黑色台座，整塊看起來是深色的
       // 表面反射
       vec3 Rr = reflect(-v, n);
       vec3 refl = textureLod(tEnv, Rr, rough*7.).rgb;
