@@ -8,6 +8,7 @@
 - `src/tex_label50*.jpg`：50ml 標籤貼圖（取自官方去背照）
 - `esencia-3d.html`：LOEWE Esencia（100ml）的 3D 詳細頁；原始碼 `src/esencia-3d.src.html`，標籤貼圖 `src/tex_esencia_label*.jpg`
 - `gold-leaf-3d.html`：Ormonde Jayne Gold Leaf 茶路（88ml）的香境；原始碼 `src/gold-leaf-3d.src.html`，燙金字遮罩 `src/tex_gl_foil.png`（由 `tools/gl_foil.py` 依量測位置排字產生）
+- `fischersund-23-3d.html`：Fischersund No. 23（50ml）的香境；原始碼 `src/fischersund-23-3d.src.html`，印字遮罩 `src/tex_fs23_print.png`（`tools/fs23_print.py`，Inter SemiBold）。香材分層依品牌公布的金字塔（Fragrantica 只列平的 10 種），菸草放中調、海藻放後調
 - 建置：`python3 tools/build3d.py all`（把 `__TEX_*__` 換成 data URI、輸出根目錄的 `*-3d.html`）
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
@@ -33,6 +34,8 @@
 - 液體顏色、標籤、瓶蓋顏色以實拍照為準。
 - 標籤貼圖要高解析：從官方去背照放大 3 倍、估背景、做墨色遮罩，太小的字用相近字型重新排字（Esencia 1548×2109、Summer BCN 1128×3186），凹凸圖 2/3 尺寸。
 - 切角瓶（Gold Leaf）：外形用凸包（ConvexGeometry）把幾層八角形連起來，切割面的平面交給玻璃著色器，光線在著色器裡實際走：空氣 → 外噴漸層 → 玻璃 → 內腔（圓角長方體 SDF，香水／液面上方空氣）→ 玻璃 → 外噴 → 空氣，出口全反射時在玻璃內再彈一次；稜線用「離第二近平面的距離」做拋光亮線。燙金字是第 1 層的金屬貼片（畫在玻璃之後），背面另有一片只從後方看得到的反字。
+
+- 圓柱瓶＋瓶底封著物件（Fischersund 的黑冰山）：外圓柱與內腔都用解析交點（不要用 SDF 逐步逼近內腔，靠近瓶壁會算不準、在液體裡畫出一圈圈框線），瓶底物件用高度場＋細碎法向擾動，液面要當成獨立的界面（由下往上看會全反射）。GLSL 註解別放在同一行的 `}` 前面。
 
 ### 香材
 - 每個香材建 3D 模型，前調在最上圈、中調中間、後調最下圈，環繞瓶身。

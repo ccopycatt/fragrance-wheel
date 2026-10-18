@@ -1339,14 +1339,14 @@ const BUILD = Object.assign({
     return g;
   },}, BUILD_FS);
 
-// Fragrantica 只列出 10 種香材、沒有分前中後調；分層依品牌公布的香調金字塔（前：佛手柑、黑胡椒、甘草；中：柏樹、西伯利亞冷杉；
+// Fragrantica 只列出 10 種香材、沒有分前中後調；分層依品牌公布的香調金字塔（前：佛手柑、黑胡椒、甘草；中：絲柏、西伯利亞冷杉；
 // 後：樺木焦油、龍涎香、廣藿香），品牌沒列的菸草放中調、海藻放後調；同一層裡依 Fragrantica 的順序
 const NOTES = [
   { tier:0, key:'blackPepper', zh:'黑胡椒', en:'Black Pepper', d:'詩裡的「黑胡椒尾巴」：藤上一串串的漿果曬乾後變黑變皺，辛辣、乾燥，帶一點木質。' },
   { tier:0, key:'licorice', zh:'甘草', en:'Licorice', d:'乾燥的甘草根甜中帶苦，和詩裡的茴香籽一樣有大茴香的氣味，替煙燻感添一點甜。' },
   { tier:0, key:'bergamot', zh:'佛手柑', en:'Bergamot', d:'微苦的柑橘皮，帶一點花香，是開場那一下清亮的冷空氣。' },
   { tier:1, key:'fir', zh:'冷杉', en:'Fir', d:'西伯利亞冷杉：清涼的針葉與樹脂，像詩裡在微風中搖曳、讓頭皮發癢的「噴泉松」。' },
-  { tier:1, key:'cypress', zh:'柏樹', en:'Cypress', d:'乾燥、帶樹脂的綠色木質香，鱗片般的葉子和圓圓的木質毬果。' },
+  { tier:1, key:'cypress', zh:'絲柏', en:'Cypress', d:'乾燥、帶樹脂的綠色木質香，鱗片般的葉子和圓圓的木質毬果。' },
   { tier:1, key:'tobacco', zh:'菸草', en:'Tobacco', d:'詩裡的「菸草樹葉」與品牌故事裡的菸斗：烤乾的菸葉有蜂蜜、乾草與一點煙的氣味。' },
   { tier:2, key:'birchTar', zh:'樺木焦油', en:'Birch Tar', d:'把樺木乾餾得到的黑色焦油：濃重的煙燻與皮革感，就是「塗上柏油的電線桿」與老港口大船的味道。' },
   { tier:2, key:'ambergris', zh:'龍涎香', en:'Ambergris', d:'抹香鯨的分泌物在海上漂流多年後變成的蠟質石塊，帶海水的鹹、溫暖的動物感與琥珀甜——呼應詩的最後一句「擱淺的鯨魚」。' },
