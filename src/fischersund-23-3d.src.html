@@ -666,7 +666,7 @@ function buildWorld(target, detailed){
           float c=cells(p*2.2) ; float c2=cells(p*5.+7.);
           float crack = 1.-smoothstep(.02,.16, c*.8+c2*.25);              // 硬殼之間的裂縫
           float core = (1.-smoothstep(.1,.85,across));                     // 熔岩流中間比較熱
-          float heat = clamp(crack*(.7+.6*core) + core*core*.5*(1.-vUv.y*.4), 0., 1.);
+          float heat = clamp(crack*(.8+.6*core) + core*.65*(1.-vUv.y*.35) + .12, 0., 1.);
           vec3 crust = vec3(.035,.025,.022);
           vec3 hot = mix(vec3(1.4,.22,.03), vec3(4.,1.6,.3), heat*heat);
           vec3 col = mix(crust, hot, heat);
@@ -680,14 +680,14 @@ function buildWorld(target, detailed){
     { const N=150, S2=VOLC.R*2.5, g=new THREE.PlaneGeometry(S2,S2,N,N); g.rotateX(-Math.PI/2); const p=g.attributes.position, col=[]; const tc=new THREE.Color(), haze=SCENE_CFG.haze;
       for(let i=0;i<p.count;i++){ const x=p.getX(i)+VOLC.x, z=p.getZ(i)+VOLC.z; const dv=Math.hypot(x-VOLC.x,z-VOLC.z); const y=dv>VOLC.R*1.15? VOLC.base-30 : volcH(x,z); p.setXYZ(i,x,y,z);
         const rel=(y-VOLC.base)/VOLC.H; const gully=Math.pow(Math.abs(Math.sin(Math.atan2(z-VOLC.z,x-VOLC.x)*9 + fbm(x*.03,2,z*.03,2)*3)),3);
-        tc.set('#2a2624').lerp(C('#3b3532'), fbm(x*.08,1,z*.08,2)*.5+.25);
+        tc.set('#1e1b1a').lerp(C('#2e2a28'), fbm(x*.08,1,z*.08,2)*.5+.25);
         tc.lerp(C('#eef1f4'), sstep(.62-gully*.25, .8-gully*.2, rel)*(1-sstep(VOLC.crater*1.8,VOLC.crater,dv)));
         tc.lerp(C('#4a2418'), sstep(VOLC.crater*1.8,VOLC.crater*.9,dv)*.85);
-        tc.lerp(haze, .32); col.push(tc.r,tc.g,tc.b); }
+        tc.lerp(haze, .26); col.push(tc.r,tc.g,tc.b); }
       g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.computeVertexNormals();
       const vm=new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95, fog:false })); vm.renderOrder=-4; extra.push(vm); }
     const flows=[]; const vy=volcH(VOLC.x,VOLC.z);
-    [[-1.9,5],[-1.2,3.8],[-.6,4.5],[-2.5,3.6],[-1.55,2.6],[-2.2,3]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*1.25, z=VOLC.z+Math.sin(a0)*VOLC.crater*1.25; const pts=[];   // 從火山口的缺口溢出
+    [[-1.9,10],[-1.25,8],[-.7,9],[-2.5,8],[-1.55,6],[-2.2,7]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*1.25, z=VOLC.z+Math.sin(a0)*VOLC.crater*1.25; const pts=[];   // 從火山口的缺口溢出
       for(let i=0;i<90;i++){ pts.push([x,z]); const e=.8; const gx=volcH(x+e,z)-volcH(x-e,z), gz=volcH(x,z+e)-volcH(x,z-e); const gl=Math.hypot(gx,gz)+1e-4;
         const rx=x-VOLC.x, rz=z-VOLC.z, rl=Math.hypot(rx,rz)||1; const wob=Math.sin(i*.33+fi)*.4; let dx=-gx/gl*.5+rx/rl*.5, dz=-gz/gl*.5+rz/rl*.5; { const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; } const c=Math.cos(wob), s2=Math.sin(wob); [dx,dz]=[dx*c-dz*s2, dx*s2+dz*c]; x+=dx*1.7; z+=dz*1.7; if(Math.hypot(x-VOLC.x,z-VOLC.z)>VOLC.R*(.75+.25*((fi*37)%10)/10)) break; }   // 流到山腳的平原上
       const pos=[], uv=[], idx=[]; const N=pts.length;
