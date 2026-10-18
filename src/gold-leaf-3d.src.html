@@ -247,19 +247,25 @@ function skyMaterial(){
   });
 }
 
-// ---------- 地形：茶山台地，往後（-z）一路下坡到雲海，前方與兩側是緩坡茶園 ----------
+// ---------- 地形：茶箱放在山頂的小台地上，四周坡面往下落，附近幾座山丘隆起，谷底被雲海淹沒（像阿里山、坪林的雲海茶園） ----------
 const sstep=(a,b,x)=>{ const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
-const GROUND_Y = -3.6;                 // 台地高度（茶箱放在台地上，箱頂 = 瓶底 = 0）
+const GROUND_Y = -3.6;                 // 山頂台地高度（茶箱放在台地上，箱頂 = 瓶底 = 0）
 const pathX = (z)=> 2.6*Math.sin(z*.045) + .9*Math.sin(z*.13+1.2);   // 石階茶路往下坡蜿蜒
-function backS(x,z){ return Math.max(0, -z-12 + .0042*x*x); }       // 後坡的「等高線座標」
-function frontS(x,z){ return Math.max(0, z-15 - .0032*x*x); }
+// 鄰近的山丘：[x, z, 半徑, 高]；後方（-z）留給山谷與雲海
+const HILLS = [ [-52,42,24,27], [50,58,26,31], [88,4,20,21], [-88,-2,22,19], [12,96,30,33], [-40,100,26,28], [80,-62,22,17], [-82,-64,22,15], [-24,-58,16,9] ];
+// 竹叢、檳榔、相思樹的位置（茶行會避開）
+const BAMBOO = [[-27,2,16,12],[-31,-7,14,11],[-36,8,12,13],[29,-4,16,12],[34,6,13,11],[-48,-26,12,12],[52,-30,14,13],[40,30,10,10],[-40,24,12,11]];
+const PALMS  = [[38,-26],[46,-40],[58,-24],[-40,-34],[-54,-46],[-62,-20],[30,-60],[-30,-70],[64,10],[-66,6],[52,30],[-58,34],[20,40],[-18,44]];
+const TREES  = [[-46,36],[-58,48],[44,52],[56,64],[86,12],[92,-2],[-84,6],[-92,-8],[18,90],[4,100],[-36,94],[-46,106],[80,-56],[-80,-58],[-24,-56]];
 function terrainH(x,z){
   const d=Math.hypot(x,z);
-  const s=backS(x,z);
-  let h = GROUND_Y - Math.pow(s,1.12)*.2 + frontS(x,z)*.11 + Math.max(0,Math.abs(x)-34)*.06;
-  h += fbm(x*.035,1.7,z*.035,4)*1.6*sstep(13,34,d) + fbm(x*.11,3.1,z*.11,2)*.25*sstep(10,20,d);
-  return h + (GROUND_Y-h)*(1-sstep(9.5,15,d));
+  let h = GROUND_Y - Math.pow(Math.max(0,d-15),1.22)*.17;            // 山頂往四周落下
+  h -= Math.max(0,-z-15)*.12*sstep(15,40,d);                          // 正後方是開闊的山谷
+  for(const [cx,cz,r,H] of HILLS){ const q=((x-cx)*(x-cx)+(z-cz)*(z-cz))/(r*r); if(q<9) h+=H*Math.exp(-q*.9); }
+  h += fbm(x*.03,1.7,z*.03,4)*3.2*sstep(15,40,d) + fbm(x*.11,3.1,z*.11,2)*.35*sstep(15,25,d);
+  return h;
 }
+
 // ---------- 蕨葉（羽狀複葉）幾何：主軸拱起、兩側羽片由大到小 ----------
 function frondGeometry({ len=3, pinnae=26, pinnaLen=.7, pinnaWid=.13, arch=.55, lobes=true, seed=1, droop=0, seg=null, TS=14, RS=3 }={}){
   const parts=[]; const r=rng(seed);
@@ -373,7 +379,7 @@ function buildWorld(target, detailed){
   const rp=ring.attributes.position, col=[]; const cRed=C('#7c5036'), cSoil=C('#5e3c28'), cGrass=C('#55702e'), cDry=C('#7a6a42'), tmp=new THREE.Color();   // 台灣茶園的紅土
   for(let i=0;i<rp.count;i++){ const x=rp.getX(i), z=rp.getZ(i); rp.setY(i, terrainH(x,z)); const d=Math.hypot(x,z);
     const n=fbm(x*.08,2,z*.08,3), n2=fbm(x*.25,5,z*.25,2);
-    tmp.copy(cRed).lerp(cSoil, Math.max(0,n2)*.6).lerp(cGrass, sstep(16,30,d)*Math.min(1,Math.max(0,n*1.6+.2))*.55).lerp(cDry, Math.max(0,-n2)*.25);
+    tmp.copy(cRed).lerp(cSoil, Math.max(0,n2)*.6).lerp(cDry, Math.max(0,-n2)*.25).lerp(C('#33502a'), sstep(28,70,d)*.85);
     col.push(tmp.r,tmp.g,tmp.b); }
   ring.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); ring.computeVertexNormals();
   // 圓環內徑 0：圓心那圈頂點疊在一起，算出的法向是 0/0（NaN），打光後會讓反射探針整張變黑，改成朝上
@@ -389,7 +395,7 @@ function buildWorld(target, detailed){
   ground.receiveShadow=true; target.add(ground);
   if(!detailed){ // 反射探針用：茶行的低模
     const m=new THREE.MeshStandardMaterial({ color:C('#3f6a2c'), roughness:.9 });
-    for(let c=3;c<60;c+=5){ for(let x=-60;x<=60;x+=6){ const z=-12-c+.0042*x*x; const b=new THREE.Mesh(new THREE.SphereGeometry(2.6,8,5,0,Math.PI*2,0,1.6),m); b.scale.set(1.3,.4,.5); b.position.set(x,terrainH(x,z),z); target.add(b); } }
+    for(let R=18;R<90;R+=6){ for(let a=0;a<6.28;a+=7/R){ const x=Math.cos(a)*R, z=Math.sin(a)*R, y=terrainH(x,z); if(y<-29) continue; const b=new THREE.Mesh(new THREE.SphereGeometry(2.6,8,5,0,Math.PI*2,0,1.6),m); b.scale.set(1.3,.4,.5); b.rotation.y=-a; b.position.set(x,y,z); target.add(b); } }
     return { sky, ground };
   }
 
@@ -424,18 +430,34 @@ function buildWorld(target, detailed){
     for(let i=0;i<p.count;i++){ const y=p.getY(i); if(y<0) p.setY(i, y*.1); } g.scale(.82,.66,.76); displace(g,.06,3,2,4); g.computeVertexNormals();
     const c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ const y=p.getY(i); const k=.55+.45*Math.max(0,y/.66); c[i*3]=.28*k+.1; c[i*3+1]=.45*k+.12; c[i*3+2]=.2*k+.06; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
   const teaCols=['#ffffff','#e8efe0','#d8e2cc','#f0f4e6','#c8d4ba'].map(C);
-  const plantRow=(fz, x0, x1, step=.92)=>{ let x=x0; while(x<=x1){ const z=fz(x); const d=Math.hypot(x,z); const far=d>40;
-      const z2=fz(x+.3); const skip = d<14.5 || (Math.abs(x-pathX(z))<1.4 && z<-8) || d>300;
-      if(!skip){ const yaw=-Math.atan2(z2-z,.3); const half=(far?2.5:1.05)*.82; const dx=Math.cos(yaw)*half, dz=-Math.sin(yaw)*half;
-        const y=Math.min(terrainH(x,z), terrainH(x+dx,z+dz), terrainH(x-dx,z-dz)) - (far?.25:.12); e.set(0,yaw+(r()-.5)*.12,0); q.setFromEuler(e); const s=.95+r()*.15;
-        addI(far?'teaFar':'tea', far?teaFar:teaBush, m4().compose(new V(x,y,z), q, sc.set((far?2.5:1.05)*s, (.9+r()*.2)*s, .95*s)), teaCols[(r()*5)|0]); }
-      x += step*(far?2.4:1)*(.9+r()*.2); } };
-  for(let c=3; c<112; c+=2.45){ const half=Math.min(150, 24+c*.95); plantRow((x)=>-12-c+.0042*x*x, -half, half); }
-  for(let c=1.8; c<100; c+=2.45){ const half=Math.min(150, 48+c*1.2); plantRow((x)=>15+c+.0032*x*x, -half, half); }
-  // 台地兩側：繞著山頭的弧形茶行（銜接後坡與前坡）
-  for(let R=16; R<44; R+=2.45){ for(let a=0;a<6.283;a+=.92/R){ const x=Math.cos(a)*R, z=Math.sin(a)*R; if(z<-9-.0042*x*x*.5 || z>14) continue; if(Math.abs(x)<14) continue;
-      const far=R>40; const tx=-Math.sin(a)*.86, tz=Math.cos(a)*.86; const y=Math.min(terrainH(x,z),terrainH(x+tx,z+tz),terrainH(x-tx,z-tz))-.12; e.set(0,-a+Math.PI/2+(r()-.5)*.1,0); q.setFromEuler(e); const s=.95+r()*.15;
-      addI(far?'teaFar':'tea', far?teaFar:teaBush, m4().compose(new V(x,y,z), q, sc.set(1.05*s,(.9+r()*.2)*s,.95*s)), teaCols[(r()*5)|0]); } }
+  // 遠景的更低模（再遠一點、只剩輪廓）
+  const teaFar2=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,0)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position;
+    for(let i=0;i<p.count;i++){ const y=p.getY(i); if(y<0) p.setY(i, y*.1); } g.scale(.82,.66,.76); g.computeVertexNormals();
+    const c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ const y=p.getY(i); const k=.55+.45*Math.max(0,y/.66); c[i*3]=.28*k+.1; c[i*3+1]=.45*k+.12; c[i*3+2]=.2*k+.06; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
+  // 沿等高線一圈圈繞著山坡種：在網格上找每一階高度的等高線（marching squares），沿線種茶樹；
+  // 坡越緩、等高線越疏，就加入半階、四分之一階的茶行，讓行距維持在 2~3 單位，整片山坡都有茶
+  { const OB=[...BAMBOO.map(([x,z])=>[x,z,3.2]), ...PALMS.map(([x,z])=>[x,z,1.4]), ...TREES.map(([x,z])=>[x,z,3.4])];
+    const CELL=.8, R0=170, N=Math.ceil(2*R0/CELL)+1, H=new Float32Array(N*N);
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++) H[j*N+i]=terrainH(-R0+i*CELL, -R0+j*CELL);
+    const DH=.62, crossings=[];
+    for(let j=0;j<N-1;j++) for(let i=0;i<N-1;i++){
+      const x0=-R0+i*CELL, z0=-R0+j*CELL, cx=x0+CELL/2, cz=z0+CELL/2, d=Math.hypot(cx,cz);
+      if(d<15.3 || d>R0) continue;
+      const h00=H[j*N+i], h10=H[j*N+i+1], h01=H[(j+1)*N+i], h11=H[(j+1)*N+i+1];
+      const hmin=Math.min(h00,h10,h01,h11), hmax=Math.max(h00,h10,h01,h11); if(hmax<-29) continue;   // 沒入雲海
+      if(cz<-6 && Math.abs(cx-pathX(cz))<1.5) continue;                                              // 石階茶路
+      if(OB.some(([ox,oz,orr])=>(cx-ox)*(cx-ox)+(cz-oz)*(cz-oz)<orr*orr)) continue;
+      const gx=((h10+h11)-(h00+h01))/(2*CELL), gz=((h01+h11)-(h00+h10))/(2*CELL), slope=Math.hypot(gx,gz)+1e-4;
+      let dh=DH; while(dh/slope>2.3 && dh>DH/8) dh/=2;
+      const far=d>36, far2=d>95, step=far?2.6:.92;
+      for(let lev=Math.ceil(hmin/dh)*dh; lev<hmax; lev+=dh){
+        crossings.length=0;
+        const ed=(ha,hb,ax,az,bx,bz)=>{ if((ha-lev)*(hb-lev)<0){ const t=(lev-ha)/(hb-ha); crossings.push(ax+(bx-ax)*t, az+(bz-az)*t); } };
+        ed(h00,h10,x0,z0,x0+CELL,z0); ed(h10,h11,x0+CELL,z0,x0+CELL,z0+CELL); ed(h11,h01,x0+CELL,z0+CELL,x0,z0+CELL); ed(h01,h00,x0,z0+CELL,x0,z0);
+        for(let m=0;m+3<crossings.length;m+=4){ const ax=crossings[m], az=crossings[m+1], bx=crossings[m+2], bz=crossings[m+3];
+          const len=Math.hypot(bx-ax,bz-az), n=Math.floor(len/step + r()); const yaw=-Math.atan2(bz-az, bx-ax);
+          for(let k=0;k<n;k++){ const t=r(), x=ax+(bx-ax)*t, z=az+(bz-az)*t; e.set(0,yaw+(r()-.5)*.12,0); q.setFromEuler(e); const sc0=.95+r()*.15;
+            addI(far2?'teaFar2':far?'teaFar':'tea', far2?teaFar2:far?teaFar:teaBush, m4().compose(new V(x, lev-(far?.22:.12), z), q, sc.set((far?2.5:1.05)*sc0,(.9+r()*.2)*sc0,(far?1.35:1.08)*sc0)), teaCols[(r()*5)|0]); } } } } }
   // 台地：茶箱四周也種滿茶樹，一行行平行排列，只留出茶箱本身與往下坡的石階茶路
   for(let z=-14.2; z<=14.6; z+=2.45){ for(let x=-15; x<=15; x+=.92*(.9+r()*.2)){ const d=Math.hypot(x,z); if(d>14.8) continue;
       if(Math.abs(x)<6.0 && Math.abs(z)<4.6) continue; if(z<-6 && Math.abs(x-pathX(Math.min(z,-8.5)))<1.35) continue;
@@ -459,9 +481,12 @@ function buildWorld(target, detailed){
     for(let i=0;i<N;i++){ const a=i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
   const grassCols=['#5a7a30','#6a8a38','#7a9a42','#8aa84c','#9ab062','#b0b070','#4f6a2a'].map(C);
-  for(let c=0;c<4200;c++){ const a=r()*6.28, d=15+Math.pow(r(),1.6)*64; const x=Math.cos(a)*d, z=Math.sin(a)*d; const n=6+(r()*12|0); const sk=(.45+r()*.5)*(d<40?.75:1); const dry=r()<.25;
-    for(let j=0;j<n;j++){ const P=new V(x+(r()-.5)*.6,0,z+(r()-.5)*.6); P.y=terrainH(P.x,P.z)-.05; e.set((r()-.5)*.5,r()*6.28,(r()-.5)*.5); q.setFromEuler(e); const s=sk*(.6+r()*.7);
-      addI('blade',blade,m4().compose(P,q,sc.set(s,s*(.8+r()*.6),s)), grassCols[dry?4+(r()*2|0):(r()*4|0)]); } }
+  { const spots=[]; for(let z=-8; z>-70; z-=.9) for(const sd of [-1,1]) if(r()<.7) spots.push([pathX(z)+sd*(1.0+r()*.7), z, .8]);
+    for(let i=0;i<160;i++){ const a=r()*6.28; spots.push([Math.cos(a)*(14.9+r()*.8), Math.sin(a)*(14.9+r()*.8), .7]); }
+    [...BAMBOO, ...TREES, ...PALMS].forEach(([x,z])=>{ for(let i=0;i<10;i++){ const a=r()*6.28, rr=1.2+r()*2.4; spots.push([x+Math.cos(a)*rr, z+Math.sin(a)*rr, 1]); } });
+    spots.forEach(([x,z,k])=>{ const n=5+(r()*10|0), sk=(.45+r()*.5)*k, dry=r()<.25;
+      for(let j=0;j<n;j++){ const P=new V(x+(r()-.5)*.6,0,z+(r()-.5)*.6); P.y=terrainH(P.x,P.z)-.05; e.set((r()-.5)*.5,r()*6.28,(r()-.5)*.5); q.setFromEuler(e); const s2=sk*(.6+r()*.7);
+        addI('blade',blade,m4().compose(P,q,sc.set(s2,s2*(.8+r()*.6),s2)), grassCols[dry?4+(r()*2|0):(r()*4|0)]); } }); }
 
   // ---------- 竹叢：茶園邊上一叢叢的麻竹、桂竹 ----------
   const bambooLeaf=(()=>{ const g=petalGeometry({ len:.62, wid:.075, segL:3, segW:1, cup:.1, curl:-.12, base:'#ffffff', tip:'#ffffff', profile:t=>Math.sin(Math.PI*Math.min(1,t*.95+.05))*(1-t*.3) }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
@@ -477,7 +502,7 @@ function buildWorld(target, detailed){
         const tip=c.clone().addScaledVector(out,.9+r()*.8).add(new V(0,-.2+r()*.4,0));
         for(let j=0;j<6;j++){ const P=c.clone().lerp(tip, .3+.7*r()); e.set((r()-.5)*.8, Math.atan2(-out.z,out.x)+(r()-.5)*1.5, -.5-r()*.9); q.setFromEuler(e); const s=.8+r()*.6;
           addI('bLeaf', bambooLeaf, m4().compose(P,q,sc.set(s,s,s)), C(['#5d7f2e','#6b8c34','#4f7028','#7c9a3c','#8a9a48'][(r()*5)|0])); } } } };
-  [[-27,2,16,12],[-31,-7,14,11],[-36,8,12,13],[29,-4,16,12],[34,6,13,11],[-48,-26,12,12],[52,-30,14,13],[44,22,10,10],[-44,20,12,11]].forEach(([x,z,n,H])=>bambooClump(x,z,n,H));
+  BAMBOO.forEach(([x,z,n,H])=>bambooClump(x,z,n,H));
   { const cm=new THREE.Mesh(mergeGeometries(culms), new THREE.MeshStandardMaterial({ color:C('#88a052'), roughness:.55 })); cm.castShadow=true; cm.receiveShadow=true; target.add(cm);
     const nm=new THREE.Mesh(mergeGeometries(culmCol), new THREE.MeshStandardMaterial({ color:C('#5b6a36'), roughness:.7 })); target.add(nm); }
 
@@ -490,9 +515,9 @@ function buildWorld(target, detailed){
     const crown=top.clone().add(new V(0,1.6,0));
     for(let i=0;i<8;i++){ const a=i/8*6.28+r()*.4; e.set((r()-.5)*.2,-a,-.15-r()*.55); q.setFromEuler(e); const s=.85+r()*.3;
       addI('palm', palmFrond, m4().compose(crown,q,sc.set(s,s,s)), C(['#4e6e2c','#5a7a32','#456428','#6a8538'][(r()*4)|0])); } };
-  [[38,-26],[46,-40],[58,-24],[-40,-34],[-54,-46],[-62,-20],[70,-58],[-75,-62],[30,-60],[-30,-70],[64,10],[-66,6],[52,30],[-58,34]].forEach(([x,z])=>palm(x,z,13+r()*7));
+  PALMS.forEach(([x,z])=>palm(x,z,13+r()*7));
   { const tm=new THREE.Mesh(mergeGeometries(trunks), new THREE.MeshStandardMaterial({ color:C('#8d8a7e'), roughness:.85 })); tm.castShadow=true; target.add(tm);
-    const crownM=new THREE.Mesh(mergeGeometries(culmCol.slice(-14)), new THREE.MeshStandardMaterial({ color:C('#6f8a3a'), roughness:.6 })); target.add(crownM); }
+    const crownM=new THREE.Mesh(mergeGeometries(culmCol.slice(-PALMS.length)), new THREE.MeshStandardMaterial({ color:C('#6f8a3a'), roughness:.6 })); target.add(crownM); }
 
   // ---------- 相思樹：山脊上的闊葉樹，樹冠由細枝與葉叢組成 ----------
   const aLeaf=(()=>{ const g=petalGeometry({ len:.55, wid:.13, segL:2, segW:1, cup:.1, curl:-.04, base:'#ffffff', tip:'#ffffff' }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
@@ -505,16 +530,16 @@ function buildWorld(target, detailed){
       const n=lvl===0?4:3; for(let c=0;c<n;c++){ const st=cv.getPointAt(lvl===0?.55+.45*r():.35+.65*r()); const a=c/n*6.28+r()*.8; const tilt=lvl===0?.8+r()*.3:1.0+r()*.4;
         const nd=new V(Math.cos(a)*Math.sin(tilt), Math.cos(tilt), Math.sin(a)*Math.sin(tilt)); if(lvl>0) nd.lerp(d,.3).normalize(); grow(st,nd,len*.62,rad*.55,lvl+1); } };
     grow(p,new V(0,1,0),H,.6,0); };
-  [[-70,-14],[-82,12],[78,-8],[86,18],[-24,62],[30,66],[0,74],[-96,-30],[96,-36],[60,48],[-60,52]].forEach(([x,z])=>tree(new V(x,terrainH(x,z)-.2,z), 7+r()*4));
+  TREES.forEach(([x,z])=>tree(new V(x,terrainH(x,z)-.2,z), 7+r()*4));
 
   // ---------- 谷間的霧：一片片低垂的霧氣 ----------
   { const tex=canvasTex(256,256,(g,w)=>{ const gr=g.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,255,255,.85)'); gr.addColorStop(.5,'rgba(255,255,255,.35)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,w,w); });
     const mm=new THREE.SpriteMaterial({ map:tex, color:C('#eef0ec'), transparent:true, opacity:.32, depthWrite:false, fog:false });
-    for(let i=0;i<70;i++){ const x=(r()-.5)*260, z=-40-r()*120; const s=new THREE.Sprite(mm); s.position.set(x, terrainH(x,z)+2+r()*5, z); s.scale.set(40+r()*50, 10+r()*10, 1); target.add(s); } }
+    for(let i=0;i<90;i++){ const a=r()*6.28, dd=45+r()*110, x=Math.cos(a)*dd, z=Math.sin(a)*dd; const s=new THREE.Sprite(mm); s.position.set(x, Math.max(terrainH(x,z),-31)+2+r()*5, z); s.scale.set(34+r()*46, 9+r()*10, 1); target.add(s); } }
 
   // 統一建立
   const bm=new THREE.Mesh(mergeGeometries(branches), new THREE.MeshStandardMaterial({ color:C('#5a4c3e'), roughness:.9 })); bm.receiveShadow=true; target.add(bm);
-  const mats={ tea:windMaterial({ roughness:.62 },.05), teaFar:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85 }),
+  const mats={ tea:windMaterial({ roughness:.62 },.05), teaFar:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85 }), teaFar2:new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85, flatShading:false }),
     stone:new THREE.MeshStandardMaterial({ roughness:.88 }), blade:windMaterial({ roughness:.7 },.9), bLeaf:windMaterial({ roughness:.6 },.55),
     palm:windMaterial({ roughness:.6 },.1), aleaf:windMaterial({ roughness:.65 },.35) };
   Object.entries(inst).forEach(([k,v])=>{ const im=new THREE.InstancedMesh(v.geo, mats[k], v.xf.length); v.xf.forEach((m,i)=>{ im.setMatrixAt(i,m); im.setColorAt(i,v.cl[i]); });
