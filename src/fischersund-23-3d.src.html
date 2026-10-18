@@ -933,13 +933,23 @@ const glassMat = new THREE.ShaderMaterial({
         if(tI<tO && tI<tC){ vec3 ph=p+d*tI; gPath+=tI; col=shadeIce(ph, d, which); done=true; break; }
         if(tC<tO){
           vec3 p1=p+d*tC; gPath+=tC; vec3 nc=nC;
-          vec3 d2=refract(d, nc, p1.y>uLiqTop ? iorG : iorG/1.36);
+          bool inLiq = p1.y<uLiqTop;
+          vec3 d2=refract(d, nc, inLiq ? iorG/1.36 : iorG);
           if(dot(d2,d2)<1e-4){ d=reflect(d,nc); p=p1; continue; }
           vec3 nc2; float t2=exitCav(p1+d2*1e-3, d2, nc2);
-          vec3 p2=p1+d2*t2; float ya=p1.y, yb=p2.y;
-          float f = abs(yb-ya)<1e-4 ? step(ya,uLiqTop) : clamp((uLiqTop-min(ya,yb))/abs(yb-ya), 0., 1.);
-          lPath += t2*f;
-          vec3 d3=refract(d2, -nc2, p2.y>uLiqTop ? 1./iorG : 1.36/iorG);
+          // 液面：從液體裡往上碰到液面時，角度大就全反射（從側面看液面像一面鏡子），否則折射進液面上方的空氣；從上面往下則進入液體
+          float tS = (uLiqTop-p1.y)/d2.y;
+          if(tS>1e-3 && tS<t2){
+            vec3 pS=p1+d2*tS;
+            if(inLiq){ lPath+=tS; vec3 dr=refract(d2, vec3(0.,-1.,0.), 1.36);
+              if(dot(dr,dr)<1e-4){ d2=vec3(d2.x,-d2.y,d2.z); } else { d2=dr; inLiq=false; } }
+            else { d2=refract(d2, vec3(0.,1.,0.), 1./1.36); inLiq=true; }
+            p1=pS; t2=exitCav(p1+d2*1e-3, d2, nc2);
+            // 全反射後往下走，可能再碰到液面以外的地方；這裡只追一次
+          }
+          if(inLiq) lPath += t2;
+          vec3 p2=p1+d2*t2;
+          vec3 d3=refract(d2, -nc2, inLiq ? 1.36/iorG : 1./iorG);
           if(dot(d3,d3)<1e-4) d3=reflect(d2,-nc2);
           p=p2; d=d3; continue;
         }
@@ -989,7 +999,7 @@ const glass = new THREE.Mesh(glassGeo, glassMat); glass.layers.set(1); bottle.ad
   ring.rotation.x=Math.PI/2; ring.position.y=GH+.005; ring.layers.set(1); ring.renderOrder=3; bottle.add(ring); }
 // 吸管：從瓶蓋直直插到液體底部，透明塑膠
 { const cv=new THREE.CatmullRomCurve3([new THREE.Vector3(0,GH-.1,0),new THREE.Vector3(.05,5.5,-.1),new THREE.Vector3(.18,4,-.25),new THREE.Vector3(.32,3.2,-.35)]);
-  const t=new THREE.Mesh(new THREE.TubeGeometry(cv,40,.04,8,false), new THREE.MeshPhysicalMaterial({ color:C('#f2f2f0'), roughness:.15, transparent:true, opacity:.4, depthWrite:false }));
+  const t=new THREE.Mesh(new THREE.TubeGeometry(cv,40,.026,8,false), new THREE.MeshPhysicalMaterial({ color:C('#f2f2f0'), roughness:.15, transparent:true, opacity:.22, depthWrite:false }));
   bottle.add(t); }
 // 黑色霧面圓柱蓋：側面霧面、頂面微微的光澤
 { const pts=[new THREE.Vector2(0,0), new THREE.Vector2(CAP_R-.02,0), new THREE.Vector2(CAP_R,.03)];
