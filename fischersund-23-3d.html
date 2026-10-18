@@ -303,9 +303,14 @@ const POLE_Z=(x)=> -13 + 2.2*Math.sin(x*.05+1.0);
 const POLES=[]; for(let x=-88; x<=72; x+=16) POLES.push([x, POLE_Z(x)]);
 const SPRUCE=[]; { const r=((s)=>()=>(s=(s*16807)%2147483647)/2147483647)(91);
   for(let i=0;i<34;i++){ const a=r()*6.28, d=Math.sqrt(r()); SPRUCE.push([-34+Math.cos(a)*d*12, 40+Math.sin(a)*d*9]); }
-  for(let i=0;i<22;i++){ const a=r()*6.28, d=Math.sqrt(r()); SPRUCE.push([46+Math.cos(a)*d*10, 46+Math.sin(a)*d*7]); } }
-const FIRE={ x:-15, z:22, s:2.0 };   // 營火放在內陸山坡那側，放大
-const WHALE={ x:8, z:-27.6, yaw:-.08, s:1.35 };   // 擱淺在浪線上、半泡在海裡，身體橫向朝著鏡頭
+  for(let i=0;i<22;i++){ const a=r()*6.28, d=Math.sqrt(r()); SPRUCE.push([46+Math.cos(a)*d*10, 46+Math.sin(a)*d*7]); }
+  // 兩片樹林之間補上一整排，往山坡上延伸
+  for(let i=0;i<70;i++){ const x=-28+r()*70, z=44+r()*26; if(Math.abs(x-12)<5 && z<52) continue; SPRUCE.push([x,z]); }
+  for(let i=0;i<24;i++){ SPRUCE.push([-60+r()*30, 30+r()*30]); SPRUCE.push([55+r()*25, 30+r()*30]); } }
+// 火山：內陸山坡後方一座正在噴發的火山錐（像 Fagradalsfjall），火山口發紅，熔岩沿坡流下
+const VOLC={ x:8, z:118, R:46, H:40, crater:7 };
+const FIRE={ x:-22, z:20, s:2.2 };   // 營火放在內陸山坡那側，放大
+const WHALE={ x:4, z:-27.6, yaw:-.08, s:1.35 };   // 擱淺在浪線上、半泡在海裡，身體橫向朝著鏡頭
 function terrainH(x,z){
   const zs=shoreZ(x), dz=z-zs;
   let h;
@@ -316,6 +321,8 @@ function terrainH(x,z){
   // 左邊：熔岩原，高低起伏、坑坑洞洞
   const lava=sstep(-32,-52,x)*sstep(-12,4,dz);
   h += lava*(1.4 + Math.abs(fbm(x*.09,7.7,z*.09,4))*4.5 + fbm(x*.35,2.2,z*.35,2)*.6);
+  // 火山錐與火山口
+  { const dv=Math.hypot(x-VOLC.x,z-VOLC.z); if(dv<VOLC.R*1.6){ h += VOLC.H*Math.pow(Math.max(0,1-dv/VOLC.R),1.2) + Math.max(0,1-dv/(VOLC.R*1.6))*6; if(dv<VOLC.crater) h -= Math.pow(1-dv/VOLC.crater,1.6)*9; h += fbm(x*.15,8.8,z*.15,3)*1.2*sstep(VOLC.R*1.6,VOLC.R*.3,dv); } }
   // 遠處的山坡
   const d=Math.hypot(x,z); h += Math.pow(Math.max(0,d-70)/60,1.8)*16*sstep(-5,30,dz);
   return h;
@@ -400,6 +407,7 @@ function buildWorld(target, detailed){
     tmp.lerp(n>0?cMead:cMead2, sstep(9,16,z)*sstep(-2,6,dz));
     const lava=sstep(-30,-48,x)*sstep(-8,4,dz); tmp.lerp(n2>-.1?cMoss:cRock, lava*.95);
     tmp.lerp(cFar, sstep(70,120,d)*sstep(-5,10,dz)*.7);
+    { const dv=Math.hypot(x-VOLC.x,z-VOLC.z); tmp.lerp(C('#26211e'), sstep(VOLC.R*1.7,VOLC.R*.9,dv)*.95).lerp(C('#4a2a1a'), sstep(VOLC.crater*2.2,VOLC.crater*.8,dv)*.8); }   // 火山：新鮮的黑色熔岩與火山渣
     col.push(tmp.r,tmp.g,tmp.b); }
   ring.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); ring.computeVertexNormals();
   { const nr=ring.attributes.normal; for(let i=0;i<nr.count;i++){ if(!(Math.abs(nr.getX(i))+Math.abs(nr.getY(i))+Math.abs(nr.getZ(i))>.5)) nr.setXYZ(i,0,1,0); } }
@@ -413,6 +421,7 @@ function buildWorld(target, detailed){
   if(!detailed){ // 反射探針用：電線桿與幾塊冰的低模
     const pm=new THREE.MeshStandardMaterial({ color:C('#1c1714'), roughness:.6 });
     POLES.forEach(([x,z])=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(.2,.24,9.5,6),pm); p.position.set(x,terrainH(x,z)+4.5,z); target.add(p); });
+    { const g=new THREE.Mesh(new THREE.SphereGeometry(4,12,8), new THREE.MeshBasicMaterial({ color:C('#ff6a28') })); g.position.set(VOLC.x, terrainH(VOLC.x,VOLC.z)+3, VOLC.z); target.add(g); }
     return { sky, ground };
   }
 
@@ -503,7 +512,7 @@ function buildWorld(target, detailed){
 
   // ---------- 擱淺的大翅鯨：側躺在浪線上，肚子脹起，一隻長長的胸鰭朝天 ----------
   { const W=new THREE.Group(); W.position.set(WHALE.x, Math.max(terrainH(WHALE.x,WHALE.z),SEA_Y)+.9, WHALE.z); W.rotation.y=WHALE.yaw; W.scale.setScalar(WHALE.s);
-    const L=15, SU=90, SV=48, pos=[], col=[], idx=[]; const dark=C('#22262c'), mid=C('#3b4048'), belly=C('#d9d6d0'), tc=new THREE.Color();
+    const L=15, SU=90, SV=48, pos=[], col=[], idx=[]; const dark=C('#3c434c'), mid=C('#5c656f'), belly=C('#e2ded6'), tc=new THREE.Color();
     for(let i=0;i<=SU;i++){ const u=i/SU; const R=1.75*Math.pow(Math.sin(Math.PI*Math.min(1,u*.93+.04)),.55)*(1-.72*Math.pow(u,2.2));
       for(let j=0;j<=SV;j++){ const th=j/SV*Math.PI*2; let ry=R*1.05, rz=R*(1.12+.25*Math.exp(-Math.pow((u-.38)/.18,2)));      // 腹部脹氣
         const ventral=Math.max(0,-Math.sin(th));
@@ -512,12 +521,15 @@ function buildWorld(target, detailed){
         if(u<.12){ y*=.78+u*1.8; }                                                                                          // 扁平的吻部
         pos.push(u*L, y, z);
         tc.copy(dark).lerp(mid, fbm(u*20,th,1,2)*.6+.3).lerp(belly, sstep(.35,.85,ventral)*(u<.7?1:.4)*(.7+.3*fbm(u*30,th*3,2,2)));
+        if(ventral>.3 && u<.62) tc.multiplyScalar(.82+.18*Math.pow(Math.abs(Math.sin(th*34)),.5));                  // 褶紋的明暗
+        if(fbm(u*60,th*8,5,2)>.32) tc.lerp(C('#c8c4bc'), .45);                                                        // 藤壺與白色的疤
         col.push(tc.r,tc.g,tc.b); } }
     for(let i=0;i<SU;i++) for(let j=0;j<SV;j++){ const a=i*(SV+1)+j, b=a+SV+1; idx.push(a,b,a+1, a+1,b,b+1); }
     const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); bg.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); bg.setIndex(idx); bg.computeVertexNormals();
-    const skin=new THREE.MeshPhysicalMaterial({ vertexColors:true, roughness:.32, clearcoat:.6, clearcoatRoughness:.25 });
+    const skin=new THREE.MeshPhysicalMaterial({ vertexColors:true, roughness:.45, clearcoat:.5, clearcoatRoughness:.35 });
     const body=new THREE.Mesh(bg,skin); body.castShadow=true; body.receiveShadow=true;
-    const holder=new THREE.Group(); holder.rotation.x=1.25; holder.add(body); W.add(holder);    // 側躺
+    const holder=new THREE.Group(); holder.rotation.x=-.95; holder.add(body); W.add(holder);    // 側躺，肚子朝向沙灘這邊
+    { const df=petalGeometry({ len:.9, wid:.5, segL:6, segW:3, cup:0, curl:.2, profile:(t)=>Math.pow(1-t,.8), base:'#3c434c', tip:'#4a525c' }); const d=new THREE.Mesh(df,skin.clone()); d.material.vertexColors=true; d.position.set(L*.66,1.05,0); d.rotation.set(Math.PI/2,0,1.2); holder.add(d); }
     // 頭頂的瘤狀突起
     const kn=new THREE.InstancedMesh(new THREE.SphereGeometry(.09,10,6), new THREE.MeshStandardMaterial({ color:C('#2a2e34'), roughness:.5 }), 40); const mm=new THREE.Matrix4();
     for(let i=0;i<40;i++){ const u=.01+r()*.12, th=Math.PI/2+(r()-.5)*1.1; const R=1.75*Math.pow(Math.sin(Math.PI*(u*.93+.04)),.55)*(.78+u*1.8)*1.0; mm.makeTranslation(u*L, Math.sin(th)*R*.98, Math.cos(th)*R); kn.setMatrixAt(i,mm); }
@@ -614,10 +626,10 @@ function buildWorld(target, detailed){
   { const spray=frondGeometry({ len:2.2, pinnae:16, pinnaLen:.42, pinnaWid:.05, arch:.6, droop:.55, lobes:false, seed:21, seg:2, TS:8, RS:3 });
     const trunks=[];
     SPRUCE.forEach(([x,z])=>{ const H=9+r()*7, y0=terrainH(x,z)-.3; tubeTaper([new V(x,y0,z),new V(x,y0+H*.5,z),new V(x+(r()-.5)*.3,y0+H,z)], .32, .15, 6, 6, trunks);
-      const whorls=10; for(let w=0;w<whorls;w++){ const t=.18+.8*w/whorls, y=y0+H*t, L=(1-t)*1.25+.32, n=w>whorls-3?4:6;
+      const whorls=14; for(let w=0;w<whorls;w++){ const t=.12+.85*w/whorls, y=y0+H*t, L=(1-t)*1.7+.4, n=w>whorls-3?5:8;
         for(let k=0;k<n;k++){ const a=k/n*6.28+w*.7+r()*.4; e.set(0,-a,-.15-r()*.25); q.setFromEuler(e); const s=L*(.85+r()*.3);
-          addI('spruce', spray, m4().compose(new V(x,y,z), q, sc.set(s,s,s)), C(['#2c4636','#334e3c','#26402f','#3a5442'][(r()*4)|0])); } } });
-    const tm=new THREE.Mesh(mergeGeometries(trunks), new THREE.MeshStandardMaterial({ color:C('#4a3b2e'), roughness:.9 })); tm.castShadow=true; extra.push(tm); }
+          addI('spruce', spray, m4().compose(new V(x,y,z), q, sc.set(s,s,s)), C(['#4a6e52','#557a5c','#426448','#5f8466'][(r()*4)|0])); } } });
+    const tm=new THREE.Mesh(mergeGeometries(trunks), new THREE.MeshStandardMaterial({ color:C('#3a332c'), roughness:.9 })); tm.castShadow=true; extra.push(tm); }
 
   // ---------- 熔岩原：被厚厚的灰綠色苔蘚蓋住的熔岩塊 ----------
   { const lg=mergeVertices(new THREE.IcosahedronGeometry(1,2)); lg.deleteAttribute('normal'); lg.deleteAttribute('uv'); displace(lg,.35,1.4,3,13); displace(lg,.1,5,2,17); lg.computeVertexNormals();
@@ -625,6 +637,46 @@ function buildWorld(target, detailed){
       const tc=C('#2e2c29').lerp(C(n>0?'#8c9466':'#a0a674'), k*(.75+n*.4)); c[i*3]=tc.r; c[i*3+1]=tc.g; c[i*3+2]=tc.b; } lg.setAttribute('color',new THREE.BufferAttribute(c,3));
     for(let i=0;i<520;i++){ const x=-36-Math.pow(r(),.8)*90, z=shoreZ(x)+6+r()*70; if(Math.hypot(x,z)>140) continue; const s=.7+Math.pow(r(),2)*2.6; e.set(r()*.4,r()*6.28,r()*.4); q.setFromEuler(e);
       addI('lava', lg, m4().compose(new V(x, terrainH(x,z)-s*.25, z), q, sc.set(s*(1+r()*.6), s*(.5+r()*.4), s)), C('#ffffff')); } }
+
+  // ---------- 火山：熔岩從火山口沿著最陡的方向流下山坡，表面一塊塊冷卻變黑的硬殼之間透出橘紅的光 ----------
+  { const lavaM=new THREE.ShaderMaterial({ uniforms:{ uT:clockU }, side:THREE.DoubleSide,
+      vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+      fragmentShader:`uniform float uT; varying vec2 vUv;
+        vec2 h2(vec2 p){ p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))); return fract(sin(p)*43758.5453); }
+        float cells(vec2 p){ vec2 i=floor(p), f=fract(p); float d1=8., d2=8.; for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){ vec2 g=vec2(x,y); vec2 o=h2(i+g); float d=length(g+o-f); if(d<d1){ d2=d1; d1=d; } else if(d<d2) d2=d; } return d2-d1; }
+        void main(){
+          float across=abs(vUv.x-.5)*2.; vec2 p=vec2(vUv.x*3., vUv.y*.9 - uT*.05);
+          float c=cells(p*2.2) ; float c2=cells(p*5.+7.);
+          float crack = 1.-smoothstep(.02,.16, c*.8+c2*.25);              // 硬殼之間的裂縫
+          float core = (1.-smoothstep(.1,.85,across));                     // 熔岩流中間比較熱
+          float heat = clamp(crack*(.55+.6*core) + core*core*.25*(1.-vUv.y*.6), 0., 1.);
+          vec3 crust = vec3(.035,.025,.022);
+          vec3 hot = mix(vec3(1.4,.22,.03), vec3(4.,1.6,.3), heat*heat);
+          vec3 col = mix(crust, hot, heat);
+          float edge = smoothstep(1.,.85,across);
+          gl_FragColor = vec4(col*edge + crust*(1.-edge), 1.);
+        }` });
+    const flows=[]; const vy=terrainH(VOLC.x,VOLC.z);
+    [[-.4,4.2],[.9,3.2],[2.4,3.8],[3.6,2.6],[-1.5,2.9]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*.9, z=VOLC.z+Math.sin(a0)*VOLC.crater*.9; const pts=[];
+      for(let i=0;i<60;i++){ pts.push([x,z]); const e=.8; const gx=terrainH(x+e,z)-terrainH(x-e,z), gz=terrainH(x,z+e)-terrainH(x,z-e); const gl=Math.hypot(gx,gz)+1e-4;
+        const wob=Math.sin(i*.4+fi)*.35; let dx=-gx/gl, dz=-gz/gl; const c=Math.cos(wob), s2=Math.sin(wob); [dx,dz]=[dx*c-dz*s2, dx*s2+dz*c]; x+=dx*1.6; z+=dz*1.6; if(Math.hypot(x-VOLC.x,z-VOLC.z)>VOLC.R*1.25) break; }
+      const pos=[], uv=[], idx=[]; const N=pts.length;
+      for(let i=0;i<N;i++){ const [px,pz]=pts[i], [qx,qz]=pts[Math.min(N-1,i+1)], [ox,oz]=pts[Math.max(0,i-1)]; let tx=qx-ox, tz=qz-oz; const tl=Math.hypot(tx,tz)||1; tx/=tl; tz/=tl;
+        const w=w0*(.6+.6*Math.min(1,i/8))*(1+.25*Math.sin(i*.7+fi)) * (i>N-6? (N-i)/6 : 1);
+        for(const sd of [-1,1]){ const x2=px-tz*w*sd, z2=pz+tx*w*sd; pos.push(x2, terrainH(x2,z2)+.25, z2); uv.push(sd<0?0:1, i/N*6); } }
+      for(let i=0;i<N-1;i++){ const a=i*2; idx.push(a,a+2,a+1, a+1,a+2,a+3); }
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); flows.push(g); });
+    extra.push(new THREE.Mesh(mergeGeometries(flows), lavaM));
+    // 火山口裡翻騰的熔岩湖
+    const lake=new THREE.Mesh(new THREE.CircleGeometry(VOLC.crater*.75,40), lavaM); lake.rotation.x=-Math.PI/2; lake.position.set(VOLC.x, terrainH(VOLC.x,VOLC.z)+1.6, VOLC.z); extra.push(lake);
+    // 噴向空中的熔岩飛濺
+    const sp=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.35,0), new THREE.MeshBasicMaterial({ color:C('#ff7a20') }), 70); const mm=new THREE.Matrix4();
+    for(let i=0;i<70;i++){ const a=r()*6.28, rr=r()*VOLC.crater*.6, hh=2+r()*14; mm.makeTranslation(VOLC.x+Math.cos(a)*rr*(1+hh*.05), vy+hh, VOLC.z+Math.sin(a)*rr*(1+hh*.05)); sp.setMatrixAt(i,mm); }
+    extra.push(sp); window.__volc=new V(VOLC.x, vy+2, VOLC.z);
+    // 火山周圍：新鮮、尖銳的黑色熔岩塊
+    const lg2=mergeVertices(new THREE.IcosahedronGeometry(1,1)); lg2.deleteAttribute('normal'); lg2.deleteAttribute('uv'); displace(lg2,.45,1.6,3,31); lg2.computeVertexNormals();
+    for(let i=0;i<260;i++){ const a=r()*6.28, dv=VOLC.crater*1.5+Math.pow(r(),.7)*VOLC.R*1.3; const x=VOLC.x+Math.cos(a)*dv, z=VOLC.z+Math.sin(a)*dv; const s=.8+Math.pow(r(),2)*3.2; e.set(r()*3,r()*3,r()*3); q.setFromEuler(e);
+      addI('rock', lg2, m4().compose(new V(x, terrainH(x,z)-s*.2, z), q, sc.set(s,s*.7,s)), C(['#1e1a18','#2a2420','#151312','#3a2a22'][(r()*4)|0])); } }
 
   // ---------- 漂流木營火：被海水漂白的木頭，煙往風的方向斜飄 ----------
   { const fy=terrainH(FIRE.x,FIRE.z); const logs=[];
@@ -785,6 +837,9 @@ const fx=(()=>{
   const fy=terrainH(FIRE.x,FIRE.z);
   plume(new THREE.Vector3(FIRE.x, fy+1.6*FIRE.s, FIRE.z), 56, '#8c8a88', .7*FIRE.s, 1.6*FIRE.s, 16, .36);
   if(window.__chimney) plume(window.__chimney.clone(), 36, '#9a9896', 1.2, 1.3, 16, .26);
+  // 火山口冒出的蒸氣與火山灰，被底下的熔岩照成橘紅
+  if(window.__volc){ plume(window.__volc.clone(), 60, '#c8a494', 7, 4.5, 30, .5);
+    const vL=new THREE.PointLight(C('#ff6a28'), 900, 160, 1.4); vL.position.copy(window.__volc).add(new THREE.Vector3(0,8,0)); scene.add(vL); }
   // 低低飄過沙灘的一層薄煙
   const haze=[]; for(let i=0;i<22;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C('#a4a8ac'), transparent:true, depthWrite:false, opacity:.09 }); const s=new THREE.Sprite(m); const x=(Math.random()-.5)*90, z=-25+Math.random()*40; s.position.set(x, terrainH(x,z)+1.5+Math.random()*2.5, z); s.scale.set(18+Math.random()*16, 4+Math.random()*3, 1); scene.add(s); haze.push({ s, x0:x, sp:.4+Math.random()*.6 }); }
   // 火焰：幾片交叉的面，著色器畫出往上竄的火舌
@@ -834,14 +889,13 @@ sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{ left:-34,ri
 sun.layers.enable(1); scene.add(sun);                       // 印字在第 1 層，也要被照到
 const hemi=new THREE.HemisphereLight(C('#a9bbd4'), C('#2a2320'), 1.2); hemi.layers.enable(1); scene.add(hemi);
 const fillL=new THREE.DirectionalLight(C('#c8d4e6'), 1.25); fillL.position.set(-25,18,40); fillL.layers.enable(1); scene.add(fillL);   // 迎面的冷色天光
-// ---------- 瓶身：Fischersund 50ml 圓柱瓶，厚瓶底裡封著一座黑色冰山 ----------
+// ---------- 瓶身：Fischersund 50ml 圓柱瓶，香水水體的底部是一座山 ----------
 // 依 Fragrantica 官方高解析正面照（2721×3400）與 Woodberg、Ministry of Scent 商品照量測（單位：瓶寬 = 4.6）：
 // 玻璃直徑 4.6、高 7.4；黑色霧面圓柱蓋直徑 2.64、高 2.5；玻璃頂面有一圈凸起的細環。
-// 香水是淡淡的灰米色，液面離頂端很近；液體底部（約 3.05）以下是實心厚玻璃，裡面嵌著一座深酒紅近黑、表面濕亮、
-// 稜線崎嶇的冰山（像冰島冰河裡夾著火山灰的黑冰）：最高峰在右前方約 2.8、左邊是一片較低的肩，靠瓶壁處約 2.2；
-// 冰山與液體之間隔著一層清澈的玻璃。正面印著黑色的「№ 23」（字高 0.47、寬 1.61、基線 3.60）。
+// 厚瓶底是和瓶身一體的透明玻璃，頂面雕成崎嶇的山形：最高峰在右前方約 2.9、左邊是一片較低的肩、靠瓶壁處約 2.0；
+// 淡灰米色的香水從上面一路填進山谷，所以「水體的底部」就是那座山。正面印著黑色的「№ 23」（字高 0.47、寬 1.61、基線 3.60）。
 const R=4.6/2, GH=7.4, CAP_R=1.32, CAP_H=2.5;
-const CAV={ r:2.0, y0:3.05, y1:7.08, rr:.34 };
+const CAV={ r:2.0, y0:1.9, y1:7.08, rr:.34 };   // y0 只用在陰影替身；內腔真正的底是山形（著色器裡的 iceTop）
 const LIQ_TOP=6.96;
 const ICE={ r:2.0, y0:.14 };
 const bottle = new THREE.Group(); scene.add(bottle);
@@ -874,7 +928,6 @@ const glassMat = new THREE.ShaderMaterial({
       h += (vn(vec3(q*12.,4.2))-.5)*.025;
       h -= .2*smoothstep(1.4,2.0,length(q));
       return h; }
-    float sdIce(vec3 p, out int which){ float a=(p.y-iceTop(p.xz))*.42, b=length(p.xz)-uIceR, c=uIceY0-p.y; which = a>b ? (a>c?0:2) : (b>c?1:2); return max(a,max(b,c)); }
     float sdRCyl(vec3 p, float r, float y0, float y1, float rr){ vec2 d=vec2(length(p.xz)-(r-rr), abs(p.y-(y0+y1)*.5)-((y1-y0)*.5-rr)); return min(max(d.x,d.y),0.)+length(max(d,0.))-rr; }
     float sdCav(vec3 p){ return sdRCyl(p, uCav.x, uCav.y, uCav.z, uCav.w); }
     vec3 nCav(vec3 p){ vec2 k=vec2(1.,-1.)*.003; return normalize(k.xyy*sdCav(p+k.xyy)+k.yyx*sdCav(p+k.yyx)+k.yxy*sdCav(p+k.yxy)+k.xxx*sdCav(p+k.xxx)); }
@@ -886,19 +939,13 @@ const glassMat = new THREE.ShaderMaterial({
       return max(t,0.); }
     // 內腔（圓柱）的解析交點：從玻璃射進內腔、與在內腔裡往外走；法向一律朝外（由內腔指向玻璃）
     float hitCavIn(vec3 p, vec3 d, out vec3 n){ float t=1e4; n=vec3(0.,1.,0.); float r=uCav.x; vec2 o=p.xz, v=d.xz; float a=dot(v,v), b=dot(o,v), c=dot(o,o)-r*r;
-      if(c>0. && a>1e-6){ float disc=b*b-a*c; if(disc>0.){ float tt=(-b-sqrt(disc))/a; float y=p.y+d.y*tt; if(tt>0. && y>uCav.y && y<uCav.z){ t=tt; vec2 hh=o+v*tt; n=vec3(hh.x/r,0.,hh.y/r); } } }
-      if(p.y<uCav.y && d.y>1e-5){ float tt=(uCav.y-p.y)/d.y; vec2 hh=o+v*tt; if(tt<t && dot(hh,hh)<r*r){ t=tt; n=vec3(0.,-1.,0.); } }
+      if(c>0. && a>1e-6){ float disc=b*b-a*c; if(disc>0.){ float tt=(-b-sqrt(disc))/a; float y=p.y+d.y*tt; vec2 hq=o+v*tt; if(tt>0. && y>iceTop(hq) && y<uCav.z){ t=tt; vec2 hh=o+v*tt; n=vec3(hh.x/r,0.,hh.y/r); } } }
       if(p.y>uCav.z && d.y<-1e-5){ float tt=(uCav.z-p.y)/d.y; vec2 hh=o+v*tt; if(tt<t && dot(hh,hh)<r*r){ t=tt; n=vec3(0.,1.,0.); } }
       return t; }
     float exitCav(vec3 p, vec3 d, out vec3 n){ float t=1e4; n=vec3(0.,1.,0.); float r=uCav.x; vec2 o=p.xz, v=d.xz; float a=dot(v,v), b=dot(o,v), c=dot(o,o)-r*r;
       if(a>1e-6){ float disc=max(b*b-a*c,0.); float tt=(-b+sqrt(disc))/a; if(tt>0.){ t=tt; vec2 hh=o+v*tt; n=vec3(hh.x/r,0.,hh.y/r); } }
-      if(d.y<-1e-5){ float tt=(uCav.y-p.y)/d.y; if(tt>0. && tt<t){ t=tt; n=vec3(0.,-1.,0.); } }
       if(d.y>1e-5){ float tt=(uCav.z-p.y)/d.y; if(tt>0. && tt<t){ t=tt; n=vec3(0.,1.,0.); } }
       return t; }
-    float marchIce(vec3 p, vec3 d, float tMax, out int which){ which=0; if(p.y>3.2 && d.y>=0.) return 1e4; float t=0.;
-      for(int i=0;i<90;i++){ vec3 q=p+d*t; float s=sdIce(q,which); if(s<1.2e-3){
-          float a=t-max(s,.01)*2., b=t; for(int k=0;k<5;k++){ float m=(a+b)*.5; int w; if(sdIce(p+d*m,w)<0.) b=m; else a=m; } t=b; sdIce(p+d*t,which); return t; }
-        t+=max(s,.006); if(t>tMax) break; } return 1e4; }
     vec3 sampleScene(vec3 P, vec2 uv0, float fz, float blur){
       vec2 uv=clamp(toUV(P), vec2(.001), vec2(.999));
       for(int j=0;j<4;j++){ if(texture2D(tDepth, uv).x >= fz - 1e-6) break; uv = mix(uv0, uv, .55); }
@@ -906,31 +953,21 @@ const glassMat = new THREE.ShaderMaterial({
       vec3 s=texture2D(tScene, uv).rgb;
       vec2 o=vec2(blur); s = s*.4 + (texture2D(tScene,uv+o).rgb + texture2D(tScene,uv-o).rgb + texture2D(tScene,uv+vec2(o.x,-o.y)).rgb + texture2D(tScene,uv+vec2(-o.x,o.y)).rgb)*.15;
       return s; }
-    // 冰山的顏色：深酒紅近黑、一層層夾著火山灰的冰；表面濕亮，皺褶處有銅色、粉紅、藍色的細碎反光
-    vec3 shadeIce(vec3 p, vec3 d, int which){
-      vec3 n;
-      if(which==1) n=normalize(vec3(p.x,0.,p.z));
-      else if(which==2) n=vec3(0.,-1.,0.);
-      else { float e=.012; float hx=iceTop(p.xz+vec2(e,0.))-iceTop(p.xz-vec2(e,0.)), hz=iceTop(p.xz+vec2(0.,e))-iceTop(p.xz-vec2(0.,e)); n=normalize(vec3(-hx/(2.*e),1.,-hz/(2.*e))); }
-      // 細碎皺褶（像揉皺的錫箔）：法向的高頻擾動
-      vec3 q=p*26.; float e2=.08;
-      vec3 gg=vec3(vn(q+vec3(e2,0,0))-vn(q-vec3(e2,0,0)), vn(q+vec3(0,e2,0))-vn(q-vec3(0,e2,0)), vn(q+vec3(0,0,e2))-vn(q-vec3(0,0,e2)))/(2.*e2);
-      vec3 q2=p*9.; vec3 gg2=vec3(vn(q2+vec3(e2,0,0))-vn(q2-vec3(e2,0,0)), vn(q2+vec3(0,e2,0))-vn(q2-vec3(0,e2,0)), vn(q2+vec3(0,0,e2))-vn(q2-vec3(0,0,e2)))/(2.*e2);
-      vec3 nb=normalize(n + gg*.09 + gg2*.14);
-      float strata = smoothstep(.55,.95, .5+.5*sin((p.y + fbm(vec3(p.xz*1.1, 2.))*1.2)*9.));   // 偶爾一道夾著火山灰的冰層
-      vec3 base = mix(vec3(.022,.011,.013), vec3(.05,.022,.02), strata*.35 + fbm(p*3.)*.5);
-      vec3 V=-d; vec3 Rf=reflect(d, nb);
-      float F = .05 + .6*pow(1.-max(dot(nb,V),0.), 4.);
-      vec3 env = textureLod(tEnv, Rf, 1.5).rgb;
-      vec3 c = base*(.35+.65*max(dot(n,uSunDir),0.)) + env*F*.9;
-      // 太陽與天空在濕亮表面上的細碎高光，帶一點虹彩
-      float glint = pow(max(dot(Rf, uSunDir),0.), 220.) * 9. + pow(max(dot(Rf, normalize(vec3(-.3,.9,.4))),0.), 160.)*1.4;
-      float hue = vn(p*14.+7.);
-      vec3 tint = mix(vec3(1.,.5,.42), mix(vec3(1.,.82,.6), vec3(.55,.75,1.), smoothstep(.55,.85,hue)), smoothstep(.3,.6,hue));
-      c += tint * glint * uSunCol;
-      // 薄的尖峰透出一點暗紅
-      c += vec3(.16,.03,.03) * pow(max(dot(-V, uSunDir),0.),3.) * smoothstep(2.5,2.8,p.y);
-      return c; }
+    // 山形底面的法向：大的山勢＋細碎的皺褶（玻璃表面一顆顆小刻面，折射出細碎的閃光）
+    vec3 floorN(vec3 p){ float e=.01; float hx=iceTop(p.xz+vec2(e,0.))-iceTop(p.xz-vec2(e,0.)), hz=iceTop(p.xz+vec2(0.,e))-iceTop(p.xz-vec2(0.,e));
+      vec3 n=normalize(vec3(-hx/(2.*e),1.,-hz/(2.*e)));
+      vec3 q=p*24.; float e2=.08; vec3 gg=vec3(vn(q+vec3(e2,0,0))-vn(q-vec3(e2,0,0)), 0., vn(q+vec3(0,0,e2))-vn(q-vec3(0,0,e2)))/(2.*e2);
+      return normalize(n+gg*.06); }
+    // 從玻璃往上碰到山形底面（進入內腔）
+    float floorUp(vec3 p, vec3 d, float tMax){ if(p.y>3.05 && d.y>=0.) return 1e4; float t=0., tp=0.;
+      for(int i=0;i<120;i++){ vec3 q=p+d*t; float r=length(q.xz); float f=q.y-iceTop(q.xz);
+        if(r<uCav.x && f>0. && q.y<uCav.z){ float a=tp, b=t; for(int k=0;k<6;k++){ float m=(a+b)*.5; vec3 qm=p+d*m; if(qm.y-iceTop(qm.xz)>0. && length(qm.xz)<uCav.x) b=m; else a=m; } return b; }
+        tp=t; t += (r<uCav.x+.06) ? max(-f*.4,.008) : .04; if(t>tMax) break; } return 1e4; }
+    // 從內腔往下碰到山形底面（回到玻璃）
+    float floorDown(vec3 p, vec3 d, float tMax){ if(d.y>=0.) return 1e4; float t=0., tp=0.;
+      for(int i=0;i<120;i++){ vec3 q=p+d*t; float f=q.y-iceTop(q.xz);
+        if(f<0.){ float a=tp, b=t; for(int k=0;k<6;k++){ float m=(a+b)*.5; vec3 qm=p+d*m; if(qm.y-iceTop(qm.xz)<0.) b=m; else a=m; } return b; }
+        tp=t; t+=max(f*.4,.006); if(t>tMax) break; } return 1e4; }
     void main(){
       vec3 v = normalize(cameraPosition - vW); vec3 L = vL; vec3 n0 = normalize(vN);
       // 玻璃表面：極輕微的起伏、指紋霧面與細刮痕
@@ -945,41 +982,37 @@ const glassMat = new THREE.ShaderMaterial({
       vec3 d=refract(-v, n, 1./iorG); vec3 p=L;
       float gPath=0., lPath=0.; bool done=false; vec3 col=vec3(0.); vec3 nO=vec3(0.,1.,0.);
       vec2 uv0=toUV(vW); float fz=gl_FragCoord.z; float blur=.012*rough;
-      for(int seg=0; seg<4; seg++){
+      int med=0;                                   // 0 玻璃、1 香水、2 液面上方的空氣
+      for(int seg=0; seg<9; seg++){
         if(done) break;
-        vec3 nE; float tO=exitCyl(p+d*1e-3, d, nE);
-        vec3 nC; float tC=hitCavIn(p+d*1e-3, d, nC); if(tC>tO) tC=1e4;
-        int which; float tI=marchIce(p+d*1e-3, d, min(tO,tC), which);
-        if(tI<tO && tI<tC){ vec3 ph=p+d*tI; gPath+=tI; col=shadeIce(ph, d, which); done=true; break; }
-        if(tC<tO){
-          vec3 p1=p+d*tC; gPath+=tC; vec3 nc=nC;
-          bool inLiq = p1.y<uLiqTop;
-          vec3 d2=refract(d, nc, inLiq ? iorG/1.36 : iorG);
-          if(dot(d2,d2)<1e-4){ d=reflect(d,nc); p=p1; continue; }
-          vec3 nc2; float t2=exitCav(p1+d2*1e-3, d2, nc2);
-          // 液面：從液體裡往上碰到液面時，角度大就全反射（從側面看液面像一面鏡子），否則折射進液面上方的空氣；從上面往下則進入液體
-          float tS = (uLiqTop-p1.y)/d2.y;
-          if(tS>1e-3 && tS<t2){
-            vec3 pS=p1+d2*tS;
-            if(inLiq){ lPath+=tS; vec3 dr=refract(d2, vec3(0.,-1.,0.), 1.36);
-              if(dot(dr,dr)<1e-4){ d2=vec3(d2.x,-d2.y,d2.z); } else { d2=dr; inLiq=false; } }
-            else { d2=refract(d2, vec3(0.,1.,0.), 1./1.36); inLiq=true; }
-            p1=pS; t2=exitCav(p1+d2*1e-3, d2, nc2);
-            // 全反射後往下走，可能再碰到液面以外的地方；這裡只追一次
-          }
-          if(inLiq) lPath += t2;
-          vec3 p2=p1+d2*t2;
-          vec3 d3=refract(d2, -nc2, inLiq ? 1.36/iorG : 1./iorG);
-          if(dot(d3,d3)<1e-4) d3=reflect(d2,-nc2);
-          p=p2; d=d3; continue;
+        if(med==0){
+          vec3 nE; float tO=exitCyl(p+d*1e-3, d, nE);
+          vec3 nC; float tC=hitCavIn(p+d*1e-3, d, nC); if(tC>tO) tC=1e4;
+          float tF=floorUp(p+d*1e-3, d, min(tO,tC));
+          if(tF<tO && tF<tC){ p+=d*(tF+1e-3); gPath+=tF; vec3 nU=floorN(p); bool liq=p.y<uLiqTop;
+            vec3 dn=refract(d, -nU, iorG/(liq?1.36:1.)); if(dot(dn,dn)<1e-4) d=reflect(d,nU); else { d=dn; med=liq?1:2; } continue; }
+          if(tC<tO){ p+=d*(tC+1e-3); gPath+=tC; bool liq=p.y<uLiqTop;
+            vec3 dn=refract(d, nC, iorG/(liq?1.36:1.)); if(dot(dn,dn)<1e-4) d=reflect(d,nC); else { d=dn; med=liq?1:2; } continue; }
+          // 離開玻璃
+          vec3 pE=p+d*tO; gPath+=tO; nO=nE;
+          vec3 dO=refract(d, -nO, iorG);
+          if(dot(dO,dO)<1e-4){ d=reflect(d,nO); p=pE; continue; }
+          float io[3]; io[0]=1.488; io[1]=1.5; io[2]=1.516;
+          for(int k=0;k<3;k++){ vec3 dk=refract(d,-nO,io[k]); if(dot(dk,dk)<1e-4) dk=dO; col[k]=sampleScene(pE+dk*2.6, uv0, fz, blur)[k]; }
+          done=true;
+        } else {
+          float nIn = med==1 ? 1.36 : 1.;
+          vec3 nE2; float tE=exitCav(p+d*1e-3, d, nE2);
+          float tF=floorDown(p+d*1e-3, d, tE);
+          float tS = (med==1 && d.y>1e-5) || (med==2 && d.y<-1e-5) ? (uLiqTop-p.y)/d.y : 1e4; if(tS<1e-4) tS=1e4;
+          float tm=min(tE, min(tF, tS));
+          if(med==1) lPath+=tm;
+          p+=d*(tm+1e-3);
+          if(tS<=tm){ if(med==1){ vec3 dr=refract(d, vec3(0.,-1.,0.), 1.36); if(dot(dr,dr)<1e-4) d.y=-d.y; else { d=dr; med=2; } }
+                      else { d=refract(d, vec3(0.,1.,0.), 1./1.36); med=1; } continue; }
+          if(tF<=tm){ vec3 nU=floorN(p); vec3 dn=refract(d, nU, nIn/iorG); if(dot(dn,dn)<1e-4) d=reflect(d,nU); else { d=dn; med=0; } continue; }
+          vec3 dn=refract(d, -nE2, nIn/iorG); if(dot(dn,dn)<1e-4) d=reflect(d,nE2); else { d=dn; med=0; } continue;
         }
-        // 離開玻璃
-        vec3 pE=p+d*tO; gPath+=tO; nO=nE;
-        vec3 dO=refract(d, -nO, iorG);
-        if(dot(dO,dO)<1e-4){ d=reflect(d,nO); p=pE; continue; }
-        float io[3]; io[0]=1.488; io[1]=1.5; io[2]=1.516;
-        for(int k=0;k<3;k++){ vec3 dk=refract(d,-nO,io[k]); if(dot(dk,dk)<1e-4) dk=dO; col[k]=sampleScene(pE+dk*2.6, uv0, fz, blur)[k]; }   // 瓶子在原點，區域座標＝世界座標
-        done=true;
       }
       if(!done) col = textureLod(tEnv, d, 2.).rgb*.5;
       col *= exp(-uAbs*gPath) * exp(-uLiqK*lPath);
@@ -1033,7 +1066,7 @@ const glass = new THREE.Mesh(glassGeo, glassMat); glass.layers.set(1); bottle.ad
 // 陰影：玻璃不進陰影圖（太陽很低，影子拉得很長），另做只投影的替身——玻璃部分是淡影，瓶底的黑冰山投下深影
 { const mk=(geo,op)=>{ const m=new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite:false, depthWrite:false }));
     m.customDepthMaterial=new THREE.MeshDepthMaterial({ depthPacking:THREE.RGBADepthPacking, alphaHash:true, opacity:op, transparent:true }); m.castShadow=true; m.renderOrder=-1; bottle.add(m); };
-  mk(glassGeo,.35); const ig=new THREE.CylinderGeometry(ICE.r,ICE.r,2.6,48); ig.translate(0,1.4,0); mk(ig,.92);
+  mk(glassGeo,.35);
 }
 
 // 合成：把無玻璃的畫面（含深度）貼回螢幕，再畫玻璃
