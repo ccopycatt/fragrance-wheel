@@ -375,8 +375,9 @@ function mountainRings(target, detail){
       // 雪線：上段、溝谷裡積雪（沿方位角的條紋讓雪呈一道道往下的溝）
       const gully = Math.pow(Math.abs(Math.sin(a*180+fbm(dx*5,li,dz*5,2)*6)), 3.);
       for(let j=0;j<=ROWS;j++){ const t=j/ROWS; const y=y0+(top-y0)*Math.pow(t,.6); pos.push(dx*L.R, y, dz*L.R);
-        const rel=(y-L.base)/(Math.max(6,ridge)+1e-3);
-        const snowK = sstep(.8-gully*.45, .92-gully*.4, rel)*.9 + (jok>0? sstep(.35,.5,(y-L.base)/150) : 0);
+        // 雪只在海面以上可見部分的最上段、而且多半積在溝谷裡（晚秋的 Esja 大部分是深色的岩坡）
+        const relV=(y-SEA_Y)/Math.max(4, top-SEA_Y);
+        const snowK = sstep(.84-gully*.3, .97-gully*.22, relV)*(.35+.65*gully) + (jok>0? sstep(.35,.5,(y-L.base)/150) : 0);
         tc.set(L.col).lerp(snow, Math.min(1,snowK)*.92);
         const sunK = Math.pow(Math.max(0, dx*SUN_XZ.x+dz*SUN_XZ.z),3)*.5; tc.lerp(warm, sunK*(.3+L.far*.5)*t);
         tc.lerp(haze, .15+L.far*.6 + (1-t)*.25);
@@ -689,7 +690,7 @@ const BASALT = { R:3.25 };
     const lichN = top?26:5;
     for(let i=0;i<lichN;i++){ const x=r()*S, y=r()*S, rad=14+Math.pow(r(),2)*60; const orange=r()<.22;
       for(let k=0;k<40;k++){ const a=r()*6.28, d=Math.sqrt(r())*rad; const xx=x+Math.cos(a)*d, yy=y+Math.sin(a)*d, s=2+r()*rad*.35;
-        if(mode==='color') g.fillStyle= orange?`rgba(${200+r()*40|0},${110+r()*40|0},${30},${.55+r()*.35})`:`rgba(${150+r()*30|0},${160+r()*30|0},${130},${.4+r()*.4})`;
+        if(mode==='color') g.fillStyle= orange?`rgba(${190+r()*40|0},${120+r()*40|0},${50},${.3+r()*.3})`:`rgba(${140+r()*30|0},${150+r()*30|0},${130},${.2+r()*.3})`;
         else if(mode==='bump') g.fillStyle='rgba(255,255,255,.35)'; else g.fillStyle='rgba(255,255,255,.4)';
         g.beginPath(); g.ellipse(xx,yy,s,s*(.6+r()*.4),r()*3,0,7); g.fill(); } }
     // 柱頂：鹽霜與一攤攤濕亮的地方
@@ -728,7 +729,7 @@ const BASALT = { R:3.25 };
       if(rI===0){ add(p00); add(p11); add(p10); } else { add(p00); add(p11); add(p10); add(p00); add(p01); add(p11); } } }
     const topG=new THREE.BufferGeometry(); topG.setAttribute('position',new THREE.Float32BufferAttribute(tp,3)); topG.setAttribute('uv',new THREE.Float32BufferAttribute(tuv,2)); topG.computeVertexNormals();
     // 每根柱子的色調略有不同（有的偏暖灰、有的偏冷黑），柱頂邊緣風化得淺一點
-    const tint=new THREE.Color().setHSL(.08+(r()-.5)*.08, .06+r()*.06, .55+r()*.35);
+    const tint=new THREE.Color().setHSL(.58+(r()-.5)*.1, .03+r()*.04, .55+r()*.3);   // 冷灰到偏黑
     const sMat=sideM.clone(); sMat.color=tint; const tMat=topM.clone(); tMat.color=tint.clone().multiplyScalar(1.08);
     const g=new THREE.Group(); const sm=new THREE.Mesh(side,sMat), tm=new THREE.Mesh(topG,tMat); [sm,tm].forEach(m=>{ m.castShadow=true; m.receiveShadow=true; g.add(m); }); return g; };
   // 中間的大柱子（瓶子站在上面），周圍一圈高低不一的柱子
