@@ -308,7 +308,7 @@ const SPRUCE=[]; { const r=((s)=>()=>(s=(s*16807)%2147483647)/2147483647)(91);
   for(let i=0;i<70;i++){ const x=-28+r()*70, z=44+r()*26; if(Math.abs(x-12)<5 && z<52) continue; SPRUCE.push([x,z]); }
   for(let i=0;i<24;i++){ SPRUCE.push([-60+r()*30, 30+r()*30]); SPRUCE.push([55+r()*25, 30+r()*30]); } }
 // 火山：內陸山坡後方一座正在噴發的火山錐（像 Fagradalsfjall），火山口發紅，熔岩沿坡流下
-const VOLC={ x:8, z:118, R:46, H:40, crater:7 };
+const VOLC={ x:8, z:128, R:44, H:58, crater:7 };
 const FIRE={ x:-22, z:20, s:2.2 };   // 營火放在內陸山坡那側，放大
 const WHALE={ x:4, z:-27.6, yaw:-.08, s:1.35 };   // 擱淺在浪線上、半泡在海裡，身體橫向朝著鏡頭
 function terrainH(x,z){
@@ -522,7 +522,7 @@ function buildWorld(target, detailed){
         pos.push(u*L, y, z);
         tc.copy(dark).lerp(mid, fbm(u*20,th,1,2)*.6+.3).lerp(belly, sstep(.35,.85,ventral)*(u<.7?1:.4)*(.7+.3*fbm(u*30,th*3,2,2)));
         if(ventral>.3 && u<.62) tc.multiplyScalar(.82+.18*Math.pow(Math.abs(Math.sin(th*34)),.5));                  // 褶紋的明暗
-        if(fbm(u*60,th*8,5,2)>.32) tc.lerp(C('#c8c4bc'), .45);                                                        // 藤壺與白色的疤
+        tc.lerp(C('#c8c4bc'), sstep(.22,.42,fbm(u*60,th*8,5,2))*.4);                                                        // 藤壺與白色的疤
         col.push(tc.r,tc.g,tc.b); } }
     for(let i=0;i<SU;i++) for(let j=0;j<SV;j++){ const a=i*(SV+1)+j, b=a+SV+1; idx.push(a,b,a+1, a+1,b,b+1); }
     const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); bg.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); bg.setIndex(idx); bg.computeVertexNormals();
@@ -674,9 +674,9 @@ function buildWorld(target, detailed){
     for(let i=0;i<70;i++){ const a=r()*6.28, rr=r()*VOLC.crater*.6, hh=2+r()*14; mm.makeTranslation(VOLC.x+Math.cos(a)*rr*(1+hh*.05), vy+hh, VOLC.z+Math.sin(a)*rr*(1+hh*.05)); sp.setMatrixAt(i,mm); }
     extra.push(sp); window.__volc=new V(VOLC.x, vy+2, VOLC.z);
     // 火山周圍：新鮮、尖銳的黑色熔岩塊
-    const lg2=mergeVertices(new THREE.IcosahedronGeometry(1,1)); lg2.deleteAttribute('normal'); lg2.deleteAttribute('uv'); displace(lg2,.45,1.6,3,31); lg2.computeVertexNormals();
-    for(let i=0;i<260;i++){ const a=r()*6.28, dv=VOLC.crater*1.5+Math.pow(r(),.7)*VOLC.R*1.3; const x=VOLC.x+Math.cos(a)*dv, z=VOLC.z+Math.sin(a)*dv; const s=.8+Math.pow(r(),2)*3.2; e.set(r()*3,r()*3,r()*3); q.setFromEuler(e);
-      addI('rock', lg2, m4().compose(new V(x, terrainH(x,z)-s*.2, z), q, sc.set(s,s*.7,s)), C(['#1e1a18','#2a2420','#151312','#3a2a22'][(r()*4)|0])); } }
+    let lg2=mergeVertices(new THREE.IcosahedronGeometry(1,1)); lg2.deleteAttribute('normal'); lg2.deleteAttribute('uv'); displace(lg2,.45,1.6,3,31); lg2=lg2.toNonIndexed(); lg2.computeVertexNormals();
+    for(let i=0;i<260;i++){ const a=r()*6.28, dv=VOLC.crater*1.5+Math.pow(r(),.7)*VOLC.R*1.3; const x=VOLC.x+Math.cos(a)*dv, z=VOLC.z+Math.sin(a)*dv; const s=.5+Math.pow(r(),2)*1.6; e.set(r()*3,r()*3,r()*3); q.setFromEuler(e);
+      addI('rock', lg2, m4().compose(new V(x, terrainH(x,z)-s*.4, z), q, sc.set(s,s*.55,s)), C(['#1e1a18','#2a2420','#151312','#3a2a22'][(r()*4)|0])); } }
 
   // ---------- 漂流木營火：被海水漂白的木頭，煙往風的方向斜飄 ----------
   { const fy=terrainH(FIRE.x,FIRE.z); const logs=[];
