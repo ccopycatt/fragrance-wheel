@@ -656,7 +656,7 @@ function buildWorld(target, detailed){
       addI('lava', lg, m4().compose(new V(x, terrainH(x,z)-s*.25, z), q, sc.set(s*(1+r()*.6), s*(.5+r()*.4), s)), C('#ffffff')); } }
 
   // ---------- 火山：熔岩從火山口沿著最陡的方向流下山坡，表面一塊塊冷卻變黑的硬殼之間透出橘紅的光 ----------
-  { const lavaM=new THREE.ShaderMaterial({ uniforms:{ uT:clockU, uHaze:{value:SCENE_CFG.haze} }, side:THREE.DoubleSide,
+  { const lavaM=new THREE.ShaderMaterial({ uniforms:{ uT:clockU, uHaze:{value:SCENE_CFG.haze} }, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-40,
       vertexShader:`varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
       fragmentShader:`uniform float uT; uniform vec3 uHaze; varying vec2 vUv; varying vec3 vW;
         vec2 h2(vec2 p){ p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))); return fract(sin(p)*43758.5453); }
@@ -664,20 +664,20 @@ function buildWorld(target, detailed){
         void main(){
           float across=abs(vUv.x-.5)*2.; vec2 p=vec2(vUv.x*3., vUv.y*.9 - uT*.05);
           float c=cells(p*2.2) ; float c2=cells(p*5.+7.);
-          float crack = 1.-smoothstep(.02,.16, c*.8+c2*.25);              // 硬殼之間的裂縫
-          float core = (1.-smoothstep(.1,.85,across));                     // 熔岩流中間比較熱
-          float heat = clamp(crack*(.8+.6*core) + core*.65*(1.-vUv.y*.35) + .12, 0., 1.);
+          float crack = 1.-smoothstep(.02,.09, c*.8+c2*.25);              // 硬殼之間的裂縫
+          float core = (1.-smoothstep(.0,.45,across));                     // 熔岩流中間比較熱
+          float heat = clamp(crack*(.55+.45*core) + core*.45*max(0.,1.-vUv.y*.12), 0., 1.);
           vec3 crust = vec3(.035,.025,.022);
-          vec3 hot = mix(vec3(1.4,.22,.03), vec3(4.,1.6,.3), heat*heat);
+          vec3 hot = mix(vec3(.75,.08,.01), vec3(1.5,.42,.05), heat*heat);   // 別太亮：色調映射後會變成粉白色
           vec3 col = mix(crust, hot, heat);
           float edge = smoothstep(1.,.85,across);
-          vec3 c = col*edge + crust*(1.-edge);
+          vec3 outc = col*edge + crust*(1.-edge);
           float dist = length(vW-cameraPosition);                   // 遠處的空氣感：硬殼融進霧裡，只剩熔岩的光透出來
-          c = mix(c, uHaze*.6, smoothstep(80.,340.,dist)*(1.-heat)*.6);
-          gl_FragColor = vec4(c, 1.);
+          outc = mix(outc, uHaze*.6, smoothstep(80.,340.,dist)*(1.-heat)*.6);
+          gl_FragColor = vec4(outc, 1.);
         }` });
     // 山體：深色的玄武岩，山頂與溝谷裡積著雪；預先混進遠方的空氣感，不吃場景的霧
-    { const N=150, S2=VOLC.R*2.5, g=new THREE.PlaneGeometry(S2,S2,N,N); g.rotateX(-Math.PI/2); const p=g.attributes.position, col=[]; const tc=new THREE.Color(), haze=SCENE_CFG.haze;
+    { const N=230, S2=VOLC.R*2.5, g=new THREE.PlaneGeometry(S2,S2,N,N); g.rotateX(-Math.PI/2); const p=g.attributes.position, col=[]; const tc=new THREE.Color(), haze=SCENE_CFG.haze;
       for(let i=0;i<p.count;i++){ const x=p.getX(i)+VOLC.x, z=p.getZ(i)+VOLC.z; const dv=Math.hypot(x-VOLC.x,z-VOLC.z); const y=dv>VOLC.R*1.15? VOLC.base-30 : volcH(x,z); p.setXYZ(i,x,y,z);
         const rel=(y-VOLC.base)/VOLC.H; const gully=Math.pow(Math.abs(Math.sin(Math.atan2(z-VOLC.z,x-VOLC.x)*9 + fbm(x*.03,2,z*.03,2)*3)),3);
         tc.set('#1e1b1a').lerp(C('#2e2a28'), fbm(x*.08,1,z*.08,2)*.5+.25);
@@ -687,13 +687,13 @@ function buildWorld(target, detailed){
       g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.computeVertexNormals();
       const vm=new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.95, fog:false })); vm.renderOrder=-4; extra.push(vm); }
     const flows=[]; const vy=volcH(VOLC.x,VOLC.z);
-    [[-1.9,10],[-1.25,8],[-.7,9],[-2.5,8],[-1.55,6],[-2.2,7]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*1.25, z=VOLC.z+Math.sin(a0)*VOLC.crater*1.25; const pts=[];   // 從火山口的缺口溢出
+    [[-1.9,4.5],[-1.25,3.5],[-.7,4],[-2.5,3.5],[-1.55,2.8],[-2.2,3.2]].forEach(([a0,w0],fi)=>{ let x=VOLC.x+Math.cos(a0)*VOLC.crater*1.25, z=VOLC.z+Math.sin(a0)*VOLC.crater*1.25; const pts=[];   // 從火山口的缺口溢出
       for(let i=0;i<90;i++){ pts.push([x,z]); const e=.8; const gx=volcH(x+e,z)-volcH(x-e,z), gz=volcH(x,z+e)-volcH(x,z-e); const gl=Math.hypot(gx,gz)+1e-4;
         const rx=x-VOLC.x, rz=z-VOLC.z, rl=Math.hypot(rx,rz)||1; const wob=Math.sin(i*.33+fi)*.4; let dx=-gx/gl*.5+rx/rl*.5, dz=-gz/gl*.5+rz/rl*.5; { const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; } const c=Math.cos(wob), s2=Math.sin(wob); [dx,dz]=[dx*c-dz*s2, dx*s2+dz*c]; x+=dx*1.7; z+=dz*1.7; if(Math.hypot(x-VOLC.x,z-VOLC.z)>VOLC.R*(.75+.25*((fi*37)%10)/10)) break; }   // 流到山腳的平原上
       const pos=[], uv=[], idx=[]; const N=pts.length;
       for(let i=0;i<N;i++){ const [px,pz]=pts[i], [qx,qz]=pts[Math.min(N-1,i+1)], [ox,oz]=pts[Math.max(0,i-1)]; let tx=qx-ox, tz=qz-oz; const tl=Math.hypot(tx,tz)||1; tx/=tl; tz/=tl;
         const w=w0*(.6+.6*Math.min(1,i/8))*(1+.25*Math.sin(i*.7+fi)) * (i>N-6? (N-i)/6 : 1);
-        for(const sd of [-1,1]){ const x2=px-tz*w*sd, z2=pz+tx*w*sd; pos.push(x2, volcH(x2,z2)+.8, z2); uv.push(sd<0?0:1, i/N*6); } }
+        for(const sd of [-1,1]){ const x2=px-tz*w*sd, z2=pz+tx*w*sd; pos.push(x2, volcH(x2,z2)+2.2, z2); /* 熔岩順著溝谷流，粗網格的山體在溝谷處會比真實高度高，所以要抬高一點 */ uv.push(sd<0?0:1, i/N*6); } }
       for(let i=0;i<N-1;i++){ const a=i*2; idx.push(a,a+2,a+1, a+1,a+2,a+3); }
       const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); flows.push(g); });
     extra.push(new THREE.Mesh(mergeGeometries(flows), lavaM));
@@ -873,7 +873,7 @@ const fx=(()=>{
   if(window.__chimney) plume(window.__chimney.clone(), 36, '#9a9896', 1.2, 1.3, 16, .26);
   // 火山口冒出的蒸氣與火山灰，被底下的熔岩照成橘紅
   if(window.__volc){ plume(window.__volc.clone(), 60, '#c8a494', 20, 6, 30, .5);
-    const vL=new THREE.PointLight(C('#ff6a28'), 1600, 150, 1.6); vL.position.copy(window.__volc).add(new THREE.Vector3(0,8,0)); scene.add(vL); }
+    const vL=new THREE.PointLight(C('#ff6a28'), 450, 90, 1.8); vL.position.copy(window.__volc).add(new THREE.Vector3(0,8,0)); scene.add(vL); }
   // 低低飄過沙灘的一層薄煙
   const haze=[]; for(let i=0;i<22;i++){ const m=new THREE.SpriteMaterial({ map:smokeTex, color:C('#a4a8ac'), transparent:true, depthWrite:false, opacity:.09 }); const s=new THREE.Sprite(m); const x=(Math.random()-.5)*90, z=-25+Math.random()*40; s.position.set(x, terrainH(x,z)+1.5+Math.random()*2.5, z); s.scale.set(18+Math.random()*16, 4+Math.random()*3, 1); scene.add(s); haze.push({ s, x0:x, sp:.4+Math.random()*.6 }); }
   // 火焰：幾片交叉的面，著色器畫出往上竄的火舌
