@@ -9,7 +9,7 @@
 - `esencia-3d.html`：LOEWE Esencia（100ml）的 3D 詳細頁；原始碼 `src/esencia-3d.src.html`，標籤貼圖 `src/tex_esencia_label*.jpg`
 - `gold-leaf-3d.html`：Ormonde Jayne Gold Leaf 茶路（88ml）的香境；原始碼 `src/gold-leaf-3d.src.html`，燙金字遮罩 `src/tex_gl_foil.png`（由 `tools/gl_foil.py` 依量測位置排字產生）
 - `fischersund-23-3d.html`：Fischersund No. 23（50ml）的香境；原始碼 `src/fischersund-23-3d.src.html`，印字遮罩 `src/tex_fs23_print.png`（`tools/fs23_print.py`，Inter SemiBold）。香材分層依品牌公布的金字塔（Fragrantica 只列平的 10 種），菸草放中調、海藻放後調
-- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木
+- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木。場景主題是台灣官方詩篇裡的「千年茶母樹」（溪對岸林間的老茶樹，預設視角在瓶子右邊），左邊崖壁刻著「大紅袍」（九龍窠母樹旁的石刻）
 - 建置：`python3 tools/build3d.py all`（把 `__TEX_*__` 換成 data URI、輸出根目錄的 `*-3d.html`）
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
@@ -36,6 +36,9 @@
 - 標籤貼圖要高解析：從官方去背照放大 3 倍、估背景、做墨色遮罩，太小的字用相近字型重新排字（Esencia 1548×2109、Summer BCN 1128×3186），凹凸圖 2/3 尺寸。
 - 切角瓶（Gold Leaf）：外形用凸包（ConvexGeometry）把幾層八角形連起來，切割面的平面交給玻璃著色器，光線在著色器裡實際走：空氣 → 外噴漸層 → 玻璃 → 內腔（圓角長方體 SDF，香水／液面上方空氣）→ 玻璃 → 外噴 → 空氣，出口全反射時在玻璃內再彈一次；稜線用「離第二近平面的距離」做拋光亮線。燙金字是第 1 層的金屬貼片（畫在玻璃之後），背面另有一片只從後方看得到的反字。
 
+- 透明玻璃不能透明到消失（Yoyo 對無極烏龍的回饋）：厚玻璃要靠反光降低透明感——Fresnel 底值提高、整面一層薄薄的散射反光（細刮痕與油膜）、視線擦過側面時的灰綠暗邊（全反射）、內腔壁斜看時的反光與暗化、玻璃路徑越長越模糊與越帶灰綠；壓花／浮雕紋太細看不清時改成淡淡的霧面，不要直接消失。
+- 場景四周（含背後）都要有內容（崖、森林），轉到任何角度都不能看到光禿的建模地形；遠處用低模樹冠＋逐像素葉叢凹凸的材質。
+- 刻在岩壁上的字直接投影進岩壁著色器（朱漆、鑿痕陰影），不要用浮在崖前的平面。
 - 圓柱瓶＋瓶底封著物件（Fischersund 的黑冰山）：外圓柱與內腔都用解析交點（不要用 SDF 逐步逼近內腔，靠近瓶壁會算不準、在液體裡畫出一圈圈框線），瓶底物件用高度場＋細碎法向擾動，液面要當成獨立的界面（由下往上看會全反射）。GLSL 註解別放在同一行的 `}` 前面。
 
 ### 檢查
