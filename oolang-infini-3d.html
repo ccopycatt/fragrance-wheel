@@ -920,14 +920,14 @@ const reliefTex=(()=>{ const w=lettersImg.width, h=lettersImg.height; const cv=d
   const ppu=w/W; const out=new Uint16Array(N);
   for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const i=y*w+x; out[(h-1-y)*w+x]=THREE.DataUtils.toHalfFloat((Math.sqrt(fo[i])-Math.sqrt(fi[i]))/ppu); }
   const t=new THREE.DataTexture(out,w,h,THREE.RedFormat,THREE.HalfFloatType); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t; })();
-const LIQK=(()=>{ const c=C('#f6f1d8'), d=8; return new THREE.Vector3(-Math.log(c.r)/d, -Math.log(c.g)/d, -Math.log(c.b)/d); })();
+const LIQK=(()=>{ const c=C('#f0e2b4'), d=3; return new THREE.Vector3(-Math.log(c.r)/d, -Math.log(c.g)/d, -Math.log(c.b)/d); })();
 const glassMat = new THREE.ShaderMaterial({
   uniforms:{ tScene:{value:sceneRT.texture}, tDepth:{value:sceneRT.depthTexture}, tEnv:{value:cubeRT.texture}, uViewProj,
     uSunDir:{value:SCENE_CFG.sunDir}, uSunCol:{value:SCENE_CFG.sunColor}, uLiqTop:{value:LIQ_TOP}, uLiqK:{value:LIQK}, uAbs:{value:SCENE_CFG.glassAbsorb},
-    uInvVP:uInvVP, tRelief:{value:reliefTex}, uFill:{value:new THREE.Vector3(18,14,40).normalize()} },
+    uInvVP:uInvVP, tRelief:{value:reliefTex}, uDbg:{value:0}, uFill:{value:new THREE.Vector3(18,14,40).normalize()} },
   vertexShader:`varying vec3 vW, vN, vL; void main(){ vL=position; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`,
-  fragmentShader:`uniform sampler2D tScene, tDepth; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform mat4 modelMatrix; uniform vec3 uSunDir, uSunCol, uLiqK, uAbs, uFill; uniform float uLiqTop; uniform mat4 uInvVP; uniform sampler2D tRelief;
-    varying vec3 vW, vN, vL; float gPx, gLine, gFrost;
+  fragmentShader:`uniform sampler2D tScene, tDepth; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform mat4 modelMatrix; uniform vec3 uSunDir, uSunCol, uLiqK, uAbs, uFill; uniform float uLiqTop; uniform mat4 uInvVP; uniform sampler2D tRelief; uniform int uDbg;
+    varying vec3 vW, vN, vL; float gPx, gLine, gFrost, gH, gAmpE, gAmpL;
     float h3(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
     float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
       return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),
@@ -961,16 +961,20 @@ const glassMat = new THREE.ShaderMaterial({
       if(n.z<-.3){
         float e=.006; vec2 q=L.xy;
         float hx=(faceH(q+vec2(e,0.))-faceH(q-vec2(e,0.)))/(2.*e), hy=(faceH(q+vec2(0.,e))-faceH(q-vec2(0.,e)))/(2.*e);
-        float h=faceH(q);
+        float h=faceH(q); gH=h; gAmpL=amp;
         gLine=max(gLine, (smoothstep(.5,.58,h)*(1.-smoothstep(.6,.7,h)) + smoothstep(.76,.82,h))*amp);
         gFrost=max(gFrost, (1.-amp)*smoothstep(-.3,-.6,n.z));
         return normalize(n - RA*vec3(hx,hy,0.)*amp); }
       if(abs(n.x)>.55){                                                   // 側面：沿著瓶緣走的直紋
-        float dd=L.z+${(D/2).toFixed(3)}; float ph=6.2832*dd/RS;
+        float dd=L.z+${(D/2).toFixed(3)} + .1*sin(L.y*2.1+1.3) + .06*sin(L.y*5.3+L.z*3.); float ph=6.2832*dd/RS;   // 側面的紋也是起伏的波紋，不是直線
         float g=-.5*1.6*pow(.5+.5*cos(ph),.6)*.5*sin(ph)*6.2832/RS;
         gFrost=max(gFrost, (1.-amp)*.8);
-        return normalize(n - RA*vec3(0.,0.,1.)*g*amp); }
+        return normalize(n - RA*.5*vec3(0.,0.,1.)*g*amp); }
       return n; }
+    // 菲涅耳反射率（非偏振光；n1 → n2，超過臨界角回傳 1 = 全反射）
+    float fres(float ci, float n1, float n2){ ci=clamp(ci,0.,1.); float st2=(n1/n2)*(n1/n2)*(1.-ci*ci); if(st2>=1.) return 1.;
+      float ct=sqrt(1.-st2); float rs=(n1*ci-n2*ct)/(n1*ci+n2*ct), rp=(n1*ct-n2*ci)/(n1*ct+n2*ci); return .5*(rs*rs+rp*rp); }
+    vec3 envL(vec3 dir){ return textureLod(tEnv, normalize(mat3(modelMatrix)*dir), 1.).rgb; }
     vec3 sampleScene(vec3 P, vec2 uv0, float fz, float blur){
       vec2 uv=clamp(toUV(P), vec2(.001), vec2(.999));
       for(int j=0;j<4;j++){ if(texture2D(tDepth, uv).x >= fz - 1e-6) break; uv = mix(uv0, uv, .55); }
@@ -979,45 +983,53 @@ const glassMat = new THREE.ShaderMaterial({
       if(blur>0.){ vec2 o=vec2(blur); s = s*.4 + (texture2D(tScene,uv+o).rgb + texture2D(tScene,uv-o).rgb + texture2D(tScene,uv+vec2(o.x,-o.y)).rgb + texture2D(tScene,uv+vec2(-o.x,o.y)).rgb)*.15; }
       return s; }
     void main(){
-      vec3 v = normalize(cameraPosition - vW); vec3 L = vL; vec3 n0 = normalize(vN); gPx = length(fwidth(vL)); gLine = 0.; gFrost = 0.;
+      vec3 v = normalize(cameraPosition - vW); vec3 L = vL; vec3 n0 = normalize(vN); gPx = length(fwidth(vL)); gLine = 0.; gFrost = 0.; gH = .5; gAmpE = 0.; gAmpL = 0.;
       // 表面：極輕微的起伏、指紋霧面與細刮痕；背面與側面有等高線浮雕
       vec3 q=L*1.2; float e=.08;
       vec3 g = vec3(fbm(q+vec3(e,0,0))-fbm(q-vec3(e,0,0)), fbm(q+vec3(0,e,0))-fbm(q-vec3(0,e,0)), fbm(q+vec3(0,0,e))-fbm(q-vec3(0,0,e)))/(2.*e);
       vec3 q3=L*9.; vec3 g3 = vec3(vn(q3+vec3(.3,0,0))-vn(q3-vec3(.3,0,0)), vn(q3+vec3(0,.3,0))-vn(q3-vec3(0,.3,0)), vn(q3+vec3(0,0,.3))-vn(q3-vec3(0,0,.3)));
       vec3 n = normalize(n0 + (g*.018 + g3*.006)*(1.-abs(n0)));
-      n = relief(L, n);
+      n = relief(L, n); gAmpE = gAmpL;
       float smudge = smoothstep(.42,.8, fbm(L*vec3(.8,.6,.8)+11.));
       float sx = (L.x*1.3-L.y*.5+L.z*1.7)*7. + fbm(L*3.)*1.3; float fw = fwidth(sx)*1.5+1e-4;
       float scratch = (1.-smoothstep(0., .015+fw, abs(fract(sx)-.5))) * smoothstep(.58,.78, fbm(L*1.2+5.)) * .5;
       float rough = .02 + smudge*.16 + scratch*.25;
       float iorG=1.5;
+      float hEntry=gH;                                                    // 入射那一面的浮雕高度（從背面看時用來畫出凹凸的明暗）
       vec3 d=refract(-v, n, 1./iorG);
       float gPath=0., lPath=0.; vec3 p=L;
+      // 每個界面都依菲涅耳公式分成反射與穿透：反射的部分累積起來（內腔壁、液面、厚瓶底的亮線與鏡面感就是這樣來的）
+      vec3 thr=vec3(1.), acc=vec3(0.);
       float tO = exitOut(p, d);
       // 內腔：沿著光線找第一個碰到的位置
       float t=0.; bool hit=false;
       for(int i=0;i<48;i++){ float s=sdCav(p+d*t); if(s<1.5e-3){ hit=true; break; } t+=s; if(t>tO) break; }
-      float meniscus=0., innerE=0., surfM=0.; vec3 innerR=vec3(0.,1.,0.);
+      float meniscus=0., surfM=0.;
       if(hit && t<tO){
-        vec3 p1=p+d*t; gPath+=t; vec3 nc=nCav(p1); innerE=pow(1.-abs(dot(d,nc)),3.); innerR=reflect(d,nc);
+        vec3 p1=p+d*t; gPath+=t; vec3 nc=nCav(p1);
         bool liq=p1.y<uLiqTop;
-        vec3 d2=refract(d, nc, liq ? iorG/1.36 : iorG);
-        if(dot(d2,d2)<1e-4){ d=reflect(d,nc); p=p1; }
+        float Fc=fres(abs(dot(d,nc)), iorG, liq?1.36:1.);
+        if(Fc>=1.){ d=reflect(d,nc); p=p1; }                              // 全反射：在玻璃壁裡彈開
         else {
-          // 在內腔裡走：香水與液面上方的空氣是兩種介質，液面是獨立的界面（由下往上看會全反射，像一面銀色的鏡子）
+          acc += thr*Fc*envL(reflect(d,nc)); thr*=1.-Fc;
+          vec3 d2=refract(d, nc, liq ? iorG/1.36 : iorG);
+          // 在內腔裡走：香水與液面上方的空氣是兩種介質，液面是獨立的界面
           vec3 q1=p1; bool out_=false;
           for(int seg=0; seg<3; seg++){
             float t2=.02; for(int i=0;i<48;i++){ float s=-sdCav(q1+d2*t2); if(s<1.5e-3 && t2>.05) break; t2+=max(s,.008); }
             float tS = abs(d2.y)>1e-4 ? (uLiqTop-q1.y)/d2.y : -1.;
             if(tS>1e-3 && tS<t2){
               vec3 pc=q1+d2*tS; if(liq) lPath+=tS;
-              meniscus=max(meniscus, 1.-smoothstep(.0,.06,-sdCav(pc)));
+              meniscus=max(meniscus, 1.-smoothstep(.0,.07,-sdCav(pc)));
               vec3 ns = liq ? vec3(0.,-1.,0.) : vec3(0.,1.,0.);
-              vec3 dn=refract(d2, ns, liq ? 1.36 : 1./1.36);
-              if(dot(dn,dn)<1e-4){ d2=reflect(d2, ns); surfM=1.; } else { d2=dn; liq=!liq; }
+              float Fs=fres(abs(d2.y), liq?1.36:1., liq?1.:1.36);
+              if(Fs>=1.){ d2=reflect(d2, ns); surfM=1.; }
+              else { acc += thr*Fs*envL(reflect(d2,ns))*(liq?1.:.9); thr*=1.-Fs; surfM=max(surfM,Fs); d2=refract(d2, ns, liq ? 1.36 : 1./1.36); liq=!liq; }
               q1=pc; continue; }
             if(liq) lPath+=t2;
             vec3 p2=q1+d2*t2; vec3 nc2=nCav(p2);
+            float Fx=fres(abs(dot(d2,nc2)), liq?1.36:1., iorG);
+            acc += thr*Fx*envL(reflect(d2,-nc2)); thr*=1.-Fx;
             vec3 d3=refract(d2, -nc2, liq ? 1.36/iorG : 1./iorG);
             if(dot(d3,d3)<1e-4) d3=reflect(d2,-nc2);
             p=p2; d=d3; out_=true; break; }
@@ -1026,43 +1038,45 @@ const glassMat = new THREE.ShaderMaterial({
         tO = exitOut(p, d);
       }
       vec3 pE=p+d*tO; gPath+=tO; vec3 nM=nOut(pE); vec3 nO=relief(pE, nM);
-      vec3 dO=refract(d, -nO, iorG); bool tir=false;
-      if(dot(dO,dO)<1e-4){ d=reflect(d,nO); p=pE; tO=exitOut(p,d); pE=p+d*tO; gPath+=tO; nM=nOut(pE); nO=relief(pE, nM); dO=refract(d,-nO,iorG); if(dot(dO,dO)<1e-4){ tir=true; dO=reflect(d,nO); } }
+      float Fo=fres(abs(dot(d,nO)), iorG, 1.); bool tir=false;
+      if(Fo>=1.){ d=reflect(d,nO); p=pE; tO=exitOut(p,d); pE=p+d*tO; gPath+=tO; nM=nOut(pE); nO=relief(pE, nM); Fo=fres(abs(dot(d,nO)), iorG, 1.); if(Fo>=1.) tir=true; }
+      vec3 dO=refract(d, -nO, iorG); if(dot(dO,dO)<1e-4) dO=reflect(d,nO);
+      if(!tir){ acc += thr*Fo*envL(reflect(d,nO))*.8; thr*=1.-Fo; }
       vec3 T = exp(-uAbs*gPath) * exp(-uLiqK*min(lPath,5.));
       vec3 col; vec2 uv0=toUV(vW); float fz=gl_FragCoord.z; float blur=.012*rough + min(gPath,4.)*.0011 + gFrost*.003;
-      // 背景真正的距離：折射後的光線要走到背景那麼遠才取樣，玻璃與香水的扭曲才會像實物一樣明顯（只取 2.6 單位會像一層薄膜）
+      // 背景真正的距離：折射後的光線要走到背景那麼遠才取樣，玻璃與香水的扭曲才會像實物一樣明顯
       float zb=texture2D(tDepth, uv0).x; vec4 bw=uInvVP*vec4(uv0*2.-1., zb*2.-1., 1.); float bgD=clamp(length(bw.xyz/bw.w - vW), 2.5, 70.);
-      if(tir){ col = textureLod(tEnv, dO, 2.).rgb*.75; }
+      if(tir){ col = envL(dO)*.75; }
       else {
         float io[3]; io[0]=1.488; io[1]=1.5; io[2]=1.516;
         // 瓶身的大形狀（內腔、厚瓶底、圓邊）用背景真正的距離；浮雕細紋造成的偏折只算一小段距離，不然細紋會把背景攪成一片雜訊
         vec3 dM=refract(d,-nM,iorG); if(dot(dM,dM)<1e-4) dM=dO;
         for(int k=0;k<3;k++){ vec3 dk=refract(d,-nO,io[k]); if(dot(dk,dk)<1e-4) dk=dO; vec3 Pw=(modelMatrix*vec4(pE,1.)).xyz + normalize(mat3(modelMatrix)*dM)*bgD + mat3(modelMatrix)*(dk-dM)*3.2; col[k]=sampleScene(Pw, uv0, fz, blur)[k]; } }
-      col *= T;
-      col *= 1.-innerE*.35;                                             // 內壁：斜看時光被反射掉，透出的背景變暗
-      col = mix(col, col*1.25+vec3(.04), surfM*.6);                     // 液面的全反射：一道亮亮的銀帶
-      col += vec3(1.,.96,.86)*meniscus*.6;
+      col = col*thr*T + acc*sqrt(T);
+      col += vec3(1.,.95,.82)*meniscus*.45;                              // 液面貼著瓶壁的那一圈彎月面
       // 表面反射
       vec3 Rr = reflect(-v, n);
       vec3 refl = textureLod(tEnv, Rr, rough*7.).rgb;
-      float F = .05 + .95*pow(1.-max(dot(n,v),0.), 4.);
-      F = mix(F, max(F,.14), smudge*.6);
-      vec3 c = mix(col, refl, F) + refl*.035;                              // 表面的細微刮痕與油膜：一層薄薄的散射反光
-      c += textureLod(tEnv, (modelMatrix*vec4(innerR,0.)).xyz, 1.5).rgb * innerE * .28;   // 內腔壁的反光
+      float F = fres(max(dot(n,v),0.), 1., iorG);
+      F = mix(F, max(F,.12), smudge*.6);
+      vec3 c = mix(col, refl, F) + refl*.03;                               // 表面的細微刮痕與油膜：一層薄薄的散射反光
       float sp = pow(max(dot(Rr, uSunDir), 0.), mix(1600., 90., clamp(rough*5.,0.,1.)));
       c += uSunCol * sp * mix(16., 1.6, clamp(rough*5.,0.,1.));
       // 圓邊：前後兩面與側面交界處的一道亮邊
       float edge = smoothstep(.0,.5, 1.-max(abs(n0.z), max(abs(n0.x),abs(n0.y))));
-      c += refl * edge * .55;
-      // 立體的反光：迎面天光在圓邊、肩部留下柔和的亮帶，頂上的天空映在上緣
-      float soft = pow(max(dot(Rr, uFill),0.), 28.)*.75 + smoothstep(.4,.95,Rr.y)*.1;
-      c += vec3(1.,.98,.94)*soft*(.35+edge*1.2);
+      c += refl * edge * .45;
+      // 立體的反光：迎面的霧光與頂上的天空在圓邊、肩部、浮雕稜線上留下的亮帶
+      float soft = pow(max(dot(Rr, uFill),0.), 60.)*1.1 + pow(max(dot(Rr, normalize(vec3(-.5,.8,.35))),0.), 40.)*.5 + pow(max(dot(Rr, normalize(vec3(.4,.75,-.5))),0.), 50.)*.6 + smoothstep(.55,.95,Rr.y)*.12;
+      c += vec3(1.,.98,.94)*soft*(.45+edge*1.2);
+      // 入射那一面若有浮雕（從背面看）：凹下去的溝比較暗，稜線比較亮
+      c *= mix(1., .8+.32*smoothstep(.1,.6,hEntry), gAmpE);
       // 厚玻璃的輪廓：視線擦過瓶身側面時光在玻璃裡全反射，邊緣是一圈帶綠灰的暗邊
       float sil = 1.-smoothstep(.05,.45, max(dot(n0,v),0.));
-      c = mix(c, c*vec3(.42,.48,.46) + refl*.18, sil*.7);
-      c += (refl*.35 + vec3(.035,.04,.04)) * gFrost * .5;
-      c += (refl*.55+vec3(.07)) * gLine * .5;                           // 浮雕稜線的反光
-      { vec3 rs=nO-nM; float k1=dot(rs, normalize(vec3(.3,.9,0.)))*3.2; c *= 1.+clamp(k1,-.35,.45); }   // 稜線一側迎光、一側背光
+      c = mix(c, c*vec3(.45,.5,.48) + refl*.18, sil*.6);
+      c += (refl*.3 + vec3(.03,.035,.035)) * gFrost * .45;
+      { vec3 rs=nO-nM; float k1=dot(rs, normalize(vec3(.3,.9,0.)))*2.6; c *= 1.+clamp(k1,-.3,.35); }   // 隔著香水看到的背面浮雕：稜線一側迎光、一側背光
+      if(uDbg==1) c=vec3(lPath*.25, gPath*.25, hit?1.:0.);
+      if(uDbg==2) c=vec3(acc.g*3., surfM, meniscus);
       gl_FragColor = vec4(c, 1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
@@ -1078,10 +1092,10 @@ function slabGeo(hw, hh, cy, hz, rt, rb, rz){
   const prof=[]; const NA=8; for(let i=0;i<=NA;i++){ const a=i/NA*Math.PI/2; prof.push([Math.sin(a)*rz, hz-rz+Math.cos(a)*rz]); } for(let i=0;i<=NA;i++){ const a=Math.PI/2+i/NA*Math.PI/2; prof.push([Math.sin(a)*rz, -(hz-rz)+Math.cos(a)*rz]); }
   const pos=[], idx=[]; const NP=pts.length, NR=prof.length;
   for(let i=0;i<NP;i++){ const [x,y,nx,ny]=pts[i]; for(let j=0;j<NR;j++){ const [r,z]=prof[j]; pos.push(x+nx*r, y+cy+ny*r, z); } }
-  for(let i=0;i<NP;i++){ const i2=(i+1)%NP; for(let j=0;j<NR-1;j++){ const a=i*NR+j, b=i2*NR+j; idx.push(a,b,a+1, a+1,b,b+1); } }
+  for(let i=0;i<NP;i++){ const i2=(i+1)%NP; for(let j=0;j<NR-1;j++){ const a=i*NR+j, b=i2*NR+j; idx.push(a,a+1,b, a+1,b+1,b); } }   // 逆時針朝外
   // 前後兩面：扇形
-  const fc=pos.length/3; pos.push(0,cy,hz); for(let i=0;i<NP;i++){ const a=i*NR, b=((i+1)%NP)*NR; idx.push(fc,b,a); }
-  const bc=pos.length/3; pos.push(0,cy,-hz); for(let i=0;i<NP;i++){ const a=i*NR+NR-1, b=((i+1)%NP)*NR+NR-1; idx.push(bc,a,b); }
+  const fc=pos.length/3; pos.push(0,cy,hz); for(let i=0;i<NP;i++){ const a=i*NR, b=((i+1)%NP)*NR; idx.push(fc,a,b); }
+  const bc=pos.length/3; pos.push(0,cy,-hz); for(let i=0;i<NP;i++){ const a=i*NR+NR-1, b=((i+1)%NP)*NR+NR-1; idx.push(bc,b,a); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals();
   return g; }
 const glassGeo=slabGeo(W/2, GH/2, GH/2, D/2, RT, RB, RZ);
@@ -1134,7 +1148,7 @@ const brushTex=(rep=1)=>{ const t=canvasTex(512,512,(g,w)=>{ g.fillStyle='#7a7a7
   const tw=W-.271*W;    // 照片上名牌正面的寬度（0.729W），字的位置以這段為準
   const txt=new THREE.Mesh(new THREE.PlaneGeometry(tw,BH), new THREE.MeshStandardMaterial({ color:C('#f6f8f8'), roughness:.6, alphaMap:mask, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3 }));
   txt.position.set(x0+tw/2, BY, zf+off+.002); txt.layers.set(1); txt.renderOrder=3; bottle.add(txt);
-  const back=new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color:C('#e8eef0'), roughness:.9, side:THREE.BackSide })); bottle.add(back); }
+  const back=new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color:C('#1f3a72'), roughness:.85, side:THREE.BackSide })); bottle.add(back); }
 
 // 吸管：從瓶口插到瓶底的透明塑膠管
 { const cv=new THREE.CatmullRomCurve3([new THREE.Vector3(0,GH-.05,0),new THREE.Vector3(.02,5,0),new THREE.Vector3(.1,2.2,-.05),new THREE.Vector3(.22,.95,-.1)]);
