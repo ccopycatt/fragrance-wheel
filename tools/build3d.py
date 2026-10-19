@@ -13,7 +13,7 @@ PAGES = {
   'fischersund': ('src/fischersund-23-3d.src.html', 'fischersund-23-3d.html', {
       '__TEX_FS_PRINT__':'src/tex_fs23_print.png'}),
   'oolang': ('src/oolang-infini-3d.src.html', 'oolang-infini-3d.html', {
-      '__TEX_OI_LOGO__':'src/tex_oi_logo.png', '__TEX_OI_BAND__':'src/tex_oi_band.png'}),
+      '__TEX_OI_LOGO__':'src/tex_oi_logo.png', '__TEX_OI_BAND__':'src/tex_oi_band.png', '__TEX_OI_LETTERS__':'src/tex_oi_letters.png'}),
 }
 def uri(p):
     mime = 'image/png' if p.endswith('.png') else 'image/jpeg'
