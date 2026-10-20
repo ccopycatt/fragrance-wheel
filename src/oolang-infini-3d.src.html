@@ -985,7 +985,7 @@ const fillL=new THREE.DirectionalLight(C('#eef2ee'), 1.1); fillL.position.set(18
 // Atelier Cologne／PARIS；藍色紙質名牌（高 0.203W、從 0.271W 起一路包到右側面）印 OOLANG INFINI。
 // 瓶蓋：直徑 0.429W，上段是髮絲紋的藍綠色金屬（0.19W）、下段是刷紋金（0.354W、中間一道細縫）。香水幾乎無色。
 const W=4.6, D=2.3, GH=8.28, RT=.78, RB=.46, RZ=.15;   // RT／RB：窄側面上緣、下緣的大圓角；RZ：正面、背面四周那一圈較緊的小圓角（Yoyo 的實拍量測）
-const CAV={ wx:.3, wz:.26, y0:.8, y1:7.54, rt:.55, rb:.35, rz:.22 };
+const CAV={ wx:.32, wz:.26, y0:.46, y1:7.54, rt:.55, rb:.35, rz:.2 };   // Yoyo 的背光實拍：側壁約 0.32、瓶底約 0.46、肩部（吸管座穿過的實心玻璃）約 0.74
 const LIQ_TOP=7.06;
 const CAP={ r:.987, blue:.87, gold:1.63, groove:.81 };
 const bottle = new THREE.Group(); scene.add(bottle);
@@ -1162,7 +1162,7 @@ const glassMat = new THREE.ShaderMaterial({
       c *= mix(1., .8+.32*smoothstep(.1,.6,hEntry), gAmpE);
       // 厚玻璃的輪廓：視線擦過瓶身側面時光在玻璃裡全反射，邊緣是一圈帶綠灰的暗邊
       float sil = 1.-smoothstep(.05,.45, max(dot(n0,v),0.));
-      c = mix(c, c*vec3(.45,.5,.48) + refl*.18, sil*.6);
+      c = mix(c, c*vec3(.55,.6,.58) + refl*.18, sil*.35);                // 實拍的輪廓是亮的，只有細細一條暗線
       c += (refl*.3 + vec3(.03,.035,.035)) * gFrost * .45;
       { vec3 rs=nO-nM; float k1=dot(rs, normalize(vec3(.3,.9,0.)))*2.6; c *= 1.+clamp(k1,-.3,.35); }   // 隔著香水看到的背面浮雕：稜線一側迎光、一側背光
       if(uDbg==1) c=vec3(lPath*.25, gPath*.25, hit?1.:0.);
@@ -1241,7 +1241,7 @@ const brushTex=(rep=1)=>{ const t=canvasTex(512,512,(g,w)=>{ g.fillStyle='#7a7a7
   const back=new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color:C('#17809f'), roughness:.85, side:THREE.BackSide })); bottle.add(back); }
 
 // 吸管：從瓶口插到瓶底的透明塑膠管
-{ const cv=new THREE.CatmullRomCurve3([new THREE.Vector3(0,GH-.05,0),new THREE.Vector3(.02,5,0),new THREE.Vector3(.1,2.2,-.05),new THREE.Vector3(.22,.95,-.1)]);
+{ const cv=new THREE.CatmullRomCurve3([new THREE.Vector3(0,GH-.05,0),new THREE.Vector3(.02,5,0),new THREE.Vector3(.1,2.0,-.05),new THREE.Vector3(.22,.62,-.1)]);
   const t=new THREE.Mesh(new THREE.TubeGeometry(cv,40,.028,8,false), new THREE.MeshPhysicalMaterial({ color:C('#f4f4f2'), roughness:.15, transparent:true, opacity:.22, depthWrite:false }));
   bottle.add(t); }
 // 瓶蓋：下段刷紋金（中間一道細縫）、上段髮絲紋的藍綠色陽極金屬；頂面是同心圓的車紋
