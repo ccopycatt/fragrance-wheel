@@ -9,7 +9,7 @@
 - `esencia-3d.html`：LOEWE Esencia（100ml）的 3D 詳細頁；原始碼 `src/esencia-3d.src.html`，標籤貼圖 `src/tex_esencia_label*.jpg`
 - `gold-leaf-3d.html`：Ormonde Jayne Gold Leaf 茶路（88ml）的香境；原始碼 `src/gold-leaf-3d.src.html`，燙金字遮罩 `src/tex_gl_foil.png`（由 `tools/gl_foil.py` 依量測位置排字產生）
 - `fischersund-23-3d.html`：Fischersund No. 23（50ml）的香境；原始碼 `src/fischersund-23-3d.src.html`，印字遮罩 `src/tex_fs23_print.png`（`tools/fs23_print.py`，Inter SemiBold）。香材分層依品牌公布的金字塔（Fragrantica 只列平的 10 種），菸草放中調、海藻放後調
-- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）；背面浮雕的字母遮罩 `src/tex_oi_letters.png`（`tools/oi_relief.py`：「Atelier」七個字母錯落的位置照 Yoyo 拍的背面照量測）。瓶身的圓角：正面、背面四周那一圈是小圓角（0.15），兩個窄側面的上緣下緣（從正面看是肩與瓶底的四個角）是大圓角（上 0.78、下 0.46）。名牌與瓶蓋顏色照 Yoyo 的實拍（名牌是深寶藍、瓶蓋上段深海軍藍，官方照偏淺藍是調色過的）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木。場景主題是台灣官方詩篇裡的「千年茶母樹」（溪對岸林間的老茶樹，預設視角在瓶子右邊），左邊崖壁刻著「大紅袍」（九龍窠母樹旁的石刻）
+- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）；背面浮雕的字母遮罩 `src/tex_oi_letters.png`（`tools/oi_relief.py`：「Atelier」七個字母錯落的位置照 Yoyo 拍的背面照量測）。瓶身的圓角：正面、背面四周那一圈是小圓角（0.15），兩個窄側面的上緣下緣（從正面看是肩與瓶底的四個角）是大圓角（上 0.78、下 0.46）。名牌與瓶蓋上段是藍綠色（名牌紙 #1a8bae、金屬瓶蓋 #2389a8，取自 Yoyo 給的官方參考照；她覺得照實拍調的深海軍藍太深）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木。場景主題是台灣官方詩篇裡的「千年茶母樹」（溪對岸林間的老茶樹，預設視角在瓶子右邊）；左邊崖腳是大紅袍母樹的石砌茶台（崖壁不刻字，Yoyo 決定拿掉）。硯台四周的紅砂岩岩盤與兩岸溪灘鋪滿苔：地面著色器依世界座標雜訊鋪一塊塊苔（只露出幾處紅砂岩，溪灘越高越多、水邊留一道深色濕卵石），再加苔墊、圓葉小草、細草、蕨與石菖蒲（獨立亂數 rng(808)，不動竹叢與樹）；硯台、筆山、墨條、茶杯四周留一圈空地，越靠近硯台越矮
 - 建置：`python3 tools/build3d.py all`（把 `__TEX_*__` 換成 data URI、輸出根目錄的 `*-3d.html`）
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
@@ -39,6 +39,7 @@
 - 透明玻璃不能透明到消失（Yoyo 對無極烏龍的回饋）：厚玻璃要靠反光降低透明感——Fresnel 底值提高、整面一層薄薄的散射反光（細刮痕與油膜）、視線擦過側面時的灰綠暗邊（全反射）、內腔壁斜看時的反光與暗化、玻璃路徑越長越模糊與越帶灰綠；壓花／浮雕紋太細看不清時改成淡淡的霧面，不要直接消失。
 - 玻璃折射要用背景真正的距離取樣（從深度圖還原背景位置），只取固定 2.6 單位會像一層薄膜；但浮雕細紋造成的偏折只算一小段距離，不然細紋會把背景攪成雜訊。
 - 壓花／等高線浮雕：存字母遮罩就好，頁面載入時算距離場（Felzenszwalb EDT → 半精度 DataTexture），著色器用距離畫波紋（cos），一道紋在螢幕上不到約 3 像素就淡成霧面；不要存高度圖（檔案大、遠看疊紋）。
+- 地面苔（`mossify(material, mode)`）：'attr' 依頂點屬性 `aMoss` 決定覆蓋度、'up' 只長在朝上的面（大石頂）、'full' 整面（苔墊）；苔面顆粒依螢幕上的大小淡成平均色（`fwidth`），遠處不閃爍。加植被時改用自己的亂數，或在 `continue` 之前就取完原本的亂數，才不會改到後面竹叢與樹的形狀。
 - 場景四周（含背後）都要有內容（崖、森林），轉到任何角度都不能看到光禿的建模地形；遠處用低模樹冠＋逐像素葉叢凹凸的材質。
 - 刻在岩壁上的字直接投影進岩壁著色器（朱漆、鑿痕陰影），不要用浮在崖前的平面。
 - 圓柱瓶＋瓶底封著物件（Fischersund 的黑冰山）：外圓柱與內腔都用解析交點（不要用 SDF 逐步逼近內腔，靠近瓶壁會算不準、在液體裡畫出一圈圈框線），瓶底物件用高度場＋細碎法向擾動，液面要當成獨立的界面（由下往上看會全反射）。GLSL 註解別放在同一行的 `}` 前面。
