@@ -1084,13 +1084,19 @@ if(fwRestore){
   async function fromOpenMeteo(lat,lon){
     const res = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`+
       `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,is_day`+
-      `&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max&timezone=auto&forecast_days=1`, 6000);
-    const c=res.current, d=res.daily;
+      `&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,precipitation_probability_max&timezone=auto&forecast_days=2`, 6000);
+    const c=res.current, d=res.daily, h=res.hourly;
+    // 降雨機率取「從現在起 12 小時」的最大值：每日最大值是整個日曆天的（半夜打開時會把當天深夜的雨也算進來，顯示 98% 卻一整個上午都不會下），
+    // 也和中央氣象署以時段發布降雨機率的習慣一致
+    let rp=null;
+    if(h && h.time && h.precipitation_probability){ const k=(c.time||'').slice(0,13); let i=h.time.findIndex(t=>t.slice(0,13)===k); if(i<0) i=0;
+      const nx=h.precipitation_probability.slice(i,i+12).filter(v=>v!=null); if(nx.length) rp=Math.max(...nx); }
+    if(rp==null) rp=d.precipitation_probability_max[0];
     return { src:'Open-Meteo',
       temp:c.temperature_2m, feels:c.apparent_temperature, humidity:c.relative_humidity_2m, desc:wcode(c.weather_code),
       isDay:c.is_day===1, rainNow:c.precipitation>0.1 || isRainCode(c.weather_code),
       min:d.temperature_2m_min[0], max:d.temperature_2m_max[0], feelsMax:d.apparent_temperature_max[0],
-      rainProb:d.precipitation_probability_max[0], rainLabel:'降雨機率', rainText:(d.precipitation_probability_max[0] ?? '–')+'%' };
+      rainProb:rp, rainLabel:'12 小時降雨', rainText:(rp ?? '–')+'%' };
   }
 
   // 備援來源：挪威氣象局 MET Norway
