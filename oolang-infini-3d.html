@@ -889,13 +889,13 @@ sun.layers.enable(1); scene.add(sun);                       // 金屬標、名�
 const hemi=new THREE.HemisphereLight(C('#d6e2ea'), C('#6a4a36'), 1.0); hemi.layers.enable(1); scene.add(hemi);
 const fillL=new THREE.DirectionalLight(C('#eef2ee'), 1.1); fillL.position.set(18,14,40); fillL.layers.enable(1); scene.add(fillL);   // 迎面的霧光
 // ---------- 瓶身：Atelier Cologne 新版 Cologne Absolue 100ml（2022 年後的可補充瓶） ----------
-// 依 LOOKFANTASTIC 官方去背正面照（2000×2000，瓶寬 828px）與盒裝照、Notino 斜角照量測（單位：瓶寬 W = 4.6）：
+// 依 LOOKFANTASTIC 官方去背正面照（2000×2000，瓶寬 828px）與盒裝照、Notino 斜角照、Yoyo 的實拍量測（單位：瓶寬 W = 4.6）：
 // 玻璃高 1.8W、肩部圓角 0.17W、瓶底圓角 0.1W；厚度沒有側面照，依斜角照與 100ml 容量估為 0.5W；透明厚瓶底 0.175W。
 // 背面與側面的玻璃壓著一圈圈等高線般的浮雕紋。正面：刷紋金屬標（寬 0.688W、高 0.517W、上緣在肩下 0.374W）印白色的
 // Atelier Cologne／PARIS；藍色紙質名牌（高 0.203W、從 0.271W 起一路包到右側面）印 OOLANG INFINI。
 // 瓶蓋：直徑 0.429W，上段是髮絲紋的藍綠色金屬（0.19W）、下段是刷紋金（0.354W、中間一道細縫）。香水幾乎無色。
-const W=4.6, D=2.3, GH=8.28, RT=.78, RB=.46, RZ=.42;
-const CAV={ wx:.3, wz:.26, y0:.8, y1:7.54, rt:.55, rb:.35, rz:.5 };
+const W=4.6, D=2.3, GH=8.28, RT=.78, RB=.46, RZ=.15;   // RT／RB：窄側面上緣、下緣的大圓角；RZ：正面、背面四周那一圈較緊的小圓角（Yoyo 的實拍量測）
+const CAV={ wx:.3, wz:.26, y0:.8, y1:7.54, rt:.55, rb:.35, rz:.22 };
 const LIQ_TOP=7.06;
 const CAP={ r:.987, blue:.87, gold:1.63, groove:.81 };
 const bottle = new THREE.Group(); scene.add(bottle);
