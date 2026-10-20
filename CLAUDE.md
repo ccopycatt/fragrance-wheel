@@ -9,7 +9,8 @@
 - `esencia-3d.html`：LOEWE Esencia（100ml）的 3D 詳細頁；原始碼 `src/esencia-3d.src.html`，標籤貼圖 `src/tex_esencia_label*.jpg`
 - `gold-leaf-3d.html`：Ormonde Jayne Gold Leaf 茶路（88ml）的香境；原始碼 `src/gold-leaf-3d.src.html`，燙金字遮罩 `src/tex_gl_foil.png`（由 `tools/gl_foil.py` 依量測位置排字產生）
 - `fischersund-23-3d.html`：Fischersund No. 23（50ml）的香境；原始碼 `src/fischersund-23-3d.src.html`，印字遮罩 `src/tex_fs23_print.png`（`tools/fs23_print.py`，Inter SemiBold）。香材分層依品牌公布的金字塔（Fragrantica 只列平的 10 種），菸草放中調、海藻放後調
-- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）；背面浮雕的字母遮罩 `src/tex_oi_letters.png`（`tools/oi_relief.py`：「Atelier」七個字母錯落的位置照 Yoyo 拍的背面照量測）。瓶身的圓角：正面、背面四周那一圈是小圓角（0.15），兩個窄側面的上緣下緣（從正面看是肩與瓶底的四個角）是大圓角（上 0.78、下 0.46）。名牌與瓶蓋上段是藍綠色（名牌紙 #1a8bae、金屬瓶蓋 #2389a8，取自 Yoyo 給的官方參考照；她覺得照實拍調的深海軍藍太深）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木。場景主題是台灣官方詩篇裡的「千年茶母樹」（溪對岸林間的老茶樹，預設視角在瓶子右邊）；左邊崖腳是大紅袍母樹的石砌茶台（崖壁不刻字，Yoyo 決定拿掉）。硯台四周的紅砂岩岩盤與兩岸溪灘鋪滿苔：地面著色器依世界座標雜訊鋪一塊塊苔（只露出幾處紅砂岩，溪灘越高越多、水邊留一道深色濕卵石），再加苔墊、圓葉小草、細草、蕨與石菖蒲（獨立亂數 rng(808)，不動竹叢與樹）；硯台、筆山、墨條、茶杯四周留一圈空地，越靠近硯台越矮
+- `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）；背面浮雕的字母遮罩 `src/tex_oi_letters.png`（`tools/oi_relief.py`：「Atelier」七個字母錯落的位置照 Yoyo 拍的背面照量測）。瓶身的圓角：正面、背面四周那一圈是小圓角（0.15），兩個窄側面的上緣下緣（從正面看是肩與瓶底的四個角）是大圓角（上 0.78、下 0.46）。玻璃壁厚照 Yoyo 的背光實拍（看得到水體）：側壁約 0.32、瓶底約 0.46、肩部（吸管座穿過的實心玻璃）約 0.74（`CAV`）。名牌與瓶蓋上段是藍綠色（名牌紙 #1a8bae、金屬瓶蓋 #2389a8，取自 Yoyo 給的官方參考照；她覺得照實拍調的深海軍藍太深）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木。場景主題是台灣官方詩篇裡的「千年茶母樹」（溪對岸林間的老茶樹，預設視角在瓶子右邊）；左邊崖腳是大紅袍母樹的石砌茶台（崖壁不刻字，Yoyo 決定拿掉）。硯台四周的紅砂岩岩盤與兩岸溪灘鋪滿苔：地面著色器依世界座標雜訊鋪一塊塊苔（只露出幾處紅砂岩，溪灘越高越多、水邊留一道深色濕卵石），再加苔墊、圓葉小草、細草、蕨與石菖蒲（獨立亂數 rng(808)，不動竹叢與樹）；硯台、筆山、墨條、茶杯四周留一圈空地，越靠近硯台越矮
+- `morning-star-3d.html`：Liquides Imaginaires 晨曉之星 Morning Star（100ml 淡香精）的香境；原始碼 `src/morning-star-3d.src.html`（以無極烏龍的頁面為底組裝）。瓶身不透明：靛藍霧面漆、喇叭形金屬瓶蓋（頂面是淺凹碗，Yoyo 的俯拍照）、蓋底一圈 72 顆凸起的菱格紋、瓶底斜切角；比例依官方去背照量測、Yoyo 的實拍核對。正面印字遮罩 `src/tex_ms_print.png`（`tools/ms_print.py`：字形取自台灣官方故事頁的標題、依量到的弧長排兩行，淡香檳色）；背面浮凸徽記高度圖 `src/tex_ms_emblem.png`（`tools/ms_emblem.py`，照 Yoyo 的背面照量測）。場景依品牌故事（Éosphoros／Hesperos 兩兄弟合為晨星；破曉與黃昏的雙重性、古代神話與未來感）：日出前的高山湖，東邊曙光與低懸的金星、西邊星空銀河與金星帶；湖面是鏡像相機畫的真實倒影（`renderReflection`，只畫第 2 層 `REFL_LAYER`）。台座是青金石圓盤：金線鑲金星八年的五瓣玫瑰軌跡（兩道光反向流動、在正面花瓣尖相遇），盤緣刻 ΕΣΠΕΡΟΣ（朝西、預設視角的正面）與 ΕΩΣΦΟΡΟΣ（朝東）（`src/tex_ms_rim.png`，`tools/ms_disc.py`，GFS Porson）；右前方青銅香爐架燃乳香（Phosphoros 的火炬，暖色點光源）。香材 15 種依 Fragrantica（Georgywood、Akigalawood 是 Givaudan 的香材）
 - 建置：`python3 tools/build3d.py all`（把 `__TEX_*__` 換成 data URI、輸出根目錄的 `*-3d.html`）
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
@@ -43,6 +44,11 @@
 - 場景四周（含背後）都要有內容（崖、森林），轉到任何角度都不能看到光禿的建模地形；遠處用低模樹冠＋逐像素葉叢凹凸的材質。
 - 刻在岩壁上的字直接投影進岩壁著色器（朱漆、鑿痕陰影），不要用浮在崖前的平面。
 - 圓柱瓶＋瓶底封著物件（Fischersund 的黑冰山）：外圓柱與內腔都用解析交點（不要用 SDF 逐步逼近內腔，靠近瓶壁會算不準、在液體裡畫出一圈圈框線），瓶底物件用高度場＋細碎法向擾動，液面要當成獨立的界面（由下往上看會全反射）。GLSL 註解別放在同一行的 `}` 前面。
+
+- 不透明瓶身（晨曉之星）：不用玻璃著色器，瓶身放第 0 層；印字依圓柱的角度與高度取樣遮罩、背面浮凸用高度圖算法向。夜景裡要給瓶身專用的環境貼圖（夜空＋幾道柔和的長條光，PMREM），霧面漆才照得出官方照那道直直的高光，不然整支是黑的；拋光的凹面（瓶蓋頂碗）粗糙度調高、鏡面強度調低，免得反成一片淡紫。
+- 湖面倒影：鏡像相機＋斜切近平面（同 three.js Reflector），只畫第 2 層；相機繞行的那一圈（離瓶子約 24～62）不要放大石或樹，會擋在鏡頭前。
+- 景深不處理天空（深度 = 1）：星點會被糊掉。
+- 夜景裡的模型整個偏藍：淺色木頭、乳香這類暖色的材質要用暖色 color 乘上去，不然看起來像灰色的石頭。
 
 ### 檢查
 - 自己寫的幾何（BufferGeometry 手排索引）一定要用數值驗證繞序與法向朝外（三角形外法向 · (中心→三角形) > 0、頂點法向朝外）。無極烏龍的瓶身曾經整個繞反：GPU 只畫出遠側那一面，光線從那裡往外走，根本沒穿過內腔，看起來就像一塊實心玻璃、背面浮雕跑到正面。
@@ -81,4 +87,5 @@
 - 香水詳細彈窗：高度鎖在畫面內（fixed 容器上下各留 14px、卡片 max-height:100%），內容在 `.modal-scroll` 裡捲動，按鈕放 `.modal-actions`（主要：走進香境；次要外框：查看 Fragrantica）。
 - 3D 世界對外稱「香境」（不說「3D 模型」）。詳細彈窗可切換「香境／商品照」，點香境圖就走進香境頁。
 - 從香境返回：香境頁的返回鈕用 history.back()（inline onclick 裡不要寫 `new URL(...)`：inline 事件的作用域裡 `URL` 會解析成 `document.URL` 字串而報錯，改用 `document.referrer.indexOf(location.origin+'/')===0`）；從 bfcache 還原時用 pageshow(persisted) 補回捲動位置；主頁在 pagehide 把分類、搜尋、捲動錨點、開著的香水、今日香氛那一組存進 sessionStorage `fw-state`，返回時還原。
+- 今日香氛的降雨機率：取 Open-Meteo 逐時降雨機率「從現在起 12 小時」的最大值，標示「12 小時降雨」；不要用每日最大值（整個日曆天，半夜打開會把當天深夜的雨算進來，和氣象署的時段預報差很多）。推薦的雨天判斷（≥60%）也用這個值。
 - 今日香氛的隨機性：每次打開都重抽，`localStorage fw-hist` 記最近 8 次看過的推薦，上次的首選這次幾乎不會再當首選。
