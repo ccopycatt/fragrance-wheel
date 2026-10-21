@@ -873,7 +873,9 @@ const thym=new THREE.Group(); { const tx=5.6, tz=2.9; thym.position.set(tx, terr
 const fireLight=new THREE.PointLight(C('#ff9450'), 14, 26, 1.7); fireLight.position.set(0,5.6,0); thym.add(fireLight);
 // 金線裡的兩道光也照亮瓶身：光從金線的溝槽裡透出來，只照到瓶身，不在不透明的青金石盤面上留下光暈
 // （所以不用 PointLight——它會照到盤面、金線與香爐；改在瓶身的著色器裡多算兩盞點光源，衰減 1.6、截止 12，光才爬得上瓶身）
-const PULSE = { I:[8,5.2], y:.62, foot:1.9, col:[C('#ffbe48'),C('#a596ff')] };            // 金光打在靛藍上會被吃掉一些，所以給亮一點
+// 光源貼著盤面（光是從金線溝槽透出來的）：瓶底朝下的斜切角正對著它，光點從旁邊經過時斜切角最亮；
+// 金線鑽進斜切角底下（平底外緣 1.13 以外）還照得到斜切角，到平底底下才熄掉
+const PULSE = { I:[8,5.2], y:.06, foot:[1.1,1.38], col:[C('#ffbe48'),C('#a596ff')] };            // 金光打在靛藍上會被吃掉一些，所以給亮一點
 const pulseU = { uPP:{ value:[new THREE.Vector3(), new THREE.Vector3()] }, uPC:{ value:[new THREE.Vector3(), new THREE.Vector3()] } };
 const flames=(()=>{ const m=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, fog:false, uniforms:{ uT:clockU },
     vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
@@ -925,7 +927,7 @@ const fx=(()=>{
     if(world.venus) world.venus.material.uniforms.uPulse.value=meetFront?0:fk;                 // 背面那次相遇（在瓶子底下，昏星變成晨星）：天上的金星亮一下
     const boost=1+(meetFront?fk*2.2:0);
     for(let i=0;i<2;i++){ const p=pulseU.uPP.value[i]; rose.posAt(i?U.uTB.value:U.uTA.value, p); const r=Math.hypot(p.x,p.z); p.y=PULSE.y;   // 鑽到瓶底下時熄掉
-      const k=PULSE.I[i]*sstep(PULSE.foot-.1,PULSE.foot+.5,r)*boost, c=PULSE.col[i]; pulseU.uPC.value[i].set(c.r*k, c.g*k, c.b*k); }
+      const k=PULSE.I[i]*sstep(PULSE.foot[0],PULSE.foot[1],r)*boost, c=PULSE.col[i]; pulseU.uPC.value[i].set(c.r*k, c.g*k, c.b*k); }
   };
   pulses(0);
   const update=(t,dt)=>{
@@ -1031,7 +1033,7 @@ const embTex = tex(TEX.emblem, false);
       sh.fragmentShader=sh.fragmentShader.replace('#include <lights_fragment_begin>',`#include <lights_fragment_begin>
         #if defined( RE_Direct )
         for(int k=0;k<2;k++){ vec3 lv=(viewMatrix*vec4(uPP[k],1.)).xyz-geometryPosition; float ld=max(length(lv),1e-3);
-          directLight.direction=lv/ld; directLight.color=uPC[k]*getDistanceAttenuation(ld,12.,1.6); directLight.visible=true;
+          directLight.direction=lv/ld; directLight.color=uPC[k]*getDistanceAttenuation(max(ld,.5),12.,1.6); directLight.visible=true;
           RE_Direct(directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight); }
         #endif`);
     }; m.customProgramCacheKey=()=>'ms-satin-'+part; return m; };
