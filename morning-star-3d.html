@@ -970,8 +970,14 @@ const embTex = tex(TEX.emblem, false);
 {
   const V2=THREE.Vector2;
   // 瓶身輪廓（由瓶底中心往上，到肩部再往內收進瓶蓋下的細縫）
-  const bodyP=[ new V2(0,0), new V2(.9,0), new V2(1.15,.004), new V2(1.185,.018), new V2(1.2,.045),
-    new V2(1.86,.6), new V2(1.89,.625), new V2(1.9,.66), new V2(1.9,B_Y.bodyTop-.07), new V2(1.897,B_Y.bodyTop-.03), new V2(1.885,B_Y.bodyTop-.008), new V2(1.86,B_Y.bodyTop),
+  // 圓角：兩條直線在 P 相交，換成半徑 rho、與兩邊相切的圓弧（n 段，光線反射才會順順地滾過轉角）
+  const fil=(A,P,B,rho,n)=>{ const d1=P.clone().sub(A).normalize(), d2=B.clone().sub(P).normalize(); const th=Math.acos(Math.min(1,Math.max(-1,d1.dot(d2)))), t=rho*Math.tan(th/2);
+    const T1=P.clone().addScaledVector(d1,-t), T2=P.clone().addScaledVector(d2,t); const left=d1.x*d2.y-d1.y*d2.x>0; const nx=left?-d1.y:d1.y, ny=left?d1.x:-d1.x;
+    const cx=T1.x+nx*rho, cy=T1.y+ny*rho; const a0=Math.atan2(T1.y-cy,T1.x-cx); let da=Math.atan2(T2.y-cy,T2.x-cx)-a0; da-=Math.round(da/(2*Math.PI))*2*Math.PI;
+    const out=[]; for(let i=0;i<=n;i++){ const a=a0+da*i/n; out.push(new V2(cx+Math.cos(a)*rho, cy+Math.sin(a)*rho)); } return out; };
+  // 瓶底：平底 → 小圓角 → 約 50° 的斜切角 → 圓角（Yoyo 實拍：斜切角和瓶身之間是一道柔和的圓角，不是銳利的稜）→ 圓柱瓶身
+  const kC=.555/.66, Pf=new V2(1.2-.045/kC,0), Pc=new V2(BR,.045+(BR-1.2)*kC);
+  const bodyP=[ new V2(0,0), ...fil(new V2(0,0),Pf,Pc,.05,6), ...fil(Pf,Pc,new V2(BR,3),.16,14), new V2(1.9,B_Y.bodyTop-.07), new V2(1.897,B_Y.bodyTop-.03), new V2(1.885,B_Y.bodyTop-.008), new V2(1.86,B_Y.bodyTop),
     new V2(1.81,B_Y.bodyTop+.004), new V2(1.79,B_Y.bodyTop+.02), new V2(1.79,B_Y.capBot+.01), new V2(1.5,B_Y.capBot+.01) ];
   // 瓶蓋輪廓：裙邊、細溝、菱格紋飾環、細溝、喇叭、唇緣、頂面的凹碗
   const fl=[[7.51,1.888],[7.877,1.887],[8.105,1.894],[8.307,1.906],[8.509,1.925],[8.711,1.95],[8.913,1.982],[9.115,2.014],[9.317,2.058],[9.519,2.113],[9.721,2.172],[9.923,2.236],[10.04,2.287],[10.1,2.322]];
