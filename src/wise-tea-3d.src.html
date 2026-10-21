@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Sage and Camomile Wise Tea・香境</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Noto+Serif+TC:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* 單一深色場景：愛琴海的深藍、石灰岩的灰白與大理石的暖金 */
+  :root{
+    color-scheme:dark;
+    --bg:#080b0e; --ink:#f2f0ea; --ink-2:#c0c6cc; --muted:#8a929a;
+    --gold:#dcc48e; --gold-lt:#efe3c2; --line:rgba(220,196,142,.3); --panel:rgba(10,14,20,.74);
+    --serif:"Playfair Display","Noto Serif TC",Georgia,serif;
+    --sans:system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+  }
+  /* iOS 26 Safari 會拿貼邊、滿版的 fixed 元素顏色把狀態列／網址列塗成色塊；這頁不用 fixed，
+     改成上下各多畫一段（--bt／--bb）、開場捲到 --bt，讓狀態列與網址列底下透出真正的場景 */
+  html,body{margin:0;background:var(--bg);color:var(--ink-2);font-family:var(--sans);overflow:hidden;}
+  body{position:relative;height:calc(var(--vh,100vh) + var(--bt,0px) + var(--bb,0px));}
+  #stage{position:absolute;left:0;top:0;width:100%;height:100%;}
+  #stage canvas{display:block;touch-action:none;}
+  .hud{position:absolute;pointer-events:none;z-index:5;}
+  .hud *{pointer-events:auto;}
+  .top{top:var(--bt,0px);left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 16px) max(18px,env(safe-area-inset-right,0px)) 0 max(18px,env(safe-area-inset-left,0px));
+    display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none;}
+  .back{white-space:nowrap;font-size:12.5px;color:var(--ink-2);text-decoration:none;border:1px solid var(--line);border-radius:20px;padding:6px 14px;background:var(--panel);backdrop-filter:blur(6px);}
+  .back:hover,.back:focus-visible{color:var(--gold);border-color:var(--gold);outline:none;}
+  .title{text-align:right;text-shadow:0 1px 12px rgba(0,0,0,.7),0 0 3px rgba(0,0,0,.45);}
+  .brand{font-family:var(--serif);font-size:10.5px;letter-spacing:4px;color:var(--gold);text-transform:uppercase;}
+  .name{font-family:var(--serif);font-size:30px;color:var(--ink);line-height:1.1;margin-top:4px;max-width:min(430px,62vw);margin-left:auto;}
+  .meta{font-size:11.5px;color:#efe6d2;line-height:1.6;margin-top:4px;letter-spacing:.5px;}
+  .tiers{left:max(18px,env(safe-area-inset-left,0px));bottom:calc(var(--bb,0px) + env(safe-area-inset-bottom,0px) + 18px);display:flex;flex-direction:column;gap:6px;}
+  .tier{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-2);padding:6px 12px 6px 8px;border-radius:18px;border:1px solid transparent;background:var(--panel);backdrop-filter:blur(6px);}
+  .tier b{font-family:var(--serif);font-weight:500;color:var(--ink);font-size:13px;letter-spacing:1px;}
+  .tier .dot{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c);}
+  .tier.on{border-color:var(--c);}
+  .tier:focus-visible{outline:1px solid var(--gold);}
+  .hint{right:max(18px,env(safe-area-inset-right,0px));bottom:calc(var(--bb,0px) + env(safe-area-inset-bottom,0px) + 22px);font-size:11px;color:var(--muted);text-align:right;line-height:1.7;max-width:46vw;}
+  .card{position:absolute;left:50%;bottom:calc(var(--bb,0px) + env(safe-area-inset-bottom,0px) + 18px);transform:translate(-50%,20px);opacity:0;transition:opacity .25s,transform .25s;
+    width:min(360px,calc(100vw - 36px));background:rgba(10,14,20,.9);border:1px solid var(--line);border-radius:16px;padding:16px 18px;z-index:6;backdrop-filter:blur(8px);pointer-events:none;}
+  .card.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+  .card .k{font-size:10.5px;letter-spacing:3px;color:var(--c,var(--gold));}
+  .card .n{font-family:var(--serif);font-size:22px;color:var(--ink);margin-top:4px;}
+  .card .n span{font-family:var(--sans);font-size:13px;color:var(--ink-2);margin-left:8px;}
+  .card p{margin:8px 0 0;font-size:13px;line-height:1.7;color:var(--ink-2);}
+  .card button{all:unset;position:absolute;top:10px;right:12px;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:4px;}
+  .card.show ~ .tiers,.card.show ~ .hint{opacity:0;pointer-events:none;}
+  .lbl{font-family:var(--sans);text-align:center;white-space:nowrap;transition:opacity .3s;pointer-events:auto;cursor:pointer;background:rgba(10,14,20,.55);padding:5px 11px 6px;border-radius:10px;backdrop-filter:blur(3px);}
+  .lbl .z{font-size:12.5px;color:var(--ink);letter-spacing:1px;}
+  .lbl .e{font-size:9.5px;color:var(--gold-lt);letter-spacing:1.5px;text-transform:uppercase;opacity:.8;}
+  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:9;background:var(--bg);transition:opacity .6s;}
+  #loading .brand{font-size:11px}
+  #loading .bar{width:120px;height:1px;background:var(--line);overflow:hidden;position:relative;}
+  #loading .bar::after{content:"";position:absolute;inset:0;width:40%;background:var(--gold);animation:ld 1.2s ease-in-out infinite;}
+  @keyframes ld{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+  #err{display:none;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:24px;z-index:10;background:var(--bg);color:var(--ink-2);font-size:14px;line-height:1.8;}
+  @media (max-width:520px){ .name{font-size:24px} .hint{display:none} }
+  @media (prefers-reduced-motion:reduce){ #loading .bar::after{animation:none} }
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="loading"><div class="brand">ORDIOLAB 原物所</div><div class="bar"></div></div>
+<div id="err">這個裝置的瀏覽器無法顯示 3D（需要 WebGL 2）。<br>請改用最新版 Safari 或 Chrome 開啟。</div>
+
+<div class="hud top">
+  <a class="back" onclick="if(history.length>1&&document.referrer.indexOf(location.origin+'/')===0){history.back();return false;}" href="__BACK_HREF__">← 回到香調環</a>
+  <div class="title">
+    <div class="brand">ORDIOLAB 原物所</div>
+    <div class="name">Sage and Camomile Wise Tea</div>
+    <div class="meta">希臘山丘賢者茶 · 淡香精 · ★ 4.38<br>春夏秋・日間｜愛琴海岬角的雅典娜神殿</div>
+  </div>
+</div>
+
+<div class="card" id="card" role="dialog" aria-live="polite">
+  <button type="button" id="card-x" aria-label="關閉">×</button>
+  <div class="k" id="card-k"></div>
+  <div class="n" id="card-n"></div>
+  <p id="card-p"></p>
+</div>
+
+<div class="hud tiers" id="tiers"></div>
+<div class="hud hint">拖曳旋轉・雙指縮放<br>點香材看介紹・點香調聚焦</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const C = (h)=>new THREE.Color(h);
+const TEX = { inscr:'__TEX_WT_INSCR__', label:'__TEX_WT_LABEL__' };
+
+// ---------- 場景設定：依香水的季節、時段與品牌故事 ----------
+// OrDioLab 原物所 Sage and Camomile Wise Tea 希臘山丘賢者茶（Jerry Lin）。靈感來自食色天然香料研究所所長 Fifi 的茶飲創作「希臘山丘賢者茶」：
+// 以鼠尾草與洋甘菊為主的希臘風格香草茶，「一種放鬆與沉靜的微風，一個釋放焦慮的暫停鍵」。食色的介紹：鼠尾草原生於地中海沿岸（包括希臘的海岸），
+// 古希臘人相信它有守護與療癒的力量；洋甘菊在希臘被稱為「土地的蘋果」。
+// Fragrantica 投票：春夏秋、日間 → 午後的愛琴海岬角（像蘇尼翁角）：白灰色的石灰岩岩盤長滿灌叢（希臘鼠尾草、百里香、薰衣草、洋甘菊），
+// 岬頂是一座只剩幾排柱子的多立克神殿，獻給智慧女神雅典娜（「賢者」）；神殿旁是她的橄欖樹，遠處有絲柏。海風輕輕吹過灌叢。
+// 台座是一顆倒下的大理石多立克柱頭，刻著德爾斐神諭的格言 ΓΝΩΘΙ ΣΑΥΤΟΝ（認識你自己）與 ΜΗΔΕΝ ΑΓΑΝ（凡事勿過度）——
+// 那個「暫停鍵」；旁邊一只紅繪的貓頭鷹杯（雅典娜的鳥，智慧的象徵）盛著冒熱氣的鼠尾草洋甘菊茶。
+const dirAzAlt=(az,alt)=>{ const a=THREE.MathUtils.degToRad(az), e=THREE.MathUtils.degToRad(alt); return new THREE.Vector3(-Math.sin(a)*Math.cos(e), Math.sin(e), -Math.cos(a)*Math.cos(e)); };   // az：從 -Z 往 -X 量的方位角
+const SCENE_CFG = {
+  sunDir: dirAzAlt(-64,25),                                  // 午後的太陽在右後方，斜照神殿的柱子、穿過瓶身
+  sunColor: C('#ffe4bc'), sunIntensity: 2.7,
+  zenith: C('#1e4e94'), horizon: C('#bcd3e2'), sunGlow: C('#ffe2b4'), horizonWarm: C('#f0dcc0'),
+  haze: C('#c4d4de'),
+  seaDeep: C('#0b3866'), seaMid: C('#14598a'), seaShallow: C('#2e9fb2'),
+  glassAbsorb: new THREE.Vector3(.05,.035,.04),
+};
+const WATER_Y = -24;
+// 海岬：中軸從大陸（+Z）往 -Z 伸進愛琴海，尖端在 z≈-168；兩側是石灰岩海崖，岸線有幾個小灣
+const capeCX=(z)=> -4 - 10*sstep(40,-170,z) + 3*Math.sin(z*.021+.8);
+const capeHW=(z)=>{ const w = z>50 ? 96+(z-50)*1.1 : 96 - 20*sstep(50,-60,z) - 10*sstep(-60,-150,z); return w; };
+function landSD(x,z){
+  let s = capeHW(z) - Math.abs(x-capeCX(z));
+  s += 7*Math.sin(z*.043+x*.006+1.1) + 4.5*Math.sin(z*.11+2.3) + 3*fbm(x*.03,4.4,z*.03,3)*2;      // 小灣與小岬
+  const tip = (-z-150);                                                                         // 尖端：圓頭
+  if(tip>0) s = Math.min(s, Math.sqrt(Math.max(0,capeHW(-150)**2 - tip*tip*9)) - Math.abs(x-capeCX(z)) + 2*Math.sin(x*.2));
+  return s; }   // >0 陸地、<0 海
+const TEMPLE = { x:-36, z:-116, a:.38, top:7.2 };          // 神殿：岬頂的小丘上，從預設視角看在瓶子左後方
+const sstep=(a,b,x)=>{ const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
+// ---------- 基礎 ----------
+const stage = document.getElementById('stage');
+let renderer;
+try{
+  renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
+  if(!renderer.capabilities.isWebGL2) throw new Error('webgl2');
+}catch(e){ document.getElementById('err').style.display='flex'; document.getElementById('loading').remove(); throw e; }
+const DPR = Math.min(window.devicePixelRatio, 2);
+renderer.setPixelRatio(DPR);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .95;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
+stage.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;z-index:2';
+document.body.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(SCENE_CFG.haze, 90, 760);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 3000);
+const clockU = { value:0 };
+
+// ---------- 小工具 ----------
+const loader = new THREE.TextureLoader();
+function tex(src, srgb=true){ const t = loader.load(src); if(srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t; }
+function canvasTex(w,h,draw,srgb=true){ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb) t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; }
+function rng(seed){ let s=seed>>>0||1; return ()=>{ s=Math.imul(s^(s>>>15),2246822507); s=Math.imul(s^(s>>>13),3266489909); s^=s>>>16; return (s>>>0)/4294967296; }; }
+function hash3(x,y,z){ let h=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(z,1274126177); h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967295; }
+function noise3(x,y,z){
+  const xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z); const xf=x-xi,yf=y-yi,zf=z-zi;
+  const s=t=>t*t*(3-2*t); const u=s(xf),v=s(yf),w=s(zf); let r=0;
+  for(let a=0;a<2;a++)for(let b=0;b<2;b++)for(let c=0;c<2;c++){ r+=hash3(xi+a,yi+b,zi+c)*(a?u:1-u)*(b?v:1-v)*(c?w:1-w); }
+  return r*2-1;
+}
+function fbm(x,y,z,o=4){ let a=.5,f=1,r=0; for(let i=0;i<o;i++){ r+=a*noise3(x*f,y*f,z*f); f*=2.03; a*=.5; } return r; }
+function displace(geo, amp, freq, oct=4, seed=0, mask){
+  const p=geo.attributes.position, n=new THREE.Vector3(), v=new THREE.Vector3();
+  geo.computeVertexNormals(); const nr=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); n.fromBufferAttribute(nr,i);
+    const k = mask?mask(v):1; const d = fbm(v.x*freq+seed, v.y*freq+seed*1.7, v.z*freq-seed, oct)*amp*k;
+    p.setXYZ(i, v.x+n.x*d, v.y+n.y*d, v.z+n.z*d); }
+  p.needsUpdate=true; geo.computeVertexNormals(); return geo;
+}
+function noiseCanvas(w,h,{base='#888',dots=0,dotCol='#000',dotR=[1,3],alpha=.3,seed=1}={}){
+  return (g)=>{ g.fillStyle=base; g.fillRect(0,0,w,h); const r=rng(seed);
+    for(let i=0;i<dots;i++){ g.globalAlpha=alpha*r(); g.fillStyle=dotCol; g.beginPath(); g.arc(r()*w,r()*h,dotR[0]+r()*(dotR[1]-dotR[0]),0,7); g.fill(); } g.globalAlpha=1; };
+}
+
+// 花瓣（沿 +X 生長，花瓣面朝 +Y）
+function petalGeometry(o){
+  const { len=1, wid=.4, segL=16, segW=8, profile=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.92+.08)),.75),
+    cup=.15, curl=.15, droop=0, frill=0, frillFreq=10, frillTip=false, twist=0, base='#ffffff', tip='#ffffff', edge=null, seed=1 } = o;
+  const pos=[], col=[], uv=[], idx=[]; const cb=C(base), ct=C(tip), ce=edge?C(edge):null, tmp=new THREE.Color();
+  for(let i=0;i<=segL;i++){ const t=i/segL; const w=wid*profile(t);
+    for(let j=0;j<=segW;j++){ const u=j/segW-.5;
+      let x=t*len, z=u*w, y=cup*w*(4*u*u) + curl*len*t*t - droop*len*t*t;
+      if(frill){ const e=frillTip ? Math.pow(t,3)*(.6+.4*Math.abs(2*u)) : Math.pow(Math.abs(2*u),2)*.7 + Math.pow(t,6); y += frill*Math.sin(frillFreq*(u*3.1+t*1.7)+seed)*e + frill*.6*noise3(u*9,t*9,seed)*e; }
+      if(twist){ const a=twist*t; const yy=y*Math.cos(a)-z*Math.sin(a), zz=y*Math.sin(a)+z*Math.cos(a); y=yy; z=zz; }
+      pos.push(x,y,z); uv.push(j/segW,t);
+      tmp.copy(cb).lerp(ct, Math.pow(t,.8)); if(ce) tmp.lerp(ce, Math.pow(Math.abs(2*u),3)*.6*t);
+      col.push(tmp.r,tmp.g,tmp.b);
+    } }
+  for(let i=0;i<segL;i++)for(let j=0;j<segW;j++){ const a=i*(segW+1)+j, b=a+segW+1; idx.push(a,b,a+1, b,b+1,a+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+function petalMat(o={}){ return new THREE.MeshPhysicalMaterial(Object.assign({ vertexColors:true, side:THREE.DoubleSide, roughness:.5, sheen:1, sheenRoughness:.5, sheenColor:C('#ffffff'), }, o)); }
+function place(mesh, {yaw=0, elev=0, roll=0, x=0, y=0}={}){ const g=new THREE.Group(); g.rotation.y=yaw; g.position.y=y; mesh.rotation.z=elev; mesh.rotation.x=roll; mesh.position.x=x; g.add(mesh); return g; }
+function stemCurve(pts){ return new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p))); }
+function tube(curve, r, mat, seg=48){ return new THREE.Mesh(new THREE.TubeGeometry(curve, seg, r, 8, false), mat); }
+// 沿莖生長的葉片（InstancedMesh）
+function leavesAlong(curve, geo, mat, { count=20, perNode=2, elev=.9, yawStep=Math.PI/2, from=.1, to=.98, scale=(t)=>1, jitter=.1, seed=3 }={}){
+  const n=count*perNode, im=new THREE.InstancedMesh(geo, mat, n); const r=rng(seed);
+  const up=new THREE.Vector3(0,1,0), q=new THREE.Quaternion(), m=new THREE.Matrix4(), e=new THREE.Euler(), qq=new THREE.Quaternion(), s=new THREE.Vector3();
+  let k=0;
+  for(let i=0;i<count;i++){ const t=from+(to-from)*i/(count-1||1); const p=curve.getPointAt(t), tg=curve.getTangentAt(t);
+    q.setFromUnitVectors(up, tg);
+    for(let j=0;j<perNode;j++){ const yaw=i*yawStep + j*2*Math.PI/perNode + (r()-.5)*jitter*3;
+      e.set(0,yaw,0); qq.setFromEuler(e); const q2=q.clone().multiply(qq);
+      e.set(0,0,elev+(r()-.5)*jitter); qq.setFromEuler(e); q2.multiply(qq);
+      const sc=scale(t)*(1+(r()-.5)*jitter); s.set(sc,sc,sc); m.compose(p,q2,s); im.setMatrixAt(k++,m); } }
+  im.instanceMatrix.needsUpdate=true; return im;
+}
+function fitTo(group, size){ const b=new THREE.Box3().setFromObject(group), s=new THREE.Vector3(), c=new THREE.Vector3(); b.getSize(s); b.getCenter(c);
+  const k=size/Math.max(s.x,s.y,s.z); const wrap=new THREE.Group(); group.position.sub(c); wrap.add(group); wrap.scale.setScalar(k); return wrap; }
+
+
+const windU = { value:0 };
+function windMaterial(opts, amp=1){
+  const m=new THREE.MeshStandardMaterial(Object.assign({ color:0xffffff, vertexColors:true, roughness:.75, side:THREE.DoubleSide }, opts));
+  m.onBeforeCompile=(sh)=>{ sh.uniforms.uWind=windU; sh.vertexShader='uniform float uWind;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    `#include <begin_vertex>
+     vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+     float gust = sin(uWind*.6 + ip.x*.05)*.5+.5;
+     float sway = (sin(uWind*1.7 + ip.x*.35 + ip.z*.22) * .6 + sin(uWind*3.1 + ip.z*.7 + ip.x*.2)*.25) * (.5+gust) * ${amp.toFixed(3)};
+     float hh = max(position.y,0.); transformed.x += sway * hh*hh * .28; transformed.z += sway*hh*hh*.12;`); };
+  m.customProgramCacheKey=()=>'wind'+amp;
+  return m;
+}
+
+// ---------- 天空（共用 GLSL）：愛琴海午後的晴空。天頂是深的地中海藍，往地平線漸淡成帶一點水氣的淡藍白；
+// 太陽那側的天空偏暖，高空幾縷卷雲被海風拉成細絲 ----------
+const SKY_GLSL = `
+uniform vec3 uZenith, uHorizon, uSunGlow, uSunDir, uSunCol, uHorizonWarm; uniform float uSkyT;
+float h3(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm3(vec3 p){ float a=.5,r=0.; for(int i=0;i<5;i++){ r+=a*vn(p); p*=2.02; a*=.5; } return r; }
+vec3 skyColor(vec3 d){
+  float h = max(d.y, -0.04);
+  vec2 sxz = normalize(uSunDir.xz); float az = dot(normalize(d.xz+1e-5), sxz);
+  vec3 hor = mix(uHorizon, uHorizonWarm, smoothstep(-.1, .95, az)*.8);
+  vec3 c = mix(hor, uZenith, pow(smoothstep(-.01, .36, h), .5));
+  float s = max(dot(d, uSunDir), 0.);
+  c += uSunGlow * (pow(s, 6.)*.32 + pow(s, 60.)*.7 + pow(s,600.)*1.4);
+  c += uSunCol * smoothstep(.99955, .99975, s) * 14.;
+  // 高空的卷雲：被風拉長的細絲，靠太陽那側亮
+  vec2 q = d.xz/(d.y+.14);
+  float cl = smoothstep(.52, .9, fbm3(vec3(q.x*.55+q.y*.2, q.y*2.6, 3.) + vec3(uSkyT*.0016,0.,0.)));
+  cl *= smoothstep(.05,.24,d.y)*(1.-smoothstep(.55,.9,d.y));
+  c = mix(c, mix(vec3(.92,.94,.97), vec3(1.,.95,.86), pow(s,2.)), cl*.55);
+  // 地平線上的水氣：越低越白
+  c = mix(c, vec3(.8,.86,.9), (1.-smoothstep(-.01,.06,d.y))*.42);
+  return c;
+}`;
+const skyUniforms = ()=>({ uZenith:{value:SCENE_CFG.zenith}, uHorizon:{value:SCENE_CFG.horizon}, uSunGlow:{value:SCENE_CFG.sunGlow}, uSunDir:{value:SCENE_CFG.sunDir}, uSunCol:{value:SCENE_CFG.sunColor}, uHorizonWarm:{value:SCENE_CFG.horizonWarm}, uSkyT:clockU });
+function skyMaterial(){
+  return new THREE.ShaderMaterial({
+    side:THREE.BackSide, depthWrite:false, fog:false,
+    uniforms: skyUniforms(),
+    vertexShader:`varying vec3 vD; void main(){ vD = normalize(position); vec4 p = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position = p.xyww; }`,
+    fragmentShader: SKY_GLSL + `varying vec3 vD; void main(){ gl_FragColor = vec4(skyColor(normalize(vD)),1.); }`
+  });
+}
+// 岸線距離圖：海面著色器用它決定淺灘的藍綠、崖腳的白浪（範圍 ±SHORE.L，存 landSD 的值）
+const SHORE = { L:420, N:384 };
+const shoreTex=(()=>{ const N=SHORE.N, a=new Uint16Array(N*N);                // 半精度：手機也能線性內插
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const x=(i/(N-1)*2-1)*SHORE.L, z=(j/(N-1)*2-1)*SHORE.L; a[j*N+i]=THREE.DataUtils.toHalfFloat(landSD(x,z)); }
+  const t=new THREE.DataTexture(a,N,N,THREE.RedFormat,THREE.HalfFloatType); t.minFilter=t.magFilter=THREE.LinearFilter; t.needsUpdate=true; return t; })();
+// 愛琴海：遠處是深藍，岬角周圍的淺海透出石灰岩海床的藍綠；海風（西北的 meltemi）吹出一道道往東南走的波紋，
+// 崖腳一圈白浪，太陽那側是一條閃爍的光路
+function seaMaterial(){
+  return new THREE.ShaderMaterial({
+    fog:false,
+    uniforms:Object.assign(skyUniforms(),{ uDeep:{value:SCENE_CFG.seaDeep}, uMid:{value:SCENE_CFG.seaMid}, uShallow:{value:SCENE_CFG.seaShallow}, uHaze:{value:SCENE_CFG.haze},
+      tShore:{value:shoreTex}, uShoreL:{value:SHORE.L} }),
+    vertexShader:`varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+    fragmentShader: SKY_GLSL + `uniform vec3 uDeep, uMid, uShallow, uHaze; uniform sampler2D tShore; uniform float uShoreL; varying vec3 vW;
+      // 波：幾道方向不同的長浪＋細碎的風浪（只算法向）
+      vec2 wave(vec2 p, float t){
+        vec2 g=vec2(0.);
+        vec2 D1=normalize(vec2(.8,-.6)), D2=normalize(vec2(.55,-.84)), D3=normalize(vec2(.95,-.3)), D4=normalize(vec2(.3,-.95));
+        float k1=.11, k2=.19, k3=.33, k4=.6;
+        g += D1*k1*.55*cos(dot(D1,p)*k1 - t*1.05);
+        g += D2*k2*.32*cos(dot(D2,p)*k2 - t*1.38+1.3);
+        g += D3*k3*.18*cos(dot(D3,p)*k3 - t*1.8+2.1);
+        g += D4*k4*.09*cos(dot(D4,p)*k4 - t*2.4+.7);
+        return g; }
+      void main(){
+        vec2 p = vW.xz; float t=uSkyT;
+        float dist = length(vW.xz - cameraPosition.xz);
+        float fade = 1.-smoothstep(120.,900.,dist);                                    // 遠處的細波看不清，平滑成一片
+        vec2 g = wave(p,t)*fade;
+        float e=.6; vec3 q=vec3(p*.35, t*.25);
+        vec2 gd = vec2(fbm3(q+vec3(e,0.,0.)+vec3(t*.3,0.,-t*.2))-fbm3(q-vec3(e,0.,0.)+vec3(t*.3,0.,-t*.2)), fbm3(q+vec3(0.,e,0.)+vec3(t*.3,0.,-t*.2))-fbm3(q-vec3(0.,e,0.)+vec3(t*.3,0.,-t*.2)))*.55;
+        g += gd*(1.-smoothstep(40.,320.,dist));
+        vec3 n = normalize(vec3(-g.x, 1., -g.y));
+        vec3 v = normalize(cameraPosition - vW);
+        float fres = .02 + .98*pow(1.-max(dot(n,v),0.),5.);
+        vec3 r = reflect(-v,n); r.y=abs(r.y)+.01;
+        vec3 refl = skyColor(r);
+        // 岸線距離：淺灘透出海床、崖腳的白浪
+        vec2 suv = p/(2.*uShoreL)+.5; float sd = -texture2D(tShore, suv).r;   // 離岸多遠（海裡為正）
+        if(suv.x<0.||suv.x>1.||suv.y<0.||suv.y>1.) sd=400.;
+        vec3 body = mix(uMid, uDeep, smoothstep(25.,160.,sd));
+        body = mix(uShallow, body, smoothstep(2.,26.,sd + (fbm3(vec3(p*.06,2.))-.5)*14.));
+        body *= .85 + .3*fbm3(vec3(p*.02, 5.+t*.01));
+        // 太陽穿進浪裡：迎光那側的浪頭透出一點藍綠
+        float sss = pow(max(dot(normalize(vec3(uSunDir.x,0.,uSunDir.z)), -v),0.),3.)*max(g.x*uSunDir.x+g.y*uSunDir.z,0.)*6.;
+        body += uShallow*sss*.35;
+        vec3 c = mix(body, refl, fres*.92);
+        // 太陽的光路：細碎閃爍的反光
+        float sp = max(dot(r, uSunDir),0.);
+        float glint = pow(sp, 900.)*40. + pow(sp, 90.)*1.2;
+        float tw = smoothstep(.62,.95, vn(vec3(p*2.3, t*2.2)));
+        c += uSunCol * (glint*(.35+1.4*tw)) * (1.-smoothstep(500.,1600.,dist)*.6);
+        // 崖腳的白浪：一圈貼著岸、隨浪湧進退
+        float surge = .5+.5*sin(t*.9 - sd*.7 + fbm3(vec3(p*.1,1.))*6.);
+        float foam = (1.-smoothstep(.0, 2.2+1.6*surge, sd)) * smoothstep(.35,.7, fbm3(vec3(p*.45, t*.3)) + .25*surge);
+        foam += (1.-smoothstep(2.,7.,sd))*smoothstep(.62,.82,fbm3(vec3(p*.3+vec2(t*.2,0.), t*.15)))*.5;   // 拍岸後散開的泡沫
+        float cap = smoothstep(.78,.86, fbm3(vec3(p*.09 + vec2(t*.05,-t*.04), t*.07)))*smoothstep(1.,.2,fres)*.35*fade;   // 零星的白頭浪
+        c = mix(c, vec3(.92,.95,.96), clamp(foam+cap,0.,.95));
+        c = mix(c, mix(uHaze, skyColor(normalize(vec3(-v.x,.02,-v.z))), .5), smoothstep(300., 2200., dist)*.5);
+        gl_FragColor = vec4(c,1.);
+        #include <colorspace_fragment>
+      }`
+  });
+}
+// ---------- 地形：瓶子立在岬角中段一片平緩的石灰岩岩盤上；岩盤往後（-Z）緩緩升到岬頂神殿所在的小丘，
+// 兩側與尖端是直落愛琴海的海崖；身後（+Z）接上大陸，一層層長滿灌叢的山坡 ----------
+const PED_H = 2.3;                          // 柱頭台座的高度（柱頭頂面 = 瓶底 = 0）
+const GROUND_Y = -PED_H;
+const LEDGE_R = 9;
+// 神殿台基：長軸沿 TEMPLE.a 的方向（本地座標 u 沿長軸、w 沿短軸）
+const TMP = { L:68, Wd:30, cols:[6,13] };
+const tLocal=(x,z)=>{ const dx=x-TEMPLE.x, dz=z-TEMPLE.z, c=Math.cos(TEMPLE.a), s=Math.sin(TEMPLE.a); return [dx*c+dz*s, -dx*s+dz*c]; };
+function templeSD(x,z){ const [u,w]=tLocal(x,z); const qx=Math.abs(u)-TMP.L/2, qz=Math.abs(w)-TMP.Wd/2; return Math.hypot(Math.max(qx,0),Math.max(qz,0))+Math.min(Math.max(qx,qz),0); }
+function plateauH(x,z){
+  let h = GROUND_Y + 1.1*fbm(x*.018,1.1,z*.018,3) + .35*fbm(x*.07,2.3,z*.07,2);
+  // 岬頂的小丘：神殿四周
+  const dT=templeSD(x,z); h += (TEMPLE.top-GROUND_Y)*sstep(46,4,dT)*(.9+.1*fbm(x*.05,3,z*.05,2));
+  // 往大陸那側的山坡
+  { const rise=Math.max(0,z-45)*.22*(1+.35*fbm(x*.01,5.1,z*.01,2)) + Math.max(0,z-160)*.25; h += 62*(1-Math.exp(-rise/62)); }   // 大陸的山丘：越遠越高，但收在 60 左右
+  // 石灰岩的層階：一階階低矮的岩坎（瓶子附近與神殿台基不分階）
+  const stepK = sstep(LEDGE_R+3, LEDGE_R+12, Math.hypot(x,z)) * sstep(3,10,dT);
+  if(stepK>0){ const S=1.4, hs=(h+fbm(x*.04,7,z*.04,2)*1.2)/S, f=hs-Math.floor(hs); const hq=(Math.floor(hs)+sstep(.72,1,f))*S - fbm(x*.04,7,z*.04,2)*1.2; h = h + (hq-h)*.55*stepK; }
+  return h;
+}
+function cliffK(s){ const t=sstep(0,7.5,s); return 1-Math.pow(1-t,2.3); }
+function terrainRaw(x,z){
+  const s=landSD(x,z);
+  if(s<0) return WATER_Y - 1.2 - Math.min(-s,90)*.28 + fbm(x*.05,9,z*.05,3)*1.4;                     // 海床：靠岸是落石與礁
+  const top=plateauH(x,z);
+  let h = WATER_Y + (top-WATER_Y)*cliffK(s);
+  // 崖面：橫向的層理（岩層一層層微微凸出）與浪蝕的凹口
+  const face = sstep(.3,2.5,s)*(1-sstep(5,8.5,s));
+  h += face*(.9*Math.sin((h-WATER_Y)*.55 + fbm(x*.08,1,z*.08,2)*2) );
+  return h;
+}
+function terrainH(x,z){
+  let h=terrainRaw(x,z);
+  const d=Math.hypot(x,z);
+  // 瓶子四周：一片平整的岩盤（柱頭就倒在上面）
+  const k=sstep(LEDGE_R+4, LEDGE_R-2, d);
+  h = h*(1-k) + (GROUND_Y + fbm(x*.25,2.2,z*.25,3)*.12 - Math.max(0,d-6)*.05)*k;
+  // 神殿台基：整平
+  const dT=templeSD(x,z); h = h + (TEMPLE.top - .6 + fbm(x*.2,4,z*.2,2)*.15 - h)*sstep(5,1,dT);
+  return h;
+}
+// ---------- 蕨葉（羽狀複葉）幾何：主軸拱起、兩側羽片由大到小 ----------
+function frondGeometry({ len=3, pinnae=26, pinnaLen=.7, pinnaWid=.13, arch=.55, lobes=true, seed=1, droop=0, seg=null, TS=14, RS=3 }={}){
+  const parts=[]; const r=rng(seed);
+  const pt=(t)=>new THREE.Vector3(len*(t*.42 + t*t*arch*.75), len*(Math.sin(t*Math.PI*.5)*.95 - t*t*(arch*.55+droop)), 0);
+  const cv=new THREE.CatmullRomCurve3([0,.15,.3,.45,.6,.75,.9,1].map(pt));
+  const rach=new THREE.TubeGeometry(cv, TS, len*.012, RS, false);
+  { const p=rach.attributes.position; for(let i=0;i<=TS;i++){ const c=cv.getPointAt(i/TS); const k=1-.75*(i/TS); for(let j=0;j<=RS;j++){ const id=i*(RS+1)+j; p.setXYZ(id, c.x+(p.getX(id)-c.x)*k, c.y+(p.getY(id)-c.y)*k, c.z+(p.getZ(id)-c.z)*k); } } rach.computeVertexNormals(); }
+  rach.deleteAttribute('uv'); const rc=new Float32Array(rach.attributes.position.count*3); for(let i=0;i<rc.length;i+=3){ rc[i]=.42; rc[i+1]=.5; rc[i+2]=.24; } rach.setAttribute('color',new THREE.BufferAttribute(rc,3)); parts.push(rach);
+  const up=new THREE.Vector3(0,0,1);
+  for(let i=0;i<pinnae;i++){ const t=.12+.86*(i/(pinnae-1)); const p=cv.getPointAt(t), tg=cv.getTangentAt(t);
+    const sizeK = Math.sin(Math.PI*Math.min(1,(t-.05)*1.05))*.85+.15;
+    for(const side of [-1,1]){
+      const g=petalGeometry({ len:pinnaLen*sizeK*(.9+r()*.2), wid:pinnaWid*sizeK, segL:seg||(lobes?7:4), segW:2, cup:.12, curl:-.05, frill:lobes?.018:0, frillFreq:lobes?22:6, frillTip:false,
+        profile:(u)=>Math.pow(Math.sin(Math.PI*Math.min(1,u*.9+.1)),.6)*(1-.55*u), base:'#ffffff', tip:'#f4f8ec', seed:i*2+(side>0?1:0) });
+      g.deleteAttribute('uv');
+      // 羽片沿 +X 生長：轉到與主軸垂直的 ±Z 方向，並稍微朝葉尖傾斜
+      const m=new THREE.Matrix4(); const q=new THREE.Quaternion();
+      const outDir=new THREE.Vector3().crossVectors(tg, new THREE.Vector3(0,0,1)).normalize(); // 平面內法向（不用）
+      const dir=new THREE.Vector3(0,0,side).addScaledVector(tg,.35).normalize();
+      q.setFromUnitVectors(new THREE.Vector3(1,0,0), dir);
+      const roll=new THREE.Quaternion().setFromAxisAngle(dir, side*.25); q.premultiply(roll);
+      m.compose(p, q, new THREE.Vector3(1,1,1)); g.applyMatrix4(m); parts.push(g); } }
+  return mergeGeometries(parts.map(g=>g.index?g.toNonIndexed():g));
+}
+
+// ---------- 環境（畫面、反射探針與 PMREM 共用） ----------
+const SUN_XZ = new THREE.Vector3(SCENE_CFG.sunDir.x,0,SCENE_CFG.sunDir.z).normalize();
+// 遠景：海平線上一座座基克拉澤斯的島（越遠越淡、越藍），大陸那側（+Z）是一層層長著灌叢的阿提卡丘陵
+function farLand(target, detail){
+  const haze=SCENE_CFG.haze, tc=new THREE.Color();
+  const mk=(pos,col,idx)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx);
+    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({ vertexColors:true, side:THREE.DoubleSide, fog:false })); m.renderOrder=-5; target.add(m); };
+  // 島：[方位角（從 -Z 往 -X 量，度）, 距離, 寬（度）, 高, 種子]
+  const ISL=[[-20,820,9,46,1],[8,1150,14,70,2],[34,700,5,26,3],[-48,980,12,58,4],[62,1300,16,64,5],[-78,620,4,18,6],[95,1050,8,40,7],[-100,1250,18,80,8],[20,460,3,10,9]];
+  ISL.forEach(([az0,D,wd,H,sd])=>{ const pos=[], col=[], idx=[]; const N=detail?90:26, ROWS=detail?4:2; const far=sstep(400,1300,D);
+    for(let i=0;i<=N;i++){ const t=i/N; const az=THREE.MathUtils.degToRad(az0+(t-.5)*wd); const dx=-Math.sin(az), dz=-Math.cos(az);
+      const prof=Math.pow(Math.sin(Math.PI*t),.8)*(.62+.38*Math.abs(Math.sin(t*7.3+sd))+.25*fbm(t*6+sd,sd,1,3));
+      const top=WATER_Y-1 + H*Math.max(0,prof);
+      for(let j=0;j<=ROWS;j++){ const k=j/ROWS; const y=WATER_Y-3+(top-WATER_Y+3)*k; pos.push(dx*D,y,dz*D);
+        tc.set('#7d8a84').lerp(C('#b9a98a'), Math.pow(Math.max(0,dx*SUN_XZ.x+dz*SUN_XZ.z),2)*.25*k).lerp(haze, .35+far*.5+(1-k)*.12); col.push(tc.r,tc.g,tc.b); } }
+    for(let i=0;i<N;i++) for(let j=0;j<ROWS;j++){ const a=i*(ROWS+1)+j, b=a+ROWS+1; idx.push(a,b,a+1, a+1,b,b+1); }
+    mk(pos,col,idx); });
+  // 大陸的丘陵：+Z 那一半圈，兩層
+  [{R:520,h:120,base:-10,far:.25},{R:760,h:190,base:-20,far:.55}].forEach((L,li)=>{ const pos=[], col=[], idx=[]; const N=detail?420:120, ROWS=detail?5:2;
+    for(let i=0;i<=N;i++){ const a=-.1*Math.PI + i/N*1.2*Math.PI; const dx=Math.cos(a), dz=Math.sin(a);
+      const edge=sstep(0,.35,Math.min(i/N,1-i/N));
+      const ridge=L.h*(.35+.45*Math.abs(fbm(dx*1.8+li*3,2,dz*1.8,4))*2+.2*Math.pow(Math.abs(Math.sin(a*(9+li*4))),.6))*edge;
+      const top=L.base+ridge;
+      for(let j=0;j<=ROWS;j++){ const k=j/ROWS; const y=WATER_Y-4+(top-WATER_Y+4)*Math.pow(k,.6); pos.push(dx*L.R,y,dz*L.R);
+        tc.set('#6f7656').lerp(C('#a8996e'), .25*k).lerp(haze, .3+L.far*.55+(1-k)*.2); col.push(tc.r,tc.g,tc.b); } }
+    for(let i=0;i<N;i++) for(let j=0;j<ROWS;j++){ const a=i*(ROWS+1)+j, b=a+ROWS+1; idx.push(a,b,a+1, a+1,b,b+1); }
+    mk(pos,col,idx); });
+}
+// 石灰岩：灰白帶一點奶油色的岩面，雨水溶蝕出一塊塊被裂溝（grike）隔開的岩盤，溝裡積著紅土與草；
+// 朝上的面長著橙黃與灰白的地衣，陡的崖面有一道道往下的灰黑水痕與鐵鏽色的染痕；遠處細節淡成平均色，不閃爍
+// mode：'ground'（地面：依頂點屬性 aSoil 決定紅土的多寡）、'rock'（岩塊、柱頭以外的石頭）
+const KARST_GLSL=`
+  float kH(vec2 p){ p=fract(p*vec2(.3183099,.3678794)+.1); p*=17.; return fract(p.x*p.y*(p.x+p.y)); }
+  vec2 kH2(vec2 p){ return vec2(kH(p), kH(p+19.19)); }
+  float kN(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(kH(i),kH(i+vec2(1,0)),f.x),mix(kH(i+vec2(0,1)),kH(i+vec2(1,1)),f.x),f.y); }
+  float kF(vec2 p){ return kN(p)*.5+kN(p*2.03+7.)*.3+kN(p*4.1+3.)*.2; }
+  // 細胞距離：回傳 (F2-F1)，越小越靠近兩塊岩盤之間的裂溝
+  float kCellId;
+  float kCell(vec2 p){ vec2 i=floor(p), f=fract(p); float d1=8., d2=8.; kCellId=0.;
+    for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){ vec2 g=vec2(float(x),float(y)); vec2 o=kH2(i+g)*.85+.075; vec2 r=g+o-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; kCellId=kH(i+g+3.3); } else if(d<d2) d2=d; }
+    return sqrt(d2)-sqrt(d1); }`;
+function karst(m, mode='ground', k=1){
+  m.onBeforeCompile=(sh)=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>',`#include <common>
+      varying vec3 vKW; varying vec3 vKN; varying float vKS;${mode==='ground'?' attribute float aSoil;':''}`)
+      .replace('#include <worldpos_vertex>',`#include <worldpos_vertex>
+      { vec4 mw=vec4(transformed,1.); vec3 mn=objectNormal;
+        #ifdef USE_INSTANCING
+        mw=instanceMatrix*mw; mn=mat3(instanceMatrix)*mn;
+        #endif
+        vKW=(modelMatrix*mw).xyz; vKN=normalize(mat3(modelMatrix)*mn); vKS=${mode==='ground'?'aSoil':'0.'}; }`);
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+      varying vec3 vKW; varying vec3 vKN; varying float vKS;`+KARST_GLSL+`
+      float kCrack, kDet, kRock, kPit, kDome;`)
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        { vec3 N=normalize(vKN); float up=smoothstep(.45,.85,N.y);
+          vec2 xz=vKW.xz; float fw=length(fwidth(xz));
+          kDet=1.-smoothstep(.12,.6,fw);                                                   // 遠處：細節淡掉
+          vec2 wp=xz+vec2(kN(xz*.35), kN(xz*.35+5.))*1.6;                                  // 扭一下座標，岩塊的邊才不會像格子
+          // 岩盤露頭與紅土：灰白的石灰岩一塊塊從紅土與乾草裡冒出來；陡的面一定是岩石
+          float soilK=clamp(vKS + (kF(xz*.05+9.)-.5)*1.3, 0., 1.);
+          float rockN=kF(wp*.16)*.7 + kF(wp*.6+2.)*.3;
+          kRock=max(smoothstep(.44,.52, rockN + (.5-soilK)*.6)${mode==='rock'?'*0.+1.':''}, 1.-up);
+          float c=kCell(wp*.42); float blk=kCellId;                                       // 一塊塊岩盤：每塊的色調略有不同、中間微微隆起
+          vec3 lime=mix(vec3(.37,.35,.32), vec3(.5,.47,.42), kF(xz*.11)*.6+blk*.4);
+          lime=mix(lime, vec3(.3,.3,.29), smoothstep(.5,.78,kF(xz*.45+3.))*.6);          // 灰黑的風化面
+          lime=mix(lime, vec3(.62,.54,.43), smoothstep(.62,.85,kF(xz*.2+8.))*.35);          // 帶點赭黃
+          lime*= .88+.2*mix(kN(xz*3.3+vKW.y*1.7),.5,1.-kDet);
+          // 陡的面：往下的水痕與鐵鏽染痕（崖面、岩坎）
+          float vert=1.-smoothstep(.35,.7,abs(N.y));
+          vec2 sp=vec2(dot(xz,vec2(.7,.7)), vKW.y);
+          float st=kN(vec2(sp.x*.9, sp.y*.06)), st2=kN(vec2(sp.x*2.3+11., sp.y*.1));
+          lime=mix(lime, vec3(.32,.32,.32), smoothstep(.55,.78,st)*vert*.7);
+          lime=mix(lime, vec3(.7,.48,.3), smoothstep(.62,.85,st2)*vert*.5);
+          // 岩盤上：細細的溶蝕裂溝（溝底積紅土）與一個個小溶坑
+          float cw=.015+.035*kN(xz*.5);
+          kCrack=(1.-smoothstep(cw*.4, cw*1.5, c))*smoothstep(.6,.8,kN(xz*.23+2.))*kRock*up*mix(.3,1.,kDet);   // 裂溝斷斷續續，不是一張完整的網
+          kDome=smoothstep(0.,.35,c);
+          kPit=smoothstep(.74,.8,kN(xz*1.3+11.))*kRock*up*kDet;
+          // 紅土與乾草，上面散著碎石
+          vec3 soil=mix(vec3(.34,.2,.13), vec3(.44,.28,.18), kN(xz*1.7));
+          vec3 straw=mix(vec3(.54,.47,.3), vec3(.45,.42,.27), kN(xz*2.3));
+          vec3 gnd=mix(soil, straw, smoothstep(.3,.7,kF(xz*.5+4.))*.75);
+          gnd*= .85+.3*mix(kN(xz*6.+1.),.5,1.-kDet);
+          float pb=smoothstep(.84,.9,kN(xz*4.5+17.))*kDet; gnd=mix(gnd, lime*.95, pb);
+          vec3 col=mix(gnd, lime, kRock);
+          col=mix(col, soil*.55, kCrack);
+          col=mix(col, lime*.72, kPit*.6);
+          // 地衣：朝上的岩面上一點點橙黃、灰白
+          float li=kN(xz*2.7+vKW.y), li2=kN(xz*6.1+5.);
+          col=mix(col, vec3(.8,.56,.22), smoothstep(.8,.9,li)*up*kRock*.7*kDet);
+          col=mix(col, vec3(.7,.7,.66), smoothstep(.78,.9,li2)*kRock*.3*kDet);
+          diffuseColor.rgb = col*diffuseColor.rgb; }`)
+      .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        { vec2 xz=vKW.xz;
+          float h = kRock*(kDome*.12 + kF(xz*1.1)*.09 + kN(xz*4.5+vKW.y)*.025)*kDet - kCrack*.08 - kPit*.03 + (1.-kRock)*kN(xz*7.)*.015*kDet;
+          vec2 dH=vec2(dFdx(h),dFdy(h)); vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition); vec3 R1=cross(sy,normal), R2=cross(normal,sx); float det=dot(sx,R1);
+          normal=normalize(abs(det)*normal - sign(det)*(dH.x*R1+dH.y*R2)); }`);
+  };
+  m.customProgramCacheKey=()=>'karst'+mode+k; return m; }
+// 大理石：神殿與柱頭用的白大理石，帶溫暖的金黃包漿、灰色的雨痕與細小的孔洞
+function marble(m, k=1){
+  m.onBeforeCompile=(sh)=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vMW; varying vec3 vMN;')
+      .replace('#include <worldpos_vertex>',`#include <worldpos_vertex>
+      { vec4 mw=vec4(transformed,1.); vec3 mn=objectNormal;
+        #ifdef USE_INSTANCING
+        mw=instanceMatrix*mw; mn=mat3(instanceMatrix)*mn;
+        #endif
+        vMW=(modelMatrix*mw).xyz; vMN=normalize(mat3(modelMatrix)*mn); }`);
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMW; varying vec3 vMN;'+KARST_GLSL+'\nfloat mDet;')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        { vec3 N=normalize(vMN); vec3 p=vMW*${(1/k).toFixed(3)};
+          mDet=1.-smoothstep(.1,.5,length(fwidth(p.xz))+length(fwidth(p.xy)));
+          float n1=kF(p.xz*.3+p.y*.2), n2=kF(vec2(p.x+p.z, p.y)*1.3);
+          vec3 c=mix(vec3(.82,.79,.73), vec3(.9,.88,.82), n1);
+          c=mix(c, vec3(.86,.74,.54), smoothstep(.4,.85,kF(p.xz*.12+p.y*.05))*.65);          // 金黃的包漿
+          float st=kN(vec2((p.x+p.z)*1.6, p.y*.12));
+          c=mix(c, vec3(.55,.55,.54), smoothstep(.6,.85,st)*(1.-smoothstep(.6,.9,abs(N.y)))*.55);   // 雨痕
+          c=mix(c, vec3(.72,.72,.7), smoothstep(.7,.9,n2)*.35);
+          c*= .94+.1*mix(kN(p.xz*7.+p.y*5.),.5,1.-mDet);
+          diffuseColor.rgb=c*diffuseColor.rgb; }`)
+      .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        { vec3 p=vMW*${(1/k).toFixed(3)}; float h=(kN(p.xz*6.+p.y*4.)*.015 - smoothstep(.9,.97,kN(p.xz*13.+p.y*11.))*.02)*mDet;
+          vec2 dH=vec2(dFdx(h),dFdy(h)); vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition); vec3 R1=cross(sy,normal), R2=cross(normal,sx); float det=dot(sx,R1);
+          normal=normalize(abs(det)*normal - sign(det)*(dH.x*R1+dH.y*R2)); }`);
+  };
+  m.customProgramCacheKey=()=>'marble'+k; return m; }
+function makeFoliageMat(k=1){ const m=new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85 });
+  m.onBeforeCompile=(sh)=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vHW;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvHW=(modelMatrix*instanceMatrix*vec4(transformed,1.)).xyz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+      varying vec3 vHW;
+      float fh(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+      float fn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f); return mix(mix(mix(fh(i),fh(i+vec3(1,0,0)),f.x),mix(fh(i+vec3(0,1,0)),fh(i+vec3(1,1,0)),f.x),f.y),mix(mix(fh(i+vec3(0,0,1)),fh(i+vec3(1,0,1)),f.x),mix(fh(i+vec3(0,1,1)),fh(i+vec3(1,1,1)),f.x),f.y),f.z); }`)
+      .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        float lf = fn(vHW*${(3.2*k).toFixed(2)})*.6 + fn(vHW*${(8.*k).toFixed(2)})*.4;
+        { vec2 dH=vec2(dFdx(lf),dFdy(lf)); vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition); vec3 R1=cross(sy,normal), R2=cross(normal,sx); float det=dot(sx,R1);
+          normal=normalize(abs(det)*normal - sign(det)*(dH.x*R1+dH.y*R2)*2.2); }`)
+      .replace('#include <color_fragment>','#include <color_fragment>\n        diffuseColor.rgb *= .55 + .65*smoothstep(.25,.75, fn(vHW*'+(3.2*k).toFixed(2)+')*.6 + fn(vHW*'+(8.*k).toFixed(2)+')*.4);');
+  };
+  m.customProgramCacheKey=()=>'foliage'+k; return m; }
+
+// ---------- 神殿的構件（多立克柱式） ----------
+const COL = { D:2.2, H:12, flutes:20, cap:1.0, aba:2.75 };
+// 柱身：20 道凹槽、上細下粗（收分）、中段微微鼓起（卷殺），沿 +Y 從 0 長到 h
+function fluteShaft(h, D, seg=24, ang=120){
+  const pos=[], idx=[]; const R0=D/2, N=COL.flutes;
+  for(let j=0;j<=seg;j++){ const t=j/seg, y=t*h; const R=R0*(1-.2*Math.pow(t*h/COL.H,1.15))*(1+.015*Math.sin(Math.PI*Math.min(1,t*h/COL.H)));
+    for(let i=0;i<=ang;i++){ const a=i/ang*Math.PI*2; const f=((a/(Math.PI*2)*N)%1)*2-1; const r=R*(1-.045*Math.sqrt(Math.max(0,1-f*f))); pos.push(Math.cos(a)*r, y, Math.sin(a)*r); } }
+  for(let j=0;j<seg;j++) for(let i=0;i<ang;i++){ const a=j*(ang+1)+i, b=a+ang+1; idx.push(a,b,a+1, a+1,b,b+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); return g; }
+// 柱頭：頸部三道環線、圓墊狀的鐘形（echinus），上面一塊方板（abacus）
+function capitalGeo(D){ const R=D/2*.8;
+  const pts=[[R*1.0,0],[R*1.0,.12],[R*1.03,.14],[R*1.03,.18],[R*1.0,.2],[R*1.03,.22],[R*1.03,.26],[R*1.0,.28]];
+  for(let i=0;i<=12;i++){ const t=i/12; const r=R*1.0+(COL.aba/2*.96-R*1.0)*Math.sin(t*Math.PI/2)*(.4+.6*t); pts.push([r, .28+t*.62]); }
+  pts.push([COL.aba/2*.96,.9],[.01,.9]); pts.unshift([.01,0]);
+  const ech=new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)), 48);
+  const ab=new THREE.BoxGeometry(COL.aba,.42,COL.aba); ab.translate(0,.9+.21,0);
+  return mergeGeometries([ech.toNonIndexed(), ab.toNonIndexed()]); }
+// 斷柱的斷口：參差的頂面（往柱心凹、邊緣缺角）
+function brokenTop(D, seed){ const g=new THREE.CircleGeometry(D/2*.97, 40, 0, Math.PI*2); g.rotateX(-Math.PI/2); const p=g.attributes.position;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i); const a=Math.atan2(z,x), r=Math.hypot(x,z)/(D/2); p.setY(i, (fbm(Math.cos(a)*1.5+seed,seed,Math.sin(a)*1.5,3)*.5+.15)*(1-r*r*.3)*D*.45 - r*.12); }
+  g.computeVertexNormals(); return g; }
+
+function buildWorld(target, detailed){
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 64, 32), skyMaterial()); sky.renderOrder=-10; sky.frustumCulled=false; target.add(sky);
+  farLand(target, detailed);
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(5600,5600,1,1), seaMaterial()); sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y; target.add(sea);
+  // 地面：同心環網格（近處密、遠處疏），貼著地形
+  const ring = new THREE.RingGeometry(.8, 430, detailed?420:80, detailed?300:40); ring.rotateX(-Math.PI/2);
+  { const p=ring.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i); const d=Math.hypot(x,z); const k=Math.pow(d/430,1.45)*430/Math.max(d,1e-3); p.setX(i,x*k); p.setZ(i,z*k); } }
+  const rp=ring.attributes.position, col=[], soilA=[]; const tmp=new THREE.Color();
+  for(let i=0;i<rp.count;i++){ const x=rp.getX(i), z=rp.getZ(i); const y=terrainH(x,z); rp.setY(i,y); const s=landSD(x,z), d=Math.hypot(x,z);
+    tmp.setRGB(1,1,1);
+    if(y<WATER_Y+.4) tmp.setRGB(.6,.66,.62);                                                     // 水線以下：濕的岩面
+    tmp.multiplyScalar(1-.25*sstep(2,.2,y-WATER_Y));
+    col.push(tmp.r,tmp.g,tmp.b);
+    // 紅土的多寡：遠處坡地多、瓶子附近的岩盤與神殿台基少、崖面沒有
+    let so=.6+.15*sstep(20,90,d);                                                               // 瓶子附近也以紅土、乾草與碎石為主，岩盤一塊塊露出來
+    so*=sstep(LEDGE_R-1,LEDGE_R+8,d)*.15+.85; so*=sstep(2,8,templeSD(x,z))*.8+.2; so*=sstep(4,9,s);
+    soilA.push(so); }
+  ring.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); ring.setAttribute('aSoil', new THREE.Float32BufferAttribute(soilA,1)); ring.computeVertexNormals();
+  { const nr=ring.attributes.normal; for(let i=0;i<nr.count;i++){ if(!(Math.abs(nr.getX(i))+Math.abs(nr.getY(i))+Math.abs(nr.getZ(i))>.5)) nr.setXYZ(i,0,1,0); } }
+  const ground = new THREE.Mesh(ring, karst(new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.88 }), 'ground'));
+  ground.receiveShadow=true; target.add(ground);
+
+  const r=rng(5); const V=THREE.Vector3;
+  const inst={}; const addI=(key,geo,m4,color)=>{ (inst[key]||(inst[key]={geo,xf:[],cl:[]})).xf.push(m4); inst[key].cl.push(color); };
+  const m4=()=>new THREE.Matrix4(); const q=new THREE.Quaternion(), e=new THREE.Euler(), sc=new V();
+  const withCol=(g,c=[1,1,1])=>{ if(g.attributes.uv) g.deleteAttribute('uv'); const a=new Float32Array(g.attributes.position.count*3); for(let i=0;i<a.length;i+=3){ a[i]=c[0]; a[i+1]=c[1]; a[i+2]=c[2]; } g.setAttribute('color',new THREE.BufferAttribute(a,3)); return g.index?g.toNonIndexed():g; };
+  const branches=[];
+  const tubeTaper=(pts,rad,tipK,seg=8,rs=7,list=branches)=>{ const cv=new THREE.CatmullRomCurve3(pts); const g=new THREE.TubeGeometry(cv,seg,rad,rs,false); const p=g.attributes.position;
+    for(let i=0;i<=seg;i++){ const c=cv.getPointAt(i/seg); const k=1-(1-tipK)*(i/seg); for(let j=0;j<=rs;j++){ const idx=i*(rs+1)+j; p.setXYZ(idx, c.x+(p.getX(idx)-c.x)*k, c.y+(p.getY(idx)-c.y)*k, c.z+(p.getZ(idx)-c.z)*k); } }
+    g.computeVertexNormals(); list.push(g); return cv; };
+  const T0=new V(TEMPLE.x, TEMPLE.top-.6, TEMPLE.z); const tc0=Math.cos(TEMPLE.a), ts0=Math.sin(TEMPLE.a);
+  const tw=(u,y,w)=>new V(T0.x+u*tc0-w*ts0, T0.y+y, T0.z+u*ts0+w*tc0);                       // 神殿本地座標 → 世界
+  const marbleM=marble(new THREE.MeshStandardMaterial({ roughness:.62, color:C('#ffffff') }));
+  // ---------- 神殿：三階台基上一圈 6×13 的多立克柱，大多已倒塌；面向瓶子的長邊還立著一排柱子，西南角留著一段額枋 ----------
+  { const STEP=.55, NS=3, LS=TMP.L-2*STEP*NS, WS=TMP.Wd-2*STEP*NS;                                  // 台基最上一階（柱座）的長寬
+    const steps=[]; for(let k=0;k<NS;k++){ const L=TMP.L-2*STEP*k, Wd=TMP.Wd-2*STEP*k; const b=new THREE.BoxGeometry(L,STEP,Wd, Math.ceil(L/3), 1, Math.ceil(Wd/3)); b.translate(0,STEP*(k+.5),0); steps.push(b.toNonIndexed()); }
+    const stepG=mergeGeometries(steps); { const p=stepG.attributes.position; for(let i=0;i<p.count;i++){ p.setY(i, p.getY(i)+fbm(p.getX(i)*.3,1,p.getZ(i)*.3,2)*.06); } stepG.computeVertexNormals(); }
+    const sm=new THREE.Mesh(stepG, marbleM); sm.position.copy(T0); sm.rotation.y=-TEMPLE.a; sm.receiveShadow=true; target.add(sm);
+    const Y0=STEP*NS;                                                                              // 柱子立在柱座上
+    const [NC,NL]=TMP.cols; const sw=(WS-COL.D*1.2)/(NC-1), sl=(LS-COL.D*1.2)/(NL-1);
+    const spots=[]; for(let i=0;i<NL;i++) for(const w of [-1,1]) spots.push([-LS/2+COL.D*.6+i*sl, w*(WS/2-COL.D*.6), w, i]);
+    for(let i=1;i<NC-1;i++) for(const u of [-1,1]) spots.push([u*(LS/2-COL.D*.6), -WS/2+COL.D*.6+i*sw, 0, -1]);
+    // 依蘇尼翁角的現況：面向瓶子的南側長邊（w=+1）幾乎都還立著，北側剩幾根，兩端只剩一兩根；其餘只剩柱礎或一兩節柱鼓
+    const shaftG=fluteShaft(COL.H, COL.D, detailed?22:6, detailed?120:24), capG=capitalGeo(COL.D);
+    const full=[], broken=[];
+    spots.forEach(([u,w,side,i],k)=>{ const rr=hash3(k,7,TEMPLE.top*10|0);
+      let keep = side>0 ? (i<10 ? 1 : (rr<.4?.4:0)) : side<0 ? ([1,2,3,7,8].includes(i)?1:(rr<.5?.25:0)) : (rr<.35?1:(rr<.7?.3:0));
+      if(keep>=1) full.push([u,w]); else if(keep>0) broken.push([u,w,keep*(.6+rr*.6)]); });
+    const shaftI=new THREE.InstancedMesh(shaftG, marbleM, full.length+broken.length), capI=new THREE.InstancedMesh(capG, marbleM, full.length);
+    full.forEach(([u,w],k)=>{ const p=tw(u,Y0,w); shaftI.setMatrixAt(k, m4().compose(p, q.setFromEuler(e.set(0,r()*6.28,0)), sc.set(1,1,1))); capI.setMatrixAt(k, m4().compose(new V(p.x,p.y+COL.H,p.z), q.setFromEuler(e.set(0,-TEMPLE.a,0)), sc.set(1,1,1))); });
+    const tops=[];
+    broken.forEach(([u,w,f],k)=>{ const p=tw(u,Y0,w); const h=COL.H*Math.min(.75,f); shaftI.setMatrixAt(full.length+k, m4().compose(p, q.setFromEuler(e.set(0,r()*6.28,0)), sc.set(1,h/COL.H,1)));
+      const bt=brokenTop(COL.D*(1-.2*Math.pow(h/COL.H,1.15)), k*3.7); bt.translate(p.x, p.y+h, p.z); tops.push(bt.toNonIndexed()); });
+    [shaftI,capI].forEach(m=>{ m.castShadow=false; m.receiveShadow=true; target.add(m); });
+    if(tops.length){ const tm=new THREE.Mesh(mergeGeometries(tops), marbleM); target.add(tm); }
+    // 額枋：南側長邊西段（i=0..6）還架著一段，上面是一小段三槽板與間板的簷壁
+    const AH=1.5, FH=1.45, uA=-LS/2+COL.D*.6, uB=uA+6*sl; const wS=WS/2-COL.D*.6;
+    const beam=new THREE.BoxGeometry(uB-uA+COL.aba, AH, COL.aba*.95, 30, 1, 2); const beamM=new THREE.Mesh(beam, marbleM);
+    beamM.position.copy(tw((uA+uB)/2, Y0+COL.H+1.32+AH/2, wS)); beamM.rotation.y=-TEMPLE.a; target.add(beamM);
+    // 簷壁：三槽板（凸出、刻兩道半的豎槽）與內凹的間板交替
+    const fr=[]; const nT=Math.round((uB-uA)/(sl/2))+1;
+    for(let k=0;k<nT;k++){ const u=uA+k*sl/2; const tg=new THREE.BoxGeometry(COL.aba*.42, FH, COL.aba*.95+.1); tg.translate(u-uA, 0, 0); fr.push(tg.toNonIndexed());
+      if(k<nT-1){ const mt=new THREE.BoxGeometry(sl/2-COL.aba*.42, FH, COL.aba*.9); mt.translate(u-uA+sl/4, 0, 0); fr.push(mt.toNonIndexed()); } }
+    const cor=new THREE.BoxGeometry(uB-uA+COL.aba+.8, .5, COL.aba*1.25); cor.translate((uA+uB)/2-uA, FH/2+.25, 0); fr.push(cor.toNonIndexed());
+    const frG=mergeGeometries(fr); const frM=new THREE.Mesh(frG, marbleM); frM.position.copy(tw(uA, Y0+COL.H+1.32+AH+FH/2, wS)); frM.rotation.y=-TEMPLE.a; target.add(frM);
+    // 內殿（cella）的牆基：一圈低矮、殘缺的石牆
+    const cw=[]; const cl=LS*.62, cwd=WS*.52;
+    for(let k=0;k<64;k++){ const t=k/64; const per=2*(cl+cwd); let s=t*per, u,w,rot=0; if(s<cl){ u=-cl/2+s; w=-cwd/2; } else if(s<cl+cwd){ u=cl/2; w=-cwd/2+(s-cl); rot=Math.PI/2; } else if(s<2*cl+cwd){ u=cl/2-(s-cl-cwd); w=cwd/2; } else { u=-cl/2; w=cwd/2-(s-2*cl-cwd); rot=Math.PI/2; }
+      const hh=(.4+1.6*Math.max(0,fbm(k*.3,2,1,2)+.3))*(hash3(k,3,1)<.85?1:0); if(hh<.2) continue; const b=new THREE.BoxGeometry(per/64*1.02, hh, .9); b.rotateY(rot); b.translate(u, Y0+hh/2, w); cw.push(b.toNonIndexed()); }
+    const cwM=new THREE.Mesh(mergeGeometries(cw), marbleM); cwM.position.copy(T0); cwM.rotation.y=-TEMPLE.a; target.add(cwM);
+    // 倒在台基四周的柱鼓與碎塊
+    const drum=(()=>{ const sh=fluteShaft(1.3, COL.D*.92, 2, detailed?60:16); const R=COL.D*.92/2*.96; const c0=new THREE.CircleGeometry(R,detailed?40:12); c0.rotateX(Math.PI/2); const c1=new THREE.CircleGeometry(R*.99,detailed?40:12); c1.rotateX(-Math.PI/2); c1.translate(0,1.3,0);
+      c0.deleteAttribute('uv'); c1.deleteAttribute('uv'); return mergeGeometries([sh.toNonIndexed(), c0.toNonIndexed(), c1.toNonIndexed()]); })();                    // 柱鼓：兩端封起來
+    for(let k=0;k<(detailed?26:8);k++){ const a=r()*6.28, rr=r(); const u=Math.cos(a)*(LS/2+3+rr*14), w=Math.sin(a)*(WS/2+3+rr*10); const p=tw(u,0,w); p.y=terrainH(p.x,p.z)+COL.D*.42;
+      const mm=new THREE.Mesh(drum, marbleM); mm.position.copy(p); mm.rotation.set(Math.PI/2+(r()-.5)*.2, r()*6.28, 0); target.add(mm); }
+  }
+  if(!detailed){ // 反射探針用：灌叢的低模
+    const m=new THREE.MeshStandardMaterial({ color:C('#6a7448'), roughness:.9 });
+    for(let i=0;i<300;i++){ const x=(Math.random()-.5)*260, z=(Math.random()-.5)*260; if(landSD(x,z)<6 || Math.hypot(x,z)<10) continue; const b=new THREE.Mesh(new THREE.SphereGeometry(1.1,8,5,0,Math.PI*2,0,1.6),m); b.scale.set(1.2,.6,1); b.position.set(x,terrainH(x,z),z); target.add(b); }
+    return { sky, ground, sea };
+  }
+
+  // ---------- 石灰岩塊：岩盤上被溶蝕得圓鈍、表面坑坑洞洞的大石，崖腳是落下來的稜角石 ----------
+  const lime=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,3)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.22,1.2,3,31); displace(g,.06,4.2,2,32);
+    { const p=g.attributes.position; for(let i=0;i<p.count;i++){ const y=p.getY(i); p.setY(i, y>0? y*.62 : y*.8); } } g.computeVertexNormals(); return g; })();
+  { const bc=['#ffffff','#f0eee6','#e4e0d6','#d8d4cc','#f4f0e4'].map(C);
+    for(let i=0;i<420;i++){ const a=r()*6.28, d=13+Math.pow(r(),.7)*190; const x=Math.cos(a)*d, z=Math.sin(a)*d; const s=landSD(x,z); if(s<1.5) continue;
+      if(d>24 && d<62 && r()<.75) continue;                                                       // 相機繞行的那一圈少放大石
+      if(templeSD(x,z)<3) continue; const k=(d<24||d>62? .6+r()*1.6 : .4+r()*.6)*(s<9?1.4:1);
+      e.set((r()-.5)*.4,r()*6.28,(r()-.5)*.4); q.setFromEuler(e);
+      addI('lime', lime, m4().compose(new V(x, terrainH(x,z)-k*.3, z), q, sc.set(k*(1+r()*.8), k*(.5+r()*.4), k*(.8+r()*.6))), bc[(r()*5)|0]); }
+    // 崖腳與海裡的落石、礁（低模）
+    const limeFar=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,2)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.25,1.2,3,33); g.computeVertexNormals(); return g; })();
+    for(let i=0;i<600;i++){ const x=(r()-.5)*700, z=(r()-.5)*700; const s=landSD(x,z); if(s>2 || s<-18) continue; const k=1.2+r()*3.2;
+      e.set(r()*3,r()*6.28,r()*3); q.setFromEuler(e); addI('limeFar', limeFar, m4().compose(new V(x, WATER_Y-k*.35+r()*.6, z), q, sc.set(k*(1+r()*.5), k*(.7+r()*.6), k)), bc[(r()*5)|0]); }
+  }
+
+  // ---------- 岩盤上的碎石：一片片稜角分明的石灰岩碎塊與小卵石 ----------
+  { const gg=mergeVertices(new THREE.IcosahedronGeometry(1,1)); gg.deleteAttribute('normal'); gg.deleteAttribute('uv'); displace(gg,.25,2,2,13); gg.scale(1,.45,.8); gg.computeVertexNormals();
+    const gc=['#ffffff','#e8e2d6','#d6d0c4','#c8c2b6','#f0e8da','#b8b2a6'].map(C); const gr=rng(707);
+    for(let i=0;i<2600;i++){ const a=gr()*6.28, d=4.4+Math.pow(gr(),.8)*30; const x=Math.cos(a)*d, z=Math.sin(a)*d; if(Math.hypot(x+5.4,z-3.4)<1.4) continue; const s=.05+Math.pow(gr(),2.6)*.42; e.set(gr()*3,gr()*6.28,gr()*3); q.setFromEuler(e);
+      addI('gravel', gg, m4().compose(new V(x, terrainH(x,z)+s*.15, z), q, sc.set(s,s,s)), gc[(gr()*6)|0]); } }
+
+  // ---------- 灌叢（phrygana）：希臘鼠尾草、百里香、薰衣草、刺地榆一叢叢矮矮地貼著岩盤，岩縫裡開著洋甘菊 ----------
+  const vr=rng(808);
+  const yaw=()=>{ e.set(0,vr()*6.28,0); return q.setFromEuler(e); };
+  const keep=(x,z,pad=0)=>Math.hypot(x,z)<6.2+pad || Math.hypot(x+5.6,z-3.1)<1.3+pad;           // 台座與茶杯四周留空
+  // 希臘鼠尾草：灰綠、絨毛的長橢圓葉一對對長在木質的莖上，堆成半球形的灌叢，頂上抽出幾支淡紫的花穗
+  const sageLeaf=(()=>{ const g=petalGeometry({ len:.22, wid:.08, segL:3, segW:1, cup:.18, curl:-.08, profile:t=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.95+.05)),.7)*(1-.25*t), base:'#ffffff', tip:'#ffffff' }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
+  const sageBush=(()=>{ const parts=[]; const sr=rng(61); const tc=new THREE.Color(); const dk=C('#58664c'), lt=C('#9fae96'), sil=C('#b8c2ae');
+    const core=new THREE.SphereGeometry(1,14,7,0,Math.PI*2,0,Math.PI*.55); core.scale(.78,.62,.74); parts.push(withCol(core,[.28,.32,.24]));
+    for(let i=0;i<120;i++){ const u=sr()*6.28, v=Math.acos(1-sr()*1.15); const p=new V(Math.sin(v)*Math.cos(u)*.84, Math.cos(v)*.68, Math.sin(v)*Math.sin(u)*.8); if(p.y<-.02) continue;
+      const n=p.clone().normalize(); const qq=new THREE.Quaternion().setFromUnitVectors(new V(0,1,0), n.clone().lerp(new V(0,1,0),.35).normalize()); qq.premultiply(new THREE.Quaternion().setFromAxisAngle(n, sr()*6.28));
+      for(const sd of [0,Math.PI]){ const l=sageLeaf.clone(); const q2=qq.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,sd,.5))); l.applyMatrix4(new THREE.Matrix4().compose(p,q2,new V(1,1,1).multiplyScalar(.9+sr()*.5)));
+        tc.copy(dk).lerp(lt, sstep(-.1,.6,p.y)*.8+sr()*.2); if(sr()<.25) tc.lerp(sil,.5); parts.push(withCol(l,[tc.r,tc.g,tc.b])); } }
+    for(let i=0;i<5;i++){ const a=sr()*6.28, rr=sr()*.45; const b=new V(Math.cos(a)*rr, .55, Math.sin(a)*rr); const top=b.clone().add(new V((sr()-.5)*.15,.55+sr()*.25,(sr()-.5)*.15));
+      const st=new THREE.CylinderGeometry(.008,.012,top.y-b.y,4); st.translate(0,(top.y-b.y)/2,0); st.applyMatrix4(new THREE.Matrix4().makeTranslation(b.x,b.y,b.z)); parts.push(withCol(st,[.42,.44,.32]));
+      for(let k=0;k<6;k++){ const fp=b.clone().lerp(top,.3+k*.12); const fl=new THREE.OctahedronGeometry(.02,0); fl.scale(1.6,.7,1.2); fl.rotateY(k*1.7); fl.translate(fp.x,fp.y,fp.z); parts.push(withCol(fl,[.7,.62,.84])); } }
+    return mergeGeometries(parts); })();
+  const sageFar=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,1)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position; const v=new V();
+    for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); if(v.y<0) v.y*=.15; const k=1+fbm(v.x*2.6,v.y*2.6,v.z*2.6,3)*.45; p.setXYZ(i,v.x*k*.82,v.y*k*.6,v.z*k*.78); } g.computeVertexNormals();
+    const c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const k=.62+.38*sstep(-.1,.5,v.y); c[i*3]=.5*k; c[i*3+1]=.56*k; c[i*3+2]=.44*k; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
+  // 百里香（頭狀百里香）：低矮緊密的墊子，夏天開滿一點點粉紫的花
+  const thyme=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,2)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position; const v=new V();
+    for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); if(v.y<0) v.y*=.1; const k=1+fbm(v.x*3.5,v.y*3.5,v.z*3.5,3)*.3; p.setXYZ(i,v.x*k*.7,v.y*k*.42,v.z*k*.66); } g.computeVertexNormals();
+    const c=new Float32Array(p.count*3); const tr=rng(71); for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const top=sstep(.05,.35,v.y); let cc=[.28,.34,.22];
+      if(top>.3 && tr()<.42) cc=[.7,.42,.62]; else if(tr()<.3) cc=[.36,.42,.28]; c[i*3]=cc[0]; c[i*3+1]=cc[1]; c[i*3+2]=cc[2]; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
+  // 法國薰衣草（Lavandula stoechas）：灰綠的細葉一叢，頂上是深紫的花穗，花穗頂端兩三片淡紫的「兔耳」苞片
+  const lavender=(()=>{ const parts=[]; const lr=rng(81);
+    const leaf=petalGeometry({ len:.32, wid:.03, segL:3, segW:1, cup:.2, curl:.1, base:'#ffffff', tip:'#ffffff' }); leaf.deleteAttribute('uv');
+    for(let i=0;i<46;i++){ const l=leaf.clone(); l.applyMatrix4(new THREE.Matrix4().compose(new V((lr()-.5)*.25,.02+lr()*.25,(lr()-.5)*.25), new THREE.Quaternion().setFromEuler(new THREE.Euler(0,lr()*6.28,.7+lr()*.6)), new V(1,1,1))); parts.push(withCol(l,[.42,.5,.38])); }
+    for(let i=0;i<14;i++){ const a=lr()*6.28, rr=lr()*.2; const h=.55+lr()*.3; const b=new V(Math.cos(a)*rr,.2,Math.sin(a)*rr), tp=b.clone().add(new V(Math.cos(a)*.1,h,Math.sin(a)*.1));
+      const st=new THREE.CylinderGeometry(.006,.009,h,3); st.translate(0,h/2,0); const m=new THREE.Matrix4().compose(b, new THREE.Quaternion().setFromUnitVectors(new V(0,1,0), tp.clone().sub(b).normalize()), new V(1,1,1)); st.applyMatrix4(m); parts.push(withCol(st,[.4,.46,.32]));
+      const sp=new THREE.CylinderGeometry(.035,.04,.16,6); sp.translate(0,.08,0); sp.applyMatrix4(new THREE.Matrix4().compose(tp, new THREE.Quaternion().setFromUnitVectors(new V(0,1,0), tp.clone().sub(b).normalize()), new V(1,1,1))); parts.push(withCol(sp,[.24,.14,.36]));
+      for(let k=0;k<3;k++){ const br=petalGeometry({ len:.1, wid:.06, segL:2, segW:1, cup:.2, base:'#ffffff', tip:'#ffffff' }); br.deleteAttribute('uv'); br.applyMatrix4(new THREE.Matrix4().compose(tp.clone().add(new V(0,.15,0)), new THREE.Quaternion().setFromEuler(new THREE.Euler(0,k*2.1+lr(),-1.1)), new V(1,1,1))); parts.push(withCol(br,[.66,.52,.8])); } }
+    return mergeGeometries(parts); })();
+  // 洋甘菊：細羽狀的葉叢上開著一朵朵白瓣黃心的小花（地中海野生的 Matricaria / Anthemis）
+  const chamomile=(()=>{ const parts=[]; const cr=rng(91);
+    const pet=petalGeometry({ len:.085, wid:.034, segL:2, segW:1, cup:.1, curl:-.1, base:'#ffffff', tip:'#ffffff' }); pet.deleteAttribute('uv');
+    for(let f=0;f<5;f++){ const a=cr()*6.28, rr=cr()*.22; const h=.18+cr()*.22; const P=new V(Math.cos(a)*rr, h, Math.sin(a)*rr);
+      const st=new THREE.CylinderGeometry(.004,.006,h,3); st.translate(P.x,h/2,P.z); parts.push(withCol(st,[.4,.5,.3]));
+      const tilt=new THREE.Quaternion().setFromEuler(new THREE.Euler((cr()-.5)*.6,0,(cr()-.5)*.6));
+      for(let k=0;k<10;k++){ const pp=pet.clone(); pp.applyMatrix4(new THREE.Matrix4().compose(new V(0,0,0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0,k/10*6.28,-.12)), new V(1,1,1))); pp.applyQuaternion(tilt); pp.translate(P.x,P.y,P.z); parts.push(withCol(pp,[.97,.97,.94])); }
+      const disc=new THREE.SphereGeometry(.03,6,3,0,Math.PI*2,0,Math.PI/2); disc.scale(1,.8,1); disc.applyQuaternion(tilt); disc.translate(P.x,P.y,P.z); parts.push(withCol(disc,[.95,.72,.12])); }
+    for(let i=0;i<8;i++){ const l=petalGeometry({ len:.16, wid:.05, segL:3, segW:1, cup:.1, frill:.012, frillFreq:30, base:'#ffffff', tip:'#ffffff' }); l.deleteAttribute('uv'); l.applyMatrix4(new THREE.Matrix4().compose(new V(0,.01,0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0,cr()*6.28,.3+cr()*.4)), new V(1,1,1))); parts.push(withCol(l,[.36,.48,.26])); }
+    return mergeGeometries(parts); })();
+  // 草：乾黃與灰綠的細草叢
+  const blade=(()=>{ const pos=[], col=[], idx=[]; const N=4;
+    for(let i=0;i<=N;i++){ const t=i/N, w=.025*(1-t*.9), z=.25*t*t, y=t*.8; pos.push(-w,y,z, w,y,z); const c=.5+.5*t; col.push(c,c,c, c,c,c); }
+    for(let i=0;i<N;i++){ const a=i*2; idx.push(a,a+1,a+2, a+1,a+3,a+2); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
+  const grassCols=['#b8a868','#c8b878','#a89a5a','#d0c088','#8a9a5a','#9aa86a','#7e8c50'].map(C);
+  const sageCols=['#ffffff','#f0f2ea','#e6eadc','#f6f2e6','#dfe4d6'].map(C);
+  const thymeCols=['#ffffff','#eef0e6','#e0e6d6','#f4ece4'].map(C);
+  const putTuft=(x,z,k)=>{ const n=5+(vr()*7|0), sk=(.5+vr()*.5)*k;
+    for(let j=0;j<n;j++){ const P=new V(x+(vr()-.5)*.5,0,z+(vr()-.5)*.5); P.y=terrainH(P.x,P.z)-.04; e.set((vr()-.5)*.5,vr()*6.28,(vr()-.5)*.5); q.setFromEuler(e); const s2=sk*(.6+vr()*.7);
+      addI('blade',blade,m4().compose(P,q,sc.set(s2,s2*(.8+vr()*.6),s2)), grassCols[(vr()*7)|0]); } };
+  const sample=(r0,r1)=>{ const a=vr()*6.28, d=Math.sqrt(r0*r0+vr()*(r1*r1-r0*r0)); return [Math.cos(a)*d, Math.sin(a)*d]; };
+  const ok=(x,z,pad=0)=>{ if(keep(x,z,pad)) return false; if(landSD(x,z)<5) return false; if(templeSD(x,z)<1.5) return false; return true; };
+  // 近處（細緻的模型）
+  for(let i=0;i<360;i++){ const [x,z]=sample(7,38); const s=.9+vr()*1.0; if(!ok(x,z,s)) continue; const d=Math.hypot(x,z); const kk=s*(d<11?.7:1);
+    addI('sage', sageBush, m4().compose(new V(x, terrainH(x,z)-.08, z), yaw(), sc.set(kk,kk*(.8+vr()*.4),kk)), sageCols[(vr()*5)|0]); }
+  for(let i=0;i<800;i++){ const [x,z]=sample(6.5,48); const s=.7+vr()*.9; if(!ok(x,z,s)) continue;
+    addI('thyme', thyme, m4().compose(new V(x, terrainH(x,z)-.05, z), yaw(), sc.set(s,s*(.8+vr()*.5),s)), thymeCols[(vr()*4)|0]); }
+  for(let i=0;i<300;i++){ const [x,z]=sample(7,44); const s=1.1+vr()*.7; if(!ok(x,z,.5)) continue;
+    addI('lav', lavender, m4().compose(new V(x, terrainH(x,z)-.03, z), yaw(), sc.set(s,s*(.85+vr()*.3),s)), C('#ffffff')); }
+  for(let i=0;i<900;i++){ const [x,z]=sample(6.3,36); if(!ok(x,z,.1)) continue; const s=1.1+vr()*.7;
+    addI('cham', chamomile, m4().compose(new V(x, terrainH(x,z)-.02, z), yaw(), sc.set(s,s,s)), C('#ffffff')); }
+  for(let i=0;i<2200;i++){ const [x,z]=sample(6.3,60); if(!ok(x,z,.1)) continue; const d=Math.hypot(x,z); putTuft(x,z, d<10?.7:1.2); }
+  // 遠處（低模的灌叢，填滿整片岬角與大陸的坡地）
+  { const fCols=['#ffffff','#e8ecd8','#d8dcc6','#c8ccb0','#f0eadc','#b8bc9c','#a8b090'].map(C);
+    for(let i=0;i<7000;i++){ const x=(vr()-.5)*520, z=-200+vr()*460; const d=Math.hypot(x,z); if(d<34) continue; if(!ok(x,z,0)) continue;
+      const s=(1.1+vr()*1.4)*(d>140?1.5:1); addI('sageFar', sageFar, m4().compose(new V(x, terrainH(x,z)-.15, z), yaw(), sc.set(s,s*(.7+vr()*.5),s)), fCols[(vr()*7)|0]); }
+    for(let i=0;i<2600;i++){ const x=(vr()-.5)*300, z=-180+vr()*300; const d=Math.hypot(x,z); if(d<44) continue; if(!ok(x,z,0)) continue; putTuft(x,z,1.4); } }
+
+  // ---------- 橄欖樹：岬頂神殿旁與大陸的坡地上，扭曲多瘤的灰色樹幹，樹冠是一叢叢正面灰綠、背面銀白的細長葉 ----------
+  const oLeaf=(()=>{ const g=petalGeometry({ len:.36, wid:.07, segL:3, segW:1, cup:.15, curl:-.05, base:'#ffffff', tip:'#ffffff' }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
+  const oliveCols=['#6e7a52','#7a8660','#5e6a46','#8a9670','#a8b49a','#b8c2aa','#66724c'].map(C);
+  const trunkB=[];
+  const olive=(p,H,seed)=>{ const orr=rng(seed);
+    const grow=(p0,dir,len,rad,lvl)=>{ const pts=[p0.clone()]; let pp=p0.clone(); const d=dir.clone(); const seg=lvl<1?6:4;
+      for(let i=1;i<=seg;i++){ d.add(new V((orr()-.5)*(lvl<1?.7:.45),lvl<1?.0:.03,(orr()-.5)*(lvl<1?.7:.45))).normalize(); pp=pp.clone().addScaledVector(d,len/seg); pts.push(pp); }
+      const cv=tubeTaper(pts, rad, lvl===0?.55:.5, lvl<1?16:6, lvl<1?12:6, trunkB);
+      if(lvl>=3){ for(let j=0;j<34;j++){ const c=cv.getPointAt(.25+.75*orr()).add(new V((orr()-.5)*1.6,(orr()-.4)*.9,(orr()-.5)*1.6)); e.set((orr()-.5)*2.4,orr()*6.28,(orr()-.5)*2.4); q.setFromEuler(e); const s=.9+orr()*.6;
+          addI('oleaf', oLeaf, m4().compose(c,q,sc.set(s,s,s)), oliveCols[(orr()*7)|0]); } return; }
+      const n=lvl===0?4:3; for(let c=0;c<n;c++){ const st=cv.getPointAt(lvl===0?.75+.25*orr():.4+.6*orr()); const a=c/n*6.28+orr()*1.2; const tilt=lvl===0?.7+orr()*.4:.9+orr()*.5;
+        const nd=new V(Math.cos(a)*Math.sin(tilt), Math.cos(tilt), Math.sin(a)*Math.sin(tilt)); if(lvl>0) nd.lerp(d,.3).normalize(); grow(st,nd,len*.66,rad*.52,lvl+1); } };
+    // 主幹：兩三股扭在一起的老幹
+    for(let k=0;k<2;k++){ const a=orr()*6.28; grow(p.clone().add(new V(Math.cos(a)*.35,0,Math.sin(a)*.35)), new V((orr()-.5)*.5,1,(orr()-.5)*.5).normalize(), H*.42, .62, 0); } };
+  const OLIVES=[]; { const orr=rng(31);
+    for(let i=0;i<34;i++){ let x,z; if(i<8){ const [u,w]=[(orr()-.5)*(TMP.L+24), (orr()<.5?-1:1)*(TMP.Wd/2+8+orr()*10)]; x=TEMPLE.x+u*Math.cos(TEMPLE.a)-w*Math.sin(TEMPLE.a); z=TEMPLE.z+u*Math.sin(TEMPLE.a)+w*Math.cos(TEMPLE.a); }
+      else { const a=orr()*6.28, d=66+orr()*150; x=Math.cos(a)*d; z=Math.sin(a)*d; }
+      if(landSD(x,z)<8 || templeSD(x,z)<5 || Math.hypot(x,z)<64) continue; OLIVES.push([x,z]); olive(new V(x,terrainH(x,z)-.3,z), 7+orr()*4, 100+i); } }
+  // ---------- 絲柏：神殿後方與大陸坡地上，又高又窄的深綠火焰 ----------
+  const cypress=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,3)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position; const v=new V();
+    for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const t=(v.y+1)/2; const w=Math.pow(Math.sin(Math.PI*Math.min(1,t*.9+.1)),.7)*(1-.55*t); const k=1+fbm(v.x*3,v.y*6,v.z*3,3)*.28;
+      p.setXYZ(i, v.x*w*k*.9, t*1-.04, v.z*w*k*.9); } g.computeVertexNormals();
+    const c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const k=.6+.4*sstep(0,1,v.y); c[i*3]=.11*k; c[i*3+1]=.2*k; c[i*3+2]=.1*k; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
+  { const crr=rng(41); const pts=[];
+    for(let i=0;i<10;i++){ const u=(crr()-.2)*TMP.L*1.1, w=-(TMP.Wd/2+14+crr()*20); pts.push([TEMPLE.x+u*Math.cos(TEMPLE.a)-w*Math.sin(TEMPLE.a), TEMPLE.z+u*Math.sin(TEMPLE.a)+w*Math.cos(TEMPLE.a)]); }
+    for(let i=0;i<70;i++){ const a=crr()*6.28, d=80+crr()*200; pts.push([Math.cos(a)*d, Math.sin(a)*d]); }
+    pts.forEach(([x,z])=>{ if(landSD(x,z)<6 || templeSD(x,z)<4 || Math.hypot(x,z)<66) return; const H=11+crr()*9, W=1.1+crr()*.7;
+      addI('cyp', cypress, m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,crr()*6.28,0)), sc.set(W*H*.075, H, W*H*.075)), C(['#ffffff','#e8eedd','#dfe6d2'][(crr()*3)|0])); }); }
+  // ---------- 大陸坡地上的阿勒坡松：傘形的樹冠 ----------
+  const pine=(()=>{ const parts=[]; const rr=rng(77); const trunkC=[.36,.3,.24], nd=C('#3a5228'), nl=C('#6a8446'), tc=new THREE.Color();
+    const tg=new THREE.CylinderGeometry(.12,.24,4.2,6,4); tg.translate(0,2.1,0); { const p=tg.attributes.position; for(let i=0;i<p.count;i++){ const y=p.getY(i); p.setX(i,p.getX(i)+Math.sin(y*.9)*.25); } } tg.computeVertexNormals(); parts.push(withCol(tg,trunkC));
+    const pad=(x,y,z,s)=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,1)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.22,2.6,3,(rr()*99)|0); g.scale(s,s*.42,s*.9); g.computeVertexNormals(); g.translate(x,y,z);
+      const p=g.attributes.position, c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ const k=sstep(y-s*.4,y+s*.4,p.getY(i)); tc.copy(nd).lerp(nl, k*.8+rr()*.15); c[i*3]=tc.r; c[i*3+1]=tc.g; c[i*3+2]=tc.b; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g.index?g.toNonIndexed():g; };
+    for(let i=0;i<9;i++){ const a=i*2.4+rr()*.6, rad=i===0?0:.6+rr()*1.3, y=4+rr()*1.0-rad*.25; parts.push(pad(Math.cos(a)*rad,y,Math.sin(a)*rad,1.1+rr()*.6)); }
+    return mergeGeometries(parts); })();
+  { const prr=rng(51); for(let i=0;i<260;i++){ const x=(prr()-.5)*480, z=60+prr()*240; if(landSD(x,z)<8 || Math.hypot(x,z)<75) continue; const s=1.3+prr()*1.2;
+      addI('pine', pine, m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,prr()*6.28,0)), sc.set(s,s,s)), C(['#ffffff','#e8efe0','#d8e2cc'][(prr()*3)|0])); } }
+
+  // 統一建立
+  const trunkTex=canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#8a8478'; g.fillRect(0,0,w,h); const rr=rng(13);
+    for(let i=0;i<300;i++){ g.strokeStyle=`rgba(${rr()<.6?'60,54,46':'176,170,156'},${.2+rr()*.35})`; g.lineWidth=1+rr()*3; g.beginPath(); let x=rr()*w, y=rr()*h; g.moveTo(x,y); for(let k=0;k<4;k++){ x+=(rr()-.5)*18; y+=14+rr()*30; g.lineTo(x,y); } g.stroke(); }
+    for(let i=0;i<400;i++){ g.fillStyle=`rgba(${rr()<.5?'200,198,186':'70,66,58'},${rr()*.4})`; g.fillRect(rr()*w,rr()*h,2+rr()*6,2+rr()*5); } });
+  trunkTex.wrapS=trunkTex.wrapT=THREE.RepeatWrapping; trunkTex.repeat.set(2,3);
+  if(trunkB.length){ const tm=new THREE.Mesh(mergeGeometries(trunkB), new THREE.MeshStandardMaterial({ map:trunkTex, bumpMap:trunkTex, bumpScale:3, roughness:.9, color:C('#d0ccc4') })); tm.castShadow=true; tm.receiveShadow=true; target.add(tm); }
+  const limeMat=karst(new THREE.MeshStandardMaterial({ roughness:.85 }),'rock',1.6);
+  const mats={ lime:limeMat, limeFar:limeMat, gravel:limeMat,
+    sage:windMaterial({ roughness:.7 },.08), sageFar:makeFoliageMat(1.3), thyme:makeFoliageMat(3.2), lav:windMaterial({ roughness:.7 },.35), cham:windMaterial({ roughness:.6 },.5),
+    blade:windMaterial({ roughness:.8 },.7), oleaf:windMaterial({ roughness:.55 },.06), cyp:makeFoliageMat(1.1), pine:makeFoliageMat(.9) };
+  Object.entries(inst).forEach(([k,v])=>{ const im=new THREE.InstancedMesh(v.geo, mats[k], v.xf.length); v.xf.forEach((m,i)=>{ im.setMatrixAt(i,m); im.setColorAt(i,v.cl[i]); });
+    im.castShadow=['sage','lime','lav','oleaf'].includes(k); im.receiveShadow=true; target.add(im); });
+  return { sky, ground, sea };
+}
+
+// 反射與照明用的環境
+const envScene = new THREE.Scene(); buildWorld(envScene, false);
+{ const l=new THREE.DirectionalLight(SCENE_CFG.sunColor, SCENE_CFG.sunIntensity); l.position.copy(SCENE_CFG.sunDir).multiplyScalar(100); envScene.add(l, new THREE.HemisphereLight(C('#cfe0ee'), C('#9a8c74'), 1.1)); }
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(envScene, .02, .1, 3000).texture;
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { type:THREE.HalfFloatType, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter });
+const cubeCam = new THREE.CubeCamera(.1, 3000, cubeRT); cubeCam.position.set(0,6,0); envScene.add(cubeCam); cubeCam.update(renderer, envScene);
+const world = buildWorld(scene, true);
+// ---------- 台座：一顆倒在岩盤上的大理石多立克柱頭 ----------
+// 上面一塊方板（abacus），下面是圓墊狀的鐘形（echinus）、三道環線與一小截帶凹槽的柱頸（斷口埋進岩盤）。
+// 方板四面刻著德爾斐神殿的格言：朝前 ΓΝΩΘΙ ΣΑΥΤΟΝ（認識你自己）、朝右 ΜΗΔΕΝ ΑΓΑΝ（凡事勿過度）——香水說的「暫停鍵」。
+// 一角缺了一塊，邊緣被風雨磨得圓鈍，表面是溫暖的金黃包漿與灰色雨痕。
+const ABA = { w:7.2, h:.95 };
+const pedestal = new THREE.Group(); scene.add(pedestal);
+const inscrTex = tex(TEX.inscr, false); inscrTex.generateMipmaps=true; inscrTex.minFilter=THREE.LinearMipmapLinearFilter; inscrTex.anisotropy=8;
+const capMarble = (()=>{ const m=marble(new THREE.MeshStandardMaterial({ roughness:.6, color:C('#f4f0e8') }), 1.1); const ob=m.onBeforeCompile;
+  m.onBeforeCompile=(sh)=>{ ob(sh); sh.uniforms.tInscr={value:inscrTex};
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform sampler2D tInscr; float insK;')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        { insK=0.; vec3 N=normalize(vMN); vec3 p=vMW;
+          float onFace = step(-${ABA.h.toFixed(3)}, p.y)*step(p.y, 0.);
+          float vv=(p.y+${ABA.h.toFixed(3)})/${ABA.h.toFixed(3)}; float vt=(vv-.18)/.64;
+          if(onFace>.5 && vt>0. && vt<1.){
+            if(N.z>.8){ float u=(p.x+${(ABA.w/2).toFixed(3)})/${ABA.w.toFixed(3)}; insK=texture2D(tInscr, vec2(u, .5+vt*.5)).r; }
+            else if(N.x>.8){ float u=(${(ABA.w/2).toFixed(3)}-p.z)/${ABA.w.toFixed(3)}; insK=texture2D(tInscr, vec2(u, vt*.5)).r; } }
+          diffuseColor.rgb *= 1.-.55*insK; }`)
+      .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+        { float h=-insK*.03; vec2 dH=vec2(dFdx(h),dFdy(h)); vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition); vec3 R1=cross(sy,normal), R2=cross(normal,sx); float det=dot(sx,R1);
+          normal=normalize(abs(det)*normal - sign(det)*(dH.x*R1+dH.y*R2)); }`); };
+  m.customProgramCacheKey=()=>'capmarble'; return m; })();
+{
+  // 方板：細分後把邊與角磨圓、一角敲缺一塊
+  const ab=new THREE.BoxGeometry(ABA.w, ABA.h, ABA.w, 48, 8, 48); const p=ab.attributes.position;
+  for(let i=0;i<p.count;i++){ let x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const ex=Math.abs(x)/(ABA.w/2), ez=Math.abs(z)/(ABA.w/2), ey=Math.abs(y)/(ABA.h/2);
+    const edge=Math.max(sstep(.9,1,ex)*sstep(.6,1,ey), sstep(.9,1,ez)*sstep(.6,1,ey), sstep(.94,1,ex)*sstep(.94,1,ez));
+    const n=fbm(x*1.6,y*1.6,z*1.6,3);
+    const k=1-edge*(.012+.02*Math.max(0,n));
+    // 右後角缺了一塊
+    const chip=Math.max(0, 1-Math.hypot(x-ABA.w/2, z+ABA.w/2, (y-ABA.h/2)*1.6)/1.15); const ck=1-chip*.18*(1+.4*n);
+    p.setXYZ(i, x*k*ck, y-(y>0?chip*.35:0), z*k*ck); }
+  ab.computeVertexNormals(); ab.translate(0,-ABA.h/2,0);
+  const am=new THREE.Mesh(ab, capMarble); am.castShadow=true; am.receiveShadow=true; pedestal.add(am);
+  // 鐘形＋環線＋柱頸：一條車削輪廓，柱頸有 20 道凹槽
+  const R0=ABA.w/2*.95, Rn=2.62; const prof=[];
+  prof.push([.01,-ABA.h]); prof.push([R0,-ABA.h]);
+  for(let i=1;i<=16;i++){ const t=i/16; const r=R0+(Rn*1.03-R0)*(1-Math.pow(1-t,2.2)); prof.push([r, -ABA.h-t*.82]); }
+  let y=-ABA.h-.82; for(const [dr,dy] of [[.06,.05],[.0,.04],[.06,.05],[.0,.04],[.06,.05],[.0,.05]]) { y-=dy; prof.push([Rn*1.03-dr, y]); }
+  prof.push([Rn, y-.02]);
+  prof.reverse();                                                                     // LatheGeometry 的輪廓要由下往上排，面才朝外
+  const ech=new THREE.LatheGeometry(prof.map(([r,yy])=>new THREE.Vector2(r,yy)), 120); ech.computeVertexNormals();
+  const em=new THREE.Mesh(ech, capMarble); em.castShadow=true; em.receiveShadow=true; pedestal.add(em);
+  const neckY=y-.02, neckH=neckY-GROUND_Y+.5;
+  const neck=fluteShaft(neckH, Rn*2/(1-.2*Math.pow(neckH/COL.H,1.15))/(1-.045), 6, 160);
+  neck.rotateX(Math.PI); neck.translate(0,neckY,0);
+  const nm=new THREE.Mesh(neck, capMarble); nm.castShadow=true; nm.receiveShadow=true; pedestal.add(nm);
+}
+
+// 雅典娜的貓頭鷹杯（glaux skyphos）：阿提卡紅繪的深杯，兩側各畫一隻正面看人的貓頭鷹，左右各一支橄欖枝；
+// 杯裡是剛泡好的鼠尾草洋甘菊茶（淡金綠），漂著兩朵洋甘菊，冒著熱氣
+const OWL = { x:-5.4, z:3.4 };
+const owlCup=new THREE.Group(); owlCup.position.set(OWL.x, GROUND_Y-.04, OWL.z); owlCup.rotation.y=.35; owlCup.scale.setScalar(1.5); scene.add(owlCup);
+{ const H=1.15, R=.62;
+  const out=[[.001,0],[.34,0],[.36,.03],[.36,.08],[.3,.1],[.32,.16]]; for(let i=0;i<=16;i++){ const t=i/16; out.push([.32+(R-.32)*Math.pow(Math.sin(t*Math.PI/2),.8)+.03*Math.sin(t*Math.PI), .16+t*(H-.16)]); }
+  out.push([R+.015,H+.01]);
+  const inn=out.slice(6).reverse().map(([r,y])=>[r-.045, Math.max(.22,y-.01)]); const prof=[...out, ...inn, [.001,.22]];
+  const tc=canvasTex(1536,512,(g,w,h)=>{ // 展開的杯身：黑釉、紅陶色的貓頭鷹與橄欖枝、杯底一圈留白的放射紋
+    g.fillStyle='#16110e'; g.fillRect(0,0,w,h);
+    const red='#c87a46', blk='#16110e';
+    g.fillStyle=red; g.fillRect(0,h*.9,w,h*.1); g.fillStyle=blk; for(let x=0;x<w;x+=24){ g.beginPath(); g.moveTo(x,h*.9); g.lineTo(x+12,h); g.lineTo(x+24,h*.9); g.fill(); }
+    const owl=(cx)=>{ const cy=h*.52, s=h*.28;
+      g.fillStyle=red; g.beginPath(); g.ellipse(cx, cy+s*.15, s*.42, s*.62, 0, 0, 7); g.fill();          // 身體
+      g.beginPath(); g.ellipse(cx, cy-s*.55, s*.36, s*.3, 0, 0, 7); g.fill();                             // 頭
+      g.fillStyle=blk; for(let i=0;i<5;i++) for(let j=-2;j<=2;j++){ g.beginPath(); g.arc(cx+j*s*.13+(i%2)*s*.065, cy+s*(-.05+i*.13), s*.035, 0, Math.PI); g.fill(); }   // 胸前的羽毛
+      g.lineWidth=3; g.strokeStyle=blk; g.beginPath(); g.ellipse(cx-s*.15, cy-s*.58, s*.12, s*.12, 0, 0, 7); g.stroke(); g.beginPath(); g.ellipse(cx+s*.15, cy-s*.58, s*.12, s*.12, 0, 0, 7); g.stroke();
+      g.fillStyle=blk; g.beginPath(); g.arc(cx-s*.15, cy-s*.58, s*.05, 0, 7); g.fill(); g.beginPath(); g.arc(cx+s*.15, cy-s*.58, s*.05, 0, 7); g.fill();
+      g.beginPath(); g.moveTo(cx-s*.03,cy-s*.48); g.lineTo(cx+s*.03,cy-s*.48); g.lineTo(cx,cy-s*.38); g.fill();          // 喙
+      g.lineWidth=2.5; g.beginPath(); g.moveTo(cx-s*.42,cy); g.quadraticCurveTo(cx-s*.5,cy+s*.5,cx-s*.2,cy+s*.75); g.stroke(); g.beginPath(); g.moveTo(cx+s*.42,cy); g.quadraticCurveTo(cx+s*.5,cy+s*.5,cx+s*.2,cy+s*.75); g.stroke();   // 翅膀
+      g.fillStyle=red; g.fillRect(cx-s*.25, cy+s*.74, s*.5, s*.06);                                         // 腳下的枝
+      const branch=(bx,dir)=>{ g.strokeStyle=red; g.lineWidth=3; g.beginPath(); g.moveTo(bx,h*.85); g.quadraticCurveTo(bx+dir*20,h*.55,bx+dir*8,h*.22); g.stroke();
+        for(let i=0;i<7;i++){ const yy=h*(.8-i*.08), xx=bx+dir*(14-Math.abs(i-3)*2); g.fillStyle=red; g.beginPath(); g.ellipse(xx+dir*14,yy-6,16,6,dir*.6,0,7); g.fill(); g.beginPath(); g.ellipse(xx-dir*10,yy-10,15,5,-dir*.6,0,7); g.fill(); } };
+      branch(cx-s*1.05,1); branch(cx+s*1.05,-1); };
+    owl(w*.25); owl(w*.75);
+    g.fillStyle=red; g.fillRect(0,h*.04,w,4); });
+  const cupM=new THREE.MeshPhysicalMaterial({ map:tc, roughness:.28, clearcoat:.7, clearcoatRoughness:.2 });
+  const lat=new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)), 64);
+  { const uv=lat.attributes.uv, p=lat.attributes.position; for(let i=0;i<p.count;i++){ const yy=p.getY(i); uv.setY(i, Math.min(1,Math.max(0,(yy-.04)/(H-.04)))); } }   // 貼圖照高度展開
+  const cup=new THREE.Mesh(lat, cupM); cup.castShadow=true; cup.receiveShadow=true; owlCup.add(cup);
+  // 兩支水平的把手（一支朝上翹一點，一支朝下，像真的貓頭鷹杯）
+  const hm=new THREE.MeshPhysicalMaterial({ color:C('#17120f'), roughness:.3, clearcoat:.6 });
+  for(const s of [1,-1]){ const t=new THREE.TorusGeometry(.17,.03,8,20,Math.PI); t.rotateX(Math.PI/2); t.rotateY(s>0?0:Math.PI); t.translate(s*(R+.0),H-.18,0); t.rotateZ(s*(s>0?.18:-.05)); const hh=new THREE.Mesh(t,hm); hh.castShadow=true; owlCup.add(hh); }
+  // 茶湯
+  const tea=new THREE.Mesh(new THREE.CircleGeometry(R-.05,48), new THREE.MeshPhysicalMaterial({ color:C('#b89a48'), roughness:.04, clearcoat:1, transmission:.15, thickness:.3 })); tea.rotation.x=-Math.PI/2; tea.position.y=H-.12; owlCup.add(tea);
+  // 漂在茶上的兩朵洋甘菊
+  const pet=petalGeometry({ len:.09, wid:.035, segL:2, segW:1, cup:.1, curl:-.1, base:'#ffffff', tip:'#f6f4ec' }); const pm=petalMat({ roughness:.6 });
+  for(const [fx,fz] of [[.18,.1],[-.14,-.2]]){ const f=new THREE.Group(); f.position.set(fx,H-.11,fz); owlCup.add(f);
+    for(let k=0;k<12;k++) f.add(place(new THREE.Mesh(pet,pm),{ yaw:k/12*6.28, elev:.05 }));
+    const disc=new THREE.Mesh(new THREE.SphereGeometry(.04,10,6,0,Math.PI*2,0,Math.PI/2), new THREE.MeshStandardMaterial({ color:C('#e8b020'), roughness:.7 })); disc.scale.y=.7; f.add(disc); }
+}
+// 杯旁散著一小束剛摘的鼠尾草（灰綠的絨毛葉）
+{ const g=new THREE.Group(); g.position.set(OWL.x+1.5, GROUND_Y+.02, OWL.z+.7); g.rotation.y=-.6; scene.add(g);
+  const lf=petalGeometry({ len:.42, wid:.16, segL:5, segW:2, cup:.15, curl:-.05, frill:.008, frillFreq:28, base:'#8a9a82', tip:'#a6b49c' });
+  const lm=petalMat({ roughness:.75, sheen:.8, sheenColor:C('#e8f0e0') }); const sm=new THREE.MeshStandardMaterial({ color:C('#7a8064'), roughness:.7 });
+  for(let s=0;s<3;s++){ const st=new THREE.Mesh(new THREE.CylinderGeometry(.012,.018,1.3,5), sm); st.rotation.z=Math.PI/2-.04; st.position.set(0,.03,s*.12-.12); st.rotation.y=(s-1)*.2; g.add(st);
+    for(let i=0;i<5;i++){ for(const sd of [-1,1]){ const m=new THREE.Mesh(lf,lm); m.scale.setScalar(.8+i*.08); const h=place(m,{ yaw:(s-1)*.2+sd*1.2, elev:.05 }); h.position.set(-.5+i*.24, .04, s*.12-.12); g.add(h); } } }
+  g.traverse(o=>{ if(o.isMesh) o.castShadow=true; }); }
+
+// ---------- 陽光裡的浮塵（被風吹散的洋甘菊花粉與草籽）、茶的熱氣、海鷗 ----------
+const shafts=[];
+const pollen=(()=>{ const N=500, g=new THREE.BufferGeometry(), p=new Float32Array(N*3), r=rng(8);
+  for(let i=0;i<N;i++){ const a=r()*6.28, d=Math.sqrt(r())*26; p[i*3]=Math.cos(a)*d; p[i*3+1]=r()*16-1; p[i*3+2]=Math.sin(a)*d; }
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  const spr=canvasTex(64,64,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,252,236,1)'); gr.addColorStop(.4,'rgba(250,246,226,.3)'); gr.addColorStop(1,'rgba(250,246,226,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
+  const m=new THREE.PointsMaterial({ size:.09, map:spr, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, color:C('#fff4dc') });
+  const pts=new THREE.Points(g,m); scene.add(pts); return pts; })();
+const fx=(()=>{
+  const tex=canvasTex(128,128,(g,w)=>{ const gr=g.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,255,255,.55)'); gr.addColorStop(.6,'rgba(255,255,255,.15)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,w,w); });
+  const steam=[]; for(let i=0;i<14;i++){ const m=new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false, opacity:0, color:C('#ffffff') }); const s=new THREE.Sprite(m); owlCup.add(s); steam.push({ s, ph:i/14 }); }
+  // 海鷗：幾隻在岬角外的海面上空滑翔、偶爾拍兩下翅膀
+  const gullM=new THREE.MeshStandardMaterial({ color:C('#f4f4f2'), roughness:.6, side:THREE.DoubleSide }), tipM=new THREE.MeshStandardMaterial({ color:C('#2a2a2c'), roughness:.6, side:THREE.DoubleSide });
+  const gulls=[]; const gr=rng(17);
+  for(let i=0;i<5;i++){ const b=new THREE.Group(); const body=new THREE.Mesh(new THREE.SphereGeometry(.22,10,6), gullM); body.scale.set(1,.8,2.4); b.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.15,10,6), gullM); head.position.set(0,.08,.5); b.add(head);
+    const wings=[]; for(const s of [1,-1]){ const wg=new THREE.Group(); b.add(wg); const sh=new THREE.Shape(); sh.moveTo(0,-.18); sh.lineTo(1.0,-.05); sh.lineTo(1.9,-.25); sh.lineTo(1.0,.25); sh.lineTo(0,.2); sh.closePath();
+      const geo=new THREE.ShapeGeometry(sh); geo.rotateX(-Math.PI/2); if(s<0) geo.scale(-1,1,1); const m=new THREE.Mesh(geo,gullM); wg.add(m);
+      const tip=new THREE.Mesh(new THREE.PlaneGeometry(.5,.3), tipM); tip.rotation.x=-Math.PI/2; tip.position.set(s*1.7,.002,-.08); wg.add(tip); wings.push(wg); }
+    b.scale.setScalar(1.6); scene.add(b); gulls.push({ b, wings, R:55+gr()*60, H:18+gr()*22, cx:(gr()-.5)*120, cz:-90-gr()*80, sp:(.05+gr()*.04)*(gr()<.5?1:-1), ph:gr()*6.28, fl:gr()*6.28 }); }
+  const update=(t,dt)=>{
+    steam.forEach(o=>{ const k=(t*.15+o.ph)%1; o.s.position.set(Math.sin(t*.7+o.ph*9)*.12*k + k*.5, 1.2+k*2.4, Math.cos(t*.5+o.ph*7)*.1*k - k*.2); o.s.scale.setScalar(.25+k*1.2); o.s.material.opacity=Math.sin(k*Math.PI)*.2; });
+    gulls.forEach(gl=>{ const a=gl.ph+t*gl.sp; const x=gl.cx+Math.cos(a)*gl.R, z=gl.cz+Math.sin(a)*gl.R*.6, y=gl.H+Math.sin(t*.3+gl.ph)*2;
+      gl.b.position.set(x,y,z); const dx=-Math.sin(a)*gl.R*Math.sign(gl.sp), dz=Math.cos(a)*gl.R*.6*Math.sign(gl.sp); gl.b.rotation.set(0, Math.atan2(dx,dz), -Math.sign(gl.sp)*.25);
+      const flap=Math.max(0,Math.sin(t*.4+gl.fl))>.85 ? Math.sin(t*9)*.6 : .12+Math.sin(t*1.3+gl.fl)*.04;
+      gl.wings[0].rotation.z=flap; gl.wings[1].rotation.z=-flap; });
+  };
+  update(20,0);                                                      // 先擺好一次：減少動態效果時不會更新，海鷗才不會停在原點（瓶子裡）
+  return { update };
+})();
+// ---------- 燈光：午後的太陽從右後方斜照，晴空的天光帶一點藍，石灰岩把陽光反射成暖白的地光 ----------
+const sun=new THREE.DirectionalLight(SCENE_CFG.sunColor, SCENE_CFG.sunIntensity);
+sun.position.copy(SCENE_CFG.sunDir).multiplyScalar(80); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{ left:-34,right:34,top:34,bottom:-34,near:1,far:220 }); sun.shadow.bias=-.0004; sun.shadow.normalBias=.04;
+sun.layers.enable(1); scene.add(sun);                       // 標籤在第 1 層，也要被照到
+const hemi=new THREE.HemisphereLight(C('#dce6ee'), C('#a89a80'), .85); hemi.layers.enable(1); scene.add(hemi);
+const fillL=new THREE.DirectionalLight(C('#eef4fa'), .75); fillL.position.set(-14,12,40); fillL.layers.enable(1); scene.add(fillL);   // 迎面的天光
+// ---------- 瓶身：OrDioLab 50ml（Op.325 20th version，25%） ----------
+// 依 Yoyo 拍的實品（正面、側面、背面、俯拍、斜上方、背光）量測；單位：玻璃寬 W = 4。
+// 玻璃幾乎是正方柱（側面寬 0.98W）、高 1.76W；四條直角邊各一道 45° 切角（俯拍量到約 0.105W）。
+// 四個面的中央都是一塊拱門形的平面：兩側筆直、上方兩角是橢圓弧，弧一路收到瓶肩；拱門外面是往內斜下去的弧形斜面
+// （離拱門越遠削得越多，上方兩角削出大片的弧面，所以瓶肩那一圈看起來有「⌐ ¬」的折角）。瓶肩是圓潤的大圓角，瓶底一道小切角。
+// 正面、背面中央各有一塊微微凸起的菱形玻璃台，標籤就貼在上面（台緣是 45° 的小斜邊，標籤下尖底下看得到台的尖角）。
+// 內腔是圓角方柱，側壁約 0.55、瓶底約 1.2（背光照）；吸管從瓶口直直插到瓶底。香水是淡淡的鼠尾草綠（背光照取色）。
+// 標籤：玫瑰銀的金屬框、薰衣草藍／薄荷綠／米白的千鳥格紙；正面燙 Sage Camomile Wise Tea、背面燙 OrDiO 字母組合。
+// 瓶蓋（霧面暖銀）：瓶口一圈套環、細一點的頸（上端微微外擴接到圓盤）、一片寬圓盤，最上面是削去底部的大圓球。
+const W=4.0, D=3.92, GH=7.05;
+const SHAPE={ ch:.42, pa:1.36, pz:1.33, rx:.44, ry:.9, sl:.9, round:.05, top:.26, bot:.16 };  // 切角、拱門半寬（正面／側面）、拱門上角的橢圓半徑、斜面的斜率、稜的圓角、瓶肩圓角、瓶底切角
+const BOSS={ m:.1, h:.07 };                                            // 菱形玻璃台：比標籤外框多出的寬度、凸起的高度
+const CAV={ x:1.42, z:1.40, y0:1.2, y1:6.55, rc:.5, rt:.35, rb:.45 };
+const LIQ_TOP=6.33;
+const LIQ_COLOR='#9cbc7e';                                             // Yoyo 的背光實拍：透過約 2.8 的香水，(131,164,119) / 背景 (219,223,224)
+const CAP={ collar:[1.43,.55], neck:[1.1,.74], disc:[1.83,.42], ball:1.466, cut:.40 };
+const LABEL={ w:2.6, h:5.25, cy:3.45, frame:.11 };
+const bottle = new THREE.Group(); scene.add(bottle);
+
+const MSAA = Math.min(4, renderer.capabilities.maxSamples||4);
+const sceneRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA, depthTexture:new THREE.DepthTexture(2,2) });
+const uViewProj = { value:new THREE.Matrix4() }, uInvVP = { value:new THREE.Matrix4() };
+// JS 版的外形距離場（與著色器一致），用來取樣出凸包網格
+const smax=(a,b,k)=>{ const h=Math.max(k-Math.abs(a-b),0)/k; return Math.max(a,b)+h*h*k*.25; };
+const PCY = GH-SHAPE.ry, KS = 1/Math.sqrt(1+SHAPE.sl*SHAPE.sl);
+function sdPanelJS(s,y,pa){ if(y<=PCY) return Math.max(Math.abs(s)-pa,0);
+  const qx=Math.abs(s)-(pa-SHAPE.rx), qy=(y-PCY)*SHAPE.rx/SHAPE.ry; return Math.max(Math.hypot(Math.max(qx,0),Math.max(qy,0))-SHAPE.rx,0); }
+function sdRhombusJS(px,py,bx,by){ px=Math.abs(px); py=Math.abs(py); const h=Math.min(Math.max(((bx-2*px)*bx-(by-2*py)*by)/(bx*bx+by*by),-1),1);
+  const d=Math.hypot(px-.5*bx*(1-h), py-.5*by*(1+h)); return d*Math.sign(px*by+py*bx-bx*by); }
+function sdOutJS(x,y,z){ const ax=Math.abs(x), az=Math.abs(z);
+  const dCh=(ax+az-(W/2+D/2-SHAPE.ch))*.7071;
+  const dF=(az + SHAPE.sl*sdPanelJS(x,y,SHAPE.pa) - D/2)*KS, dS=(ax + SHAPE.sl*sdPanelJS(z,y,SHAPE.pz) - W/2)*KS;
+  let d=smax(smax(dCh,dF,SHAPE.round),dS,SHAPE.round);
+  d=Math.max(d, (d+SHAPE.bot-y)*.7071, -y); d=smax(d, y-GH, SHAPE.top);
+  const dR=sdRhombusJS(x,y-LABEL.cy,LABEL.w/2,LABEL.h/2);
+  const dB=Math.max((az-(D/2+BOSS.h)+Math.max(dR-(BOSS.m-BOSS.h),0))*.7071, dR-BOSS.m);
+  return Math.min(d,dB); }
+const LIQK=(()=>{ const c=C(LIQ_COLOR), d=3; return new THREE.Vector3(-Math.log(c.r)/d, -Math.log(c.g)/d, -Math.log(c.b)/d); })();
+const f3=(v)=>v.toFixed(4);
+const glassMat = new THREE.ShaderMaterial({
+  uniforms:{ tScene:{value:sceneRT.texture}, tDepth:{value:sceneRT.depthTexture}, tEnv:{value:cubeRT.texture}, uViewProj,
+    uSunDir:{value:SCENE_CFG.sunDir}, uSunCol:{value:SCENE_CFG.sunColor}, uLiqTop:{value:LIQ_TOP}, uLiqK:{value:LIQK}, uAbs:{value:SCENE_CFG.glassAbsorb},
+    uInvVP:uInvVP, uDbg:{value:0}, uFill:{value:new THREE.Vector3(-14,12,40).normalize()}, uFloor:{value:C('#c9c2b4').multiplyScalar(1.05)} },
+  vertexShader:`varying vec3 vW, vL; void main(){ vL=position; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:`uniform sampler2D tScene, tDepth; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform mat4 modelMatrix; uniform vec3 uSunDir, uSunCol, uLiqK, uAbs, uFill, uFloor; uniform float uLiqTop; uniform mat4 uInvVP; uniform int uDbg;
+    varying vec3 vW, vL;
+    float h3(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+    float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+      return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),
+                 mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }
+    float fbm(vec3 p){ float a=.5,r=0.; for(int i=0;i<4;i++){ r+=a*vn(p); p*=2.03; a*=.5; } return r; }
+    vec2 toUV(vec3 w){ vec4 c=uViewProj*vec4(w,1.); return c.xy/c.w*.5+.5; }
+    float smax(float a, float b, float k){ float h=max(k-abs(a-b),0.)/k; return max(a,b)+h*h*k*.25; }
+    // 拱門形：兩側筆直、上方兩角是橢圓弧（p = 面上的橫向座標與高度）
+    float sdPanel(vec2 p, float pa){
+      if(p.y<=${f3(PCY)}) return max(abs(p.x)-pa,0.);
+      vec2 q=vec2(abs(p.x)-(pa-${f3(SHAPE.rx)}), (p.y-${f3(PCY)})*${f3(SHAPE.rx/SHAPE.ry)});
+      return max(length(max(q,0.))-${f3(SHAPE.rx)},0.); }
+    float ndot(vec2 a, vec2 b){ return a.x*b.x-a.y*b.y; }
+    float sdRhombus(vec2 p, vec2 b){ p=abs(p); float h=clamp(ndot(b-2.*p,b)/dot(b,b),-1.,1.); float d=length(p-.5*b*vec2(1.-h,1.+h)); return d*sign(p.x*b.y+p.y*b.x-b.x*b.y); }
+    // 外形：四條直角邊的 45° 切角 ∩ 四個面的弧形斜面（面 ≤ 半寬 − 斜率 × 到拱門形的距離）∩ 瓶底（小切角）∩ 圓潤的瓶肩；再聯集前後的菱形玻璃台
+    float sdOut(vec3 p){ vec3 a=abs(p);
+      float dCh=(a.x+a.z-${f3(W/2+D/2-SHAPE.ch)})*.7071;
+      float dF=(a.z + ${f3(SHAPE.sl)}*sdPanel(p.xy, ${f3(SHAPE.pa)}) - ${f3(D/2)})*${f3(KS)};
+      float dS=(a.x + ${f3(SHAPE.sl)}*sdPanel(p.zy, ${f3(SHAPE.pz)}) - ${f3(W/2)})*${f3(KS)};
+      float d=smax(smax(dCh,dF,${f3(SHAPE.round)}),dS,${f3(SHAPE.round)});
+      d=max(max(d,(d+${f3(SHAPE.bot)}-p.y)*.7071),-p.y); d=smax(d,p.y-${f3(GH)},${f3(SHAPE.top)});
+      float dR=sdRhombus(vec2(p.x,p.y-${f3(LABEL.cy)}), vec2(${f3(LABEL.w/2)},${f3(LABEL.h/2)}));
+      float dB=max((a.z-${f3(D/2+BOSS.h)}+max(dR-${f3(BOSS.m-BOSS.h)},0.))*.7071, dR-${f3(BOSS.m)});
+      return min(d,dB); }
+    // 內腔：圓角方柱（上下的圓角不同）
+    float sdCav(vec3 p){
+      vec2 q=abs(p.xz)-vec2(${f3(CAV.x-CAV.rc)},${f3(CAV.z-CAV.rc)}); float dxz=min(max(q.x,q.y),0.)+length(max(q,0.))-${f3(CAV.rc)};
+      float r = p.y>${f3((CAV.y0+CAV.y1)/2)} ? ${f3(CAV.rt)} : ${f3(CAV.rb)};
+      vec2 w=vec2(dxz+r, abs(p.y-${f3((CAV.y0+CAV.y1)/2)})-${f3((CAV.y1-CAV.y0)/2)}+r); return min(max(w.x,w.y),0.)+length(max(w,0.))-r; }
+    vec3 nOut(vec3 p){ vec2 k=vec2(1.,-1.)*.0015; return normalize(k.xyy*sdOut(p+k.xyy)+k.yyx*sdOut(p+k.yyx)+k.yxy*sdOut(p+k.yxy)+k.xxx*sdOut(p+k.xxx)); }
+    vec3 nCav(vec3 p){ vec2 k=vec2(1.,-1.)*.002; return normalize(k.xyy*sdCav(p+k.xyy)+k.yyx*sdCav(p+k.yyx)+k.yxy*sdCav(p+k.yxy)+k.xxx*sdCav(p+k.xxx)); }
+    float exitOut(vec3 p, vec3 d){ float t=.01; for(int i=0;i<64;i++){ float s=-sdOut(p+d*t); if(s<1e-3 && t>.03) break; t+=max(s,.006); } return t; }
+    // 菲涅耳反射率（非偏振光；n1 → n2，超過臨界角回傳 1 = 全反射）
+    float fres(float ci, float n1, float n2){ ci=clamp(ci,0.,1.); float st2=(n1/n2)*(n1/n2)*(1.-ci*ci); if(st2>=1.) return 1.;
+      float ct=sqrt(1.-st2); float rs=(n1*ci-n2*ct)/(n1*ci+n2*ct), rp=(n1*ct-n2*ci)/(n1*ct+n2*ci); return .5*(rs*rs+rp*rp); }
+    // 玻璃裡的反射：往下的方向其實很快就碰到柱頭的大理石或近處的灌叢（環境貼圖是從瓶子中央拍的，斜斜往下會看到遠處的海，瓶底會多出藍線）
+    vec3 envL(vec3 dir){ vec3 wd=normalize(mat3(modelMatrix)*dir); return mix(textureLod(tEnv, wd, 1.).rgb, uFloor, smoothstep(-.02,-.25,wd.y)*.9); }
+    vec3 sampleScene(vec3 P, vec2 uv0, float fz, float blur){
+      vec2 uv=clamp(toUV(P), vec2(.001), vec2(.999));
+      for(int j=0;j<4;j++){ if(texture2D(tDepth, uv).x >= fz - 1e-6) break; uv = mix(uv0, uv, .55); }
+      if(texture2D(tDepth, uv).x < fz - 1e-6) uv = uv0;
+      vec3 s=texture2D(tScene, uv).rgb;
+      if(blur>0.){ vec2 o=vec2(blur); s = s*.4 + (texture2D(tScene,uv+o).rgb + texture2D(tScene,uv-o).rgb + texture2D(tScene,uv+vec2(o.x,-o.y)).rgb + texture2D(tScene,uv+vec2(-o.x,o.y)).rgb)*.15; }
+      return s; }
+    void main(){
+      vec3 v = normalize(cameraPosition - vW); vec3 L = vL;
+      // 網格是凸包，菱形玻璃台的台緣外面那一小圈其實是空氣：沿視線往內找到真正的表面，找不到就是空氣
+      if(sdOut(L)>1e-3){ float t=0.; bool ok=false; for(int i=0;i<32;i++){ float s=sdOut(L-v*t); if(s<1e-3){ ok=true; break; } t+=max(s,.004); if(t>1.2) break; } if(!ok) discard; L-=v*t; }
+      vec3 n0 = nOut(L);                                                   // 切面的法向交給距離場（網格只是凸包）
+      // 表面：極輕微的起伏、指紋霧面與細刮痕
+      vec3 q=L*1.2; float e=.08;
+      vec3 g = vec3(fbm(q+vec3(e,0,0))-fbm(q-vec3(e,0,0)), fbm(q+vec3(0,e,0))-fbm(q-vec3(0,e,0)), fbm(q+vec3(0,0,e))-fbm(q-vec3(0,0,e)))/(2.*e);
+      vec3 q3=L*9.; vec3 g3 = vec3(vn(q3+vec3(.3,0,0))-vn(q3-vec3(.3,0,0)), vn(q3+vec3(0,.3,0))-vn(q3-vec3(0,.3,0)), vn(q3+vec3(0,0,.3))-vn(q3-vec3(0,0,.3)));
+      vec3 n = normalize(n0 + (g*.016 + g3*.005)*(1.-abs(n0)));
+      float smudge = smoothstep(.42,.8, fbm(L*vec3(.8,.6,.8)+11.));
+      float sx = (L.x*1.3-L.y*.5+L.z*1.7)*7. + fbm(L*3.)*1.3; float fw = fwidth(sx)*1.5+1e-4;
+      float scratch = (1.-smoothstep(0., .015+fw, abs(fract(sx)-.5))) * smoothstep(.58,.78, fbm(L*1.2+5.)) * .5;
+      float rough = .02 + smudge*.16 + scratch*.25;
+      float iorG=1.5;
+      vec3 d=refract(-v, n, 1./iorG);
+      float gPath=0., lPath=0.; vec3 p=L;
+      // 每個界面都依菲涅耳公式分成反射與穿透：反射的部分累積起來（內腔壁、液面、厚瓶底的亮線與鏡面感）
+      vec3 thr=vec3(1.), acc=vec3(0.);
+      float tO = exitOut(p, d);
+      float t=0.; bool hit=false;
+      for(int i=0;i<56;i++){ float s=sdCav(p+d*t); if(s<1.5e-3){ hit=true; break; } t+=s; if(t>tO) break; }
+      float meniscus=0., surfM=0.;
+      if(hit && t<tO){
+        vec3 p1=p+d*t; gPath+=t; vec3 nc=nCav(p1);
+        bool liq=p1.y<uLiqTop;
+        float Fc=fres(abs(dot(d,nc)), iorG, liq?1.36:1.);
+        if(Fc>=1.){ d=reflect(d,nc); p=p1; }
+        else {
+          acc += thr*Fc*envL(reflect(d,nc)); thr*=1.-Fc;
+          vec3 d2=refract(d, nc, liq ? iorG/1.36 : iorG);
+          vec3 q1=p1; bool out_=false;
+          for(int seg=0; seg<3; seg++){
+            float t2=.02; for(int i=0;i<48;i++){ float s=-sdCav(q1+d2*t2); if(s<1.5e-3 && t2>.05) break; t2+=max(s,.008); }
+            float tS = abs(d2.y)>1e-4 ? (uLiqTop-q1.y)/d2.y : -1.;
+            if(tS>1e-3 && tS<t2){
+              vec3 pc=q1+d2*tS; if(liq) lPath+=tS;
+              meniscus=max(meniscus, 1.-smoothstep(.0,.07,-sdCav(pc)));
+              vec3 ns = liq ? vec3(0.,-1.,0.) : vec3(0.,1.,0.);
+              float Fs=fres(abs(d2.y), liq?1.36:1., liq?1.:1.36);
+              if(Fs>=1.){ d2=reflect(d2, ns); surfM=1.; }
+              else { acc += thr*Fs*envL(reflect(d2,ns))*(liq?1.:.9); thr*=1.-Fs; surfM=max(surfM,Fs); d2=refract(d2, ns, liq ? 1.36 : 1./1.36); liq=!liq; }
+              q1=pc; continue; }
+            if(liq) lPath+=t2;
+            vec3 p2=q1+d2*t2; vec3 nc2=nCav(p2);
+            float Fx=fres(abs(dot(d2,nc2)), liq?1.36:1., iorG);
+            acc += thr*Fx*envL(reflect(d2,-nc2)); thr*=1.-Fx;
+            vec3 d3=refract(d2, -nc2, liq ? 1.36/iorG : 1./iorG);
+            if(dot(d3,d3)<1e-4) d3=reflect(d2,-nc2);
+            p=p2; d=d3; out_=true; break; }
+          if(!out_){ p=q1; d=d2; }
+        }
+        tO = exitOut(p, d);
+      }
+      vec3 pE=p+d*tO; gPath+=tO; vec3 nO=nOut(pE);
+      float Fo=fres(abs(dot(d,nO)), iorG, 1.); bool tir=false;
+      if(Fo>=1.){ d=reflect(d,nO); p=pE; tO=exitOut(p,d); pE=p+d*tO; gPath+=tO; nO=nOut(pE); Fo=fres(abs(dot(d,nO)), iorG, 1.); if(Fo>=1.){ d=reflect(d,nO); p=pE; tO=exitOut(p,d); pE=p+d*tO; gPath+=tO; nO=nOut(pE); Fo=fres(abs(dot(d,nO)), iorG, 1.); if(Fo>=1.) tir=true; } }
+      vec3 dO=refract(d, -nO, iorG); if(dot(dO,dO)<1e-4) dO=reflect(d,nO);
+      if(!tir){ acc += thr*Fo*envL(reflect(d,nO))*.8; thr*=1.-Fo; }
+      vec3 T = exp(-uAbs*gPath) * exp(-uLiqK*min(lPath,5.));
+      vec3 col; vec2 uv0=toUV(vW); float fz=gl_FragCoord.z; float blur=.012*rough + min(gPath,4.)*.0011;
+      // 背景真正的距離：折射後的光線要走到背景那麼遠才取樣，玻璃與香水的扭曲才會像實物一樣明顯
+      float zb=texture2D(tDepth, uv0).x; vec4 bw=uInvVP*vec4(uv0*2.-1., zb*2.-1., 1.); float bgD=clamp(length(bw.xyz/bw.w - vW), 2.5, 70.);
+      // 厚瓶底裡全反射出去的光：往下、往水平走的那些其實馬上就碰到柱頭的大理石面（環境貼圖是從瓶子中央拍的，會看到遠處的海）
+      if(tir){ col = envL(dO)*.75; }
+      else {
+        float io[3]; io[0]=1.488; io[1]=1.5; io[2]=1.516;
+        for(int k=0;k<3;k++){ vec3 dk=refract(d,-nO,io[k]); if(dot(dk,dk)<1e-4) dk=dO; vec3 Pw=(modelMatrix*vec4(pE,1.)).xyz + normalize(mat3(modelMatrix)*dO)*bgD + mat3(modelMatrix)*(dk-dO)*bgD*.35; col[k]=sampleScene(Pw, uv0, fz, blur)[k]; } }
+      col = col*thr*T + acc*sqrt(T);
+      col += vec3(1.,.97,.9)*meniscus*.45;                               // 液面貼著瓶壁的那一圈彎月面
+      // 表面反射
+      vec3 Rr = reflect(-v, n);
+      vec3 refl = textureLod(tEnv, Rr, rough*7.).rgb;
+      refl = mix(refl, uFloor, smoothstep(-.02,-.3,Rr.y)*smoothstep(1.4,.3,L.y)*.9);   // 瓶底斜邊往下的反射：映著柱頭的大理石，不是遠處的海
+      float F = fres(max(dot(n,v),0.), 1., iorG);
+      F = mix(F, max(F,.12), smudge*.6);
+      vec3 c = mix(col, refl, F) + refl*.03;                               // 細微刮痕與油膜：一層薄薄的散射反光
+      float sp = pow(max(dot(Rr, uSunDir), 0.), mix(1600., 90., clamp(rough*5.,0.,1.)));
+      c += uSunCol * sp * mix(16., 1.6, clamp(rough*5.,0.,1.));
+      // 切面的稜線：法向在很短的距離裡轉折的地方，一道拋光的亮線
+      float crease = clamp(length(fwidth(n0))/max(length(fwidth(L)),1e-4)*.06, 0., 1.);
+      c += refl*crease*.5 + vec3(1.,.98,.95)*crease*.06;
+      // 立體的反光：迎面的天光與頂上的天空在切面、斜面上留下的亮帶
+      float soft = pow(max(dot(Rr, uFill),0.), 60.)*1.1 + pow(max(dot(Rr, normalize(vec3(-.5,.8,.35))),0.), 40.)*.5 + pow(max(dot(Rr, normalize(vec3(.4,.75,-.5))),0.), 50.)*.6 + smoothstep(.55,.95,Rr.y)*.12;
+      c += vec3(1.,.98,.94)*soft*.5;
+      // 厚玻璃的輪廓：視線擦過側面時光在玻璃裡全反射，一圈帶灰綠的暗邊
+      float sil = 1.-smoothstep(.05,.45, max(dot(n0,v),0.));
+      c = mix(c, c*vec3(.55,.6,.58) + refl*.18, sil*.35);
+      if(uDbg==1) c=vec3(lPath*.25, gPath*.25, hit?1.:0.);
+      if(uDbg==2) c=vec3(acc.g*3., surfM, meniscus);
+      gl_FragColor = vec4(c, 1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`
+});
+// 外形網格：從外包盒的六個面往中心找距離場的零點，取樣出表面上的點，再包成凸包（菱形玻璃台以外的形狀是凸的）
+const glassGeo=(()=>{ const pts=[]; const B=[W/2+.1, GH+.1, D/2+BOSS.h+.1], cy=GH/2, step=.08;
+  const hit=(x,y,z)=>{ let a=0, b=1; const cx=x, cyy=y-cy, cz=z; for(let i=0;i<26;i++){ const m=(a+b)/2; if(sdOutJS(cx*(1-m), cy+cyy*(1-m), cz*(1-m))>0) a=m; else b=m; } const m=(a+b)/2; pts.push(new THREE.Vector3(cx*(1-m), cy+cyy*(1-m), cz*(1-m))); };
+  for(let y=-.1; y<=B[1]+1e-6; y+=step){ for(let x=-B[0]; x<=B[0]+1e-6; x+=step){ hit(x,y,B[2]); hit(x,y,-B[2]); } for(let z=-B[2]; z<=B[2]+1e-6; z+=step){ hit(B[0],y,z); hit(-B[0],y,z); } }
+  for(let x=-B[0]; x<=B[0]+1e-6; x+=step) for(let z=-B[2]; z<=B[2]+1e-6; z+=step){ hit(x,B[1],z); hit(x,-.1,z); }
+  const g=new ConvexGeometry(pts); return g; })();
+const glass = new THREE.Mesh(glassGeo, glassMat); glass.layers.set(1); bottle.add(glass);
+
+// 金屬鏡面的攝影棚環境（瓶蓋、標籤框用）：上面亮白的天光、地平線一道海藍、下面暖白的石灰岩
+const studioEnv=(()=>{ const c=document.createElement('canvas'); c.width=1024; c.height=512; const g=c.getContext('2d');
+  const v=g.createLinearGradient(0,0,0,512); v.addColorStop(0,'#ffffff'); v.addColorStop(.3,'#e6eef4'); v.addColorStop(.46,'#b4c8d6'); v.addColorStop(.5,'#3c6c90'); v.addColorStop(.56,'#a89c88'); v.addColorStop(1,'#c8beac');
+  g.fillStyle=v; g.fillRect(0,0,1024,512);
+  [[.08,.07],[.33,.05],[.58,.08],[.83,.06]].forEach(([x,w])=>{ const h=g.createLinearGradient((x-w)*1024,0,(x+w)*1024,0); h.addColorStop(0,'rgba(30,40,50,0)'); h.addColorStop(.5,'rgba(40,50,60,.45)'); h.addColorStop(1,'rgba(30,40,50,0)'); g.fillStyle=h; g.fillRect((x-w)*1024,90,w*2048,300); });
+  [[.2,.03],[.7,.025]].forEach(([x,w])=>{ g.fillStyle='rgba(255,255,255,.95)'; g.fillRect((x-w)*1024,40,w*2048,170); });
+  const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; t.colorSpace=THREE.SRGBColorSpace;
+  return pmrem.fromEquirectangular(t).texture; })();
+
+const capEnv=(()=>{ const c=document.createElement('canvas'); c.width=1024; c.height=512; const g=c.getContext('2d');
+  const v=g.createLinearGradient(0,0,0,512); v.addColorStop(0,'#c4c8cc'); v.addColorStop(.32,'#a9b0b6'); v.addColorStop(.47,'#8a949c'); v.addColorStop(.5,'#5c666e'); v.addColorStop(.56,'#7c766a'); v.addColorStop(1,'#8c8476');
+  g.fillStyle=v; g.fillRect(0,0,1024,512);
+  [[.22,.12,.55],[.7,.09,.35]].forEach(([x,w,a])=>{ const h=g.createRadialGradient(x*1024,150,0,x*1024,150,w*1024); h.addColorStop(0,`rgba(255,255,255,${a})`); h.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=h; g.fillRect(0,0,1024,512); });
+  const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; t.colorSpace=THREE.SRGBColorSpace;
+  return pmrem.fromEquirectangular(t).texture; })();
+
+// 吸管：從瓶口直直插到瓶底的透明塑膠管（照片上正面、側面都看得到正中央一條細線）
+{ const cv=new THREE.CatmullRomCurve3([new THREE.Vector3(0,GH-.05,0),new THREE.Vector3(.01,4.5,0),new THREE.Vector3(.03,2.2,.02),new THREE.Vector3(.05,CAV.y0+.06,.04)]);
+  const t=new THREE.Mesh(new THREE.TubeGeometry(cv,40,.03,8,false), new THREE.MeshPhysicalMaterial({ color:C('#f4f4f2'), roughness:.15, transparent:true, opacity:.24, depthWrite:false }));
+  bottle.add(t); }
+
+// 瓶蓋：霧面暖銀（細細的噴砂紋），套環、頸（上端圓弧外擴接到圓盤底）、寬圓盤、削底的圓球
+{ const V2=THREE.Vector2; const y0=GH-.01; const pts=[];
+  const [rC,hC]=CAP.collar, [rN,hN]=CAP.neck, [rD,hD]=CAP.disc;
+  const arc=(cx,cy,r,a0,a1,n)=>{ for(let i=0;i<=n;i++){ const a=a0+(a1-a0)*i/n; pts.push(new V2(cx+Math.cos(a)*r, cy+Math.sin(a)*r)); } };
+  pts.push(new V2(.01,0), new V2(rC-.03,0)); arc(rC-.03,.03,.03,-Math.PI/2,0,3); arc(rC-.09,hC-.09,.09,0,Math.PI/2,6);
+  let y=hC; pts.push(new V2(rN+.02,y)); const fr=.12; pts.push(new V2(rN,y+.02)); pts.push(new V2(rN,y+hN-fr));
+  arc(rN+fr,y+hN-fr,fr,Math.PI,Math.PI/2,8); y+=hN;                          // 頸的上端往外彎進圓盤底
+  arc(rD-.12,y+.12,.12,-Math.PI/2,0,7); arc(rD-.12,y+hD-.12,.12,0,Math.PI/2,7); y+=hD;
+  const R=CAP.ball, cyb=y+CAP.cut; const a0=Math.asin(-CAP.cut/R);
+  for(let i=0;i<=44;i++){ const a=a0+(Math.PI/2-a0)*i/44; pts.push(new V2(Math.max(.001,Math.cos(a)*R), cyb+Math.sin(a)*R)); }
+  const capG=new THREE.LatheGeometry(pts,128);
+  const blast=canvasTex(512,512,(g,w)=>{ g.fillStyle='#808080'; g.fillRect(0,0,w,w); const rr=rng(31); for(let i=0;i<30000;i++){ g.fillStyle=`rgba(${rr()<.5?'255,255,255':'0,0,0'},${rr()*.16})`; g.fillRect(rr()*w,rr()*w,1.5,1.5); } }, false);
+  blast.wrapS=blast.wrapT=THREE.RepeatWrapping; blast.repeat.set(6,3);
+  const capM=new THREE.MeshPhysicalMaterial({ color:C('#c2bcb2'), metalness:1, roughness:.46, roughnessMap:blast, bumpMap:blast, bumpScale:.05, envMap:capEnv, envMapIntensity:1.45 });
+  const cap=new THREE.Mesh(capG, capM); cap.position.y=y0; cap.castShadow=true; cap.receiveShadow=true; bottle.add(cap); }
+
+// 菱形標籤（前後各一張，貼在玻璃台上）：玫瑰銀的金屬框（帶一點錘紋）、千鳥格的紙；字與小菱形是燙上去的玫瑰銀箔
+const labImg = await new Promise(r=>{ const im=new Image(); im.onload=()=>r(im); im.onerror=()=>r(null); im.src=TEX.label; });
+{ const { w, h, cy, frame } = LABEL; const zf=D/2+BOSS.h;
+  const dia=(sw,sh)=>{ const s=new THREE.Shape(); s.moveTo(0,sh/2); s.lineTo(sw/2,0); s.lineTo(0,-sh/2); s.lineTo(-sw/2,0); s.closePath(); return s; };
+  const a=w/2, b=h/2, k=1-frame*Math.hypot(a,b)/(a*b);                  // 金屬框內側 = 外框等比縮小 k（框寬處處相同）
+  const ring=dia(w,h); ring.holes.push(dia(w*k,h*k));
+  const fg=new THREE.ExtrudeGeometry(ring,{ depth:.03, bevelEnabled:true, bevelThickness:.014, bevelSize:.014, bevelSegments:2 });
+  const hammer=canvasTex(512,512,(g,s)=>{ g.fillStyle='#808080'; g.fillRect(0,0,s,s); const rr=rng(77); for(let i=0;i<2600;i++){ const x=rr()*s, y=rr()*s, r=2+rr()*7; const gr=g.createRadialGradient(x,y,0,x,y,r); const c=rr()<.5?'255,255,255':'0,0,0'; gr.addColorStop(0,`rgba(${c},${.1+rr()*.15})`); gr.addColorStop(1,`rgba(${c},0)`); g.fillStyle=gr; g.fillRect(x-r,y-r,r*2,r*2); } }, false);
+  hammer.wrapS=hammer.wrapT=THREE.RepeatWrapping; hammer.repeat.set(3,6);
+  const frameM=new THREE.MeshPhysicalMaterial({ color:C('#e2cbc0'), metalness:1, roughness:.22, roughnessMap:hammer, bumpMap:hammer, bumpScale:.3, envMap:studioEnv, envMapIntensity:1.6 });
+  // 紙：薰衣草藍底、薄荷綠的方塊、米白的斜紋（千鳥格），再加一層棉紙的纖維
+  const TW=1024, TH=2048, P=TW*.36;                                      // 一格約 0.33 個標籤寬（特寫照量測）
+  const paperCv=document.createElement('canvas'); paperCv.width=TW; paperCv.height=TH; { const g=paperCv.getContext('2d');
+    const LAV='#b7c1e2', MINT='#bddab2', CRM='#f0e7c6';
+    g.fillStyle=LAV; g.fillRect(0,0,TW,TH);
+    const ox=TW/2-P*.25, oy=TH*.5-P*.25;
+    for(let j=-4;j<TH/P+4;j++) for(let i=-4;i<TW/P+4;i++){ const x=ox+(i-3)*P, y=oy+(j-6)*P, s=P/2;
+      g.fillStyle=MINT; g.fillRect(x,y,s,s);                              // 左上：薄荷綠方塊
+      g.save(); g.beginPath(); g.rect(x+s,y,s,s); g.rect(x,y+s,s,s); g.clip();   // 右上、左下：米白斜紋
+      g.fillStyle=CRM; for(let k2=-2;k2<4;k2++){ const u=x+k2*s; g.beginPath(); g.moveTo(u,y); g.lineTo(u+s*.5,y); g.lineTo(u+s*.5+P,y+P); g.lineTo(u+P,y+P); g.closePath(); g.fill(); }
+      g.restore(); }
+    const rr=rng(91); for(let i=0;i<26000;i++){ const x=rr()*TW, y=rr()*TH, l=3+rr()*9, an=rr()*6.28; g.strokeStyle=`rgba(${rr()<.5?'255,255,250':'90,95,110'},${.05+rr()*.08})`; g.lineWidth=.8+rr()*.8; g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(an)*l,y+Math.sin(an)*l); g.stroke(); } }
+  // 燙箔遮罩（tools/wt_label.py）：R = 正面、G = 背面
+  const maskD=(()=>{ const c=document.createElement('canvas'); c.width=TW; c.height=TH; const g=c.getContext('2d'); if(labImg) g.drawImage(labImg,0,0,TW,TH); return g.getImageData(0,0,TW,TH).data; })();
+  const mkLabel=(ch, side)=>{
+    const col=document.createElement('canvas'); col.width=TW; col.height=TH; const g=col.getContext('2d'); g.drawImage(paperCv,0,0);
+    const cd=g.getImageData(0,0,TW,TH), px=cd.data;
+    const orm=new ImageData(TW,TH), od=orm.data;
+    for(let i=0;i<TW*TH;i++){ const m=maskD[i*4+ch]/255;
+      px[i*4]=px[i*4]*(1-m)+214*m; px[i*4+1]=px[i*4+1]*(1-m)+178*m; px[i*4+2]=px[i*4+2]*(1-m)+162*m;   // 玫瑰銀箔
+      od[i*4]=255; od[i*4+1]=Math.round(225*(1-m)+70*m); od[i*4+2]=Math.round(255*m); od[i*4+3]=255; }   // G = 粗糙度、B = 金屬度
+    g.putImageData(cd,0,0);
+    const oc=document.createElement('canvas'); oc.width=TW; oc.height=TH; oc.getContext('2d').putImageData(orm,0,0);
+    const bc=document.createElement('canvas'); bc.width=TW; bc.height=TH; { const g2=bc.getContext('2d'); g2.filter='grayscale(1)'; g2.drawImage(paperCv,0,0); g2.filter='none';
+      const bd=g2.getImageData(0,0,TW,TH); for(let i=0;i<TW*TH;i++){ const m=maskD[i*4+ch]/255; bd.data[i*4]=bd.data[i*4+1]=bd.data[i*4+2]=bd.data[i*4]*.5+m*120; } g2.putImageData(bd,0,0); }
+    const map=new THREE.CanvasTexture(col); map.colorSpace=THREE.SRGBColorSpace; map.anisotropy=8;
+    const ormT=new THREE.CanvasTexture(oc); ormT.anisotropy=8; const bump=new THREE.CanvasTexture(bc); bump.anisotropy=8;
+    const pg=new THREE.ShapeGeometry(dia(w*k,h*k)); { const p=pg.attributes.position, uv=pg.attributes.uv; for(let i=0;i<p.count;i++) uv.setXY(i, p.getX(i)/(w*k)+.5, p.getY(i)/(h*k)+.5); }
+    const grp=new THREE.Group(); grp.position.set(0,cy,side*zf); if(side<0) grp.rotation.y=Math.PI;
+    const paper=new THREE.Mesh(pg, new THREE.MeshPhysicalMaterial({ map, roughnessMap:ormT, metalnessMap:ormT, roughness:1, metalness:1, bumpMap:bump, bumpScale:.35, envMap:studioEnv, envMapIntensity:1.3, sheen:.25, sheenColor:C('#eef0ff'), polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 }));
+    paper.position.z=.012; paper.layers.set(1); paper.renderOrder=3; grp.add(paper);
+    const fm=new THREE.Mesh(fg, frameM); fm.layers.set(1); fm.renderOrder=2; grp.add(fm);
+    // 隔著玻璃從另一面看到的標籤背面（白紙）
+    const back=new THREE.Mesh(new THREE.ShapeGeometry(dia(w,h)), new THREE.MeshStandardMaterial({ color:C('#e4e2dc'), roughness:.7, side:THREE.BackSide })); back.position.z=.002; grp.add(back);
+    bottle.add(grp); };
+  mkLabel(0, 1); mkLabel(1, -1); }
+
+// 陰影：玻璃不進陰影圖，另做只投影的替身（淡影）；透明香水把陽光聚成一小片帶綠的焦散，落在柱頭上
+{ const proxy=new THREE.Mesh(glassGeo, new THREE.MeshBasicMaterial({ colorWrite:false, depthWrite:false }));
+  proxy.customDepthMaterial=new THREE.MeshDepthMaterial({ depthPacking:THREE.RGBADepthPacking, alphaHash:true, opacity:.35, transparent:true });
+  proxy.castShadow=true; proxy.renderOrder=-1; bottle.add(proxy);
+  const sd = new THREE.Vector3(-SCENE_CFG.sunDir.x, 0, -SCENE_CFG.sunDir.z).normalize();
+  const cauTex=canvasTex(256,512,(g,w,h)=>{ g.clearRect(0,0,w,h); const r=rng(4);
+    const gr=g.createRadialGradient(w/2,h*.45,4,w/2,h*.45,w*.5); gr.addColorStop(0,'rgba(240,250,226,.85)'); gr.addColorStop(.55,'rgba(228,242,214,.25)'); gr.addColorStop(1,'rgba(228,242,214,0)');
+    g.fillStyle=gr; g.fillRect(0,0,w,h);
+    for(let i=0;i<26;i++){ g.strokeStyle=`rgba(246,255,236,${.1+r()*.28})`; g.lineWidth=1+r()*2.2; g.beginPath(); let x=w*(.2+r()*.6), y=h*.15; g.moveTo(x,y); for(let k=0;k<6;k++){ x+=(r()-.5)*28; y+=h*.12; g.lineTo(x,y);} g.stroke(); } });
+  const ca=new THREE.Mesh(new THREE.PlaneGeometry(W*.6, 2.8), new THREE.MeshBasicMaterial({ map:cauTex, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.28 }));
+  ca.rotation.x=-Math.PI/2; ca.rotation.z=Math.atan2(sd.x, sd.z); ca.position.copy(sd).multiplyScalar(D/2+1.5); ca.position.y=.01; scene.add(ca);
+}
+// 合成：把無玻璃的畫面（含深度）貼回螢幕，再畫玻璃
+const blit = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({
+  depthTest:true, depthWrite:true, depthFunc:THREE.AlwaysDepth,
+  uniforms:{ tColor:{value:sceneRT.texture}, tDepth:{value:sceneRT.depthTexture} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+  fragmentShader:`uniform sampler2D tColor, tDepth; varying vec2 vUv; void main(){ gl_FragColor=texture2D(tColor,vUv); gl_FragDepth=texture2D(tDepth,vUv).x;
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }` }));
+blit.frustumCulled=false; const blitScene=new THREE.Scene(); blitScene.add(blit); const blitCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+// 反鋸齒：場景與玻璃都畫進同一張多重取樣（MSAA）畫布，玻璃邊緣也能平滑，最後再輸出到螢幕
+const outRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samples:MSAA, depthTexture:new THREE.DepthTexture(2,2) });
+// 景深：焦點對在鏡頭注視的瓶身，前景與遠景依距離帶一點點散景模糊（上限約 2.5 個 CSS 像素）
+const dofRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType });
+const DOF = { maxR:2.6, gain:1.15, zone:.1 };
+const dofQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({ depthTest:false, depthWrite:false,
+  uniforms:{ tColor:{value:outRT.texture}, tDepth:{value:outRT.depthTexture}, uRes:{value:new THREE.Vector2(2,2)}, uNear:{value:.1}, uFar:{value:3000}, uFocus:{value:40}, uMaxR:{value:5}, uGain:{value:DOF.gain}, uZone:{value:DOF.zone} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+  fragmentShader:`#include <packing>
+    uniform sampler2D tColor, tDepth; uniform vec2 uRes; uniform float uNear, uFar, uFocus, uMaxR, uGain, uZone; varying vec2 vUv;
+    float coc(vec2 uv){ float d=-perspectiveDepthToViewZ(texture2D(tDepth,uv).x, uNear, uFar); return clamp((abs(1.-uFocus/max(d,.01))-uZone)*uGain, 0., 1.)*uMaxR; }
+    void main(){
+      vec3 c0=texture2D(tColor,vUv).rgb; float c=coc(vUv);
+      if(c<.35){ gl_FragColor=vec4(c0,1.); return; }
+      vec3 acc=c0; float ws=1.;
+      for(int i=0;i<24;i++){ float fi=float(i)+.5; float r=sqrt(fi/24.)*c; float a=fi*2.39996; vec2 o=vec2(cos(a),sin(a))*r;
+        vec2 uv=vUv+o/uRes; float w=clamp(coc(uv)-r+1., 0., 1.); acc+=texture2D(tColor,uv).rgb*w; ws+=w; }
+      gl_FragColor=vec4(acc/ws,1.);
+    }` }));
+dofQuad.frustumCulled=false; const dofScene=new THREE.Scene(); dofScene.add(dofQuad);
+const outQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.ShaderMaterial({ depthTest:false, depthWrite:false,
+  uniforms:{ tColor:{value:dofRT.texture}, uRes:{value:new THREE.Vector2(2,2)} },
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+  // 色調映射後再做 FXAA：處理樹葉、草葉、高光等 MSAA 抓不到的細碎鋸齒
+  fragmentShader:`uniform sampler2D tColor; uniform vec2 uRes; varying vec2 vUv;
+    vec3 T(vec2 uv){ vec3 c=texture2D(tColor,uv).rgb;
+      #ifdef TONE_MAPPING
+      c=toneMapping(c);
+      #endif
+      return linearToOutputTexel(vec4(c,1.)).rgb; }
+    void main(){
+      vec2 inv=1./uRes; vec2 uv=vUv;
+      vec3 rgbNW=T(uv+vec2(-1.,-1.)*inv), rgbNE=T(uv+vec2(1.,-1.)*inv), rgbSW=T(uv+vec2(-1.,1.)*inv), rgbSE=T(uv+vec2(1.,1.)*inv), rgbM=T(uv);
+      vec3 W=vec3(.299,.587,.114);
+      float lNW=dot(rgbNW,W), lNE=dot(rgbNE,W), lSW=dot(rgbSW,W), lSE=dot(rgbSE,W), lM=dot(rgbM,W);
+      float lMin=min(lM,min(min(lNW,lNE),min(lSW,lSE))), lMax=max(lM,max(max(lNW,lNE),max(lSW,lSE)));
+      vec2 dir=vec2(-((lNW+lNE)-(lSW+lSE)), (lNW+lSW)-(lNE+lSE));
+      float red=max((lNW+lNE+lSW+lSE)*(.25/8.), 1./128.);
+      float rcp=1./(min(abs(dir.x),abs(dir.y))+red);
+      dir=clamp(dir*rcp, vec2(-8.), vec2(8.))*inv;
+      vec3 A=.5*(T(uv+dir*(1./3.-.5))+T(uv+dir*(2./3.-.5)));
+      vec3 B=A*.5+.25*(T(uv-dir*.5)+T(uv+dir*.5));
+      float lB=dot(B,W);
+      gl_FragColor=vec4((lB<lMin||lB>lMax)?A:B, 1.);
+    }` }));
+outQuad.frustumCulled=false; const outScene=new THREE.Scene(); outScene.add(outQuad);
+
+
+// ---------- 香材 ----------
+const M = {
+  leaf:(c,o={})=>new THREE.MeshPhysicalMaterial(Object.assign({ color:C(c), roughness:.55, side:THREE.DoubleSide, sheen:.4, sheenColor:C('#dfe8d0') },o)),
+  stem:(c)=>new THREE.MeshStandardMaterial({ color:C(c), roughness:.7 }),
+};
+const colorGeo=(g,c=[1,1,1])=>{ if(g.attributes.uv) g.deleteAttribute('uv'); const a=new Float32Array(g.attributes.position.count*3); for(let i=0;i<a.length;i+=3){ a[i]=c[0]; a[i+1]=c[1]; a[i+2]=c[2]; } g.setAttribute('color',new THREE.BufferAttribute(a,3)); return g.index?g.toNonIndexed():g; };
+const leafAt=(geo,mat,p,{yaw=0,elev=0,roll=0,s=1}={})=>{ const m=new THREE.Mesh(geo,mat); m.scale.setScalar(s); const g=place(m,{yaw,elev,roll}); g.position.copy(p); return g; };
+
+const leafStalk=(geo,mat,pmat,p,{yaw=0,elev=0,roll=0,s=1,pet=.15}={})=>{ const g=new THREE.Group(); g.position.copy(p); g.rotation.y=yaw; const e=new THREE.Group(); e.rotation.z=elev; g.add(e);
+  const L=pet*s; if(L>.01){ const pg=new THREE.CylinderGeometry(.012*s+.006,.016*s+.008,L,6); pg.rotateZ(-Math.PI/2); pg.translate(L/2,0,0); e.add(new THREE.Mesh(pg,pmat)); }
+  const m=new THREE.Mesh(geo,mat); m.scale.setScalar(s); m.position.x=L*.92; m.rotation.x=roll; e.add(m); return g; };
+// 葉片：鋸齒葉緣、主脈與羽狀側脈的凹痕（沿 +X 生長，葉面朝 +Y）
+function leafGeo({ len=1, wid=.4, segL=30, segW=10, prof=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.96+.04)),.8)*(1-.22*t), serr=0, serrAmp=.06,
+  cup=.12, curl=0, droop=.1, veins=7, veinDepth=.012, mid=.02, base='#2f5a22', tip='#3f6e2a', edge=null, vein=null, wave=0, seed=1 }={}){
+  const pos=[], col=[], idx=[]; const cb=C(base), ct=C(tip), ce=edge?C(edge):null, cvn=vein?C(vein):null, tc=new THREE.Color();
+  for(let i=0;i<=segL;i++){ const t=i/segL; let w=wid*prof(t); if(serr && t>.06 && t<.96){ const f=(t*serr)%1; w*=1-serrAmp*(f<.75?f/.75:(1-f)/.25); }
+    for(let j=0;j<=segW;j++){ const u=j/segW-.5, au=Math.abs(2*u); const x=t*len, z=u*w;
+      let y=cup*w*u*u*4 + curl*len*t*t - droop*len*t*t + wave*Math.sin(t*18+seed)*au*w;
+      const midK=Math.exp(-Math.pow(au*9,2)); y-=mid*midK*(1-t*.6);
+      const ph=(t - au*.32)*veins; const vK=Math.pow(Math.max(0,Math.cos(ph*Math.PI*2)),14)*(au>.08?1:0)*(1-au*.8); y-=veinDepth*vK;
+      pos.push(x,y,z);
+      tc.copy(cb).lerp(ct,Math.pow(t,.8)); if(ce) tc.lerp(ce,Math.pow(au,3)*.5); if(cvn) tc.lerp(cvn,Math.max(midK,vK*.6)*.55);
+      col.push(tc.r,tc.g,tc.b); } }
+  for(let i=0;i<segL;i++)for(let j=0;j<segW;j++){ const a=i*(segW+1)+j, b=a+segW+1; idx.push(a,b,a+1, b,b+1,a+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+// 掌狀裂葉（黑醋栗）：極座標網格，葉柄在原點，葉面朝 +Y
+function palmateLeaf({ R=1, lobes=[[-1.25,.55],[-.62,.86],[0,1],[.62,.86],[1.25,.55]], spread=2.25, serr=34, rings=14, segA=90, cup=.12, base='#33602a', tip='#4c7a34', vein='#7a9a52', seed=1 }={}){
+  const rOf=(a)=>{ let m=.42; lobes.forEach(([c,w])=>{ m=Math.max(m, .38+ .62*w*Math.exp(-Math.pow((a-c)/.3,2))); }); const f=((a+spread)/(2*spread)*serr)%1; return R*m*(1-.06*(f<.7?f/.7:(1-f)/.3)); };
+  const pos=[], col=[], idx=[]; const cb=C(base), ct=C(tip), cv=C(vein), tc=new THREE.Color();
+  for(let k=0;k<=rings;k++){ const s=k/rings; for(let j=0;j<=segA;j++){ const a=-spread+2*spread*j/segA; const r=rOf(a)*s;
+      const x=Math.cos(a)*r, z=Math.sin(a)*r; let veinK=0; lobes.forEach(([c])=>{ veinK=Math.max(veinK, Math.exp(-Math.pow((a-c)*r*14,2))); });
+      const y=-cup*r*r + .02*noise3(x*4,seed,z*4) - veinK*.014;
+      pos.push(x,y,z); tc.copy(cb).lerp(ct,s).lerp(cv,veinK*.5); col.push(tc.r,tc.g,tc.b); } }
+  for(let k=0;k<rings;k++)for(let j=0;j<segA;j++){ const a=k*(segA+1)+j, b=a+segA+1; idx.push(a,b,a+1, b,b+1,a+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+const vcMat=(o={})=>new THREE.MeshPhysicalMaterial(Object.assign({ vertexColors:true, side:THREE.DoubleSide, roughness:.45 },o));
+
+function citrusFace(size,{rind,pith,flesh,flesh2,seg=10,seeds=0,seed=1}){
+  return canvasTex(size,size,(g,w)=>{ const c=w/2, R=w/2-2, r=rng(seed);
+    g.fillStyle=rind; g.beginPath(); g.arc(c,c,R,0,7); g.fill();
+    g.fillStyle=pith; g.beginPath(); g.arc(c,c,R*.9,0,7); g.fill();
+    for(let k=0;k<seg;k++){ const a0=k/seg*Math.PI*2+.05, a1=(k+1)/seg*Math.PI*2-.05;
+      const gr=g.createRadialGradient(c,c,R*.08,c,c,R*.84); gr.addColorStop(0,flesh2); gr.addColorStop(1,flesh);
+      g.fillStyle=gr; g.beginPath(); g.moveTo(c+Math.cos((a0+a1)/2)*R*.1, c+Math.sin((a0+a1)/2)*R*.1);
+      g.arc(c,c,R*.84,a0,a1); g.closePath(); g.fill();
+      for(let v=0;v<70;v++){ const a=a0+(a1-a0)*r(), rr=R*(.15+.66*r()); g.fillStyle=`rgba(255,255,240,${.12+r()*.22})`; g.beginPath();
+        g.ellipse(c+Math.cos(a)*rr, c+Math.sin(a)*rr, 2+r()*4, 1+r()*2, a, 0, 7); g.fill(); } }
+    for(let k=0;k<seeds;k++){ const a=(k+.5)/seeds*Math.PI*2, rr=R*.3; g.fillStyle='#f5f0d6'; g.beginPath(); g.ellipse(c+Math.cos(a)*rr,c+Math.sin(a)*rr,R*.05,R*.025,a,0,7); g.fill(); }
+    g.fillStyle=pith; g.beginPath(); g.arc(c,c,R*.07,0,7); g.fill();
+  });
+}
+
+const BUILD_WT = {
+  // 日本柚子：表皮凹凸不平、坑坑疤疤的黃色柑橘，形狀扁圓；剖開是一瓣瓣淡黃的果肉，裡面好多顆大種子；旁邊一片帶翼葉柄的深綠葉
+  yuzu(){
+    const g=new THREE.Group(); const r=rng(611);
+    const bump=canvasTex(512,256,(c,w,h)=>{ c.fillStyle='#808080'; c.fillRect(0,0,w,h); for(let i=0;i<2600;i++){ const x=r()*w, y=r()*h, R=2+r()*7; const gr=c.createRadialGradient(x,y,0,x,y,R); gr.addColorStop(0,'rgba(0,0,0,.5)'); gr.addColorStop(1,'rgba(0,0,0,0)'); c.fillStyle=gr; c.fillRect(x-R,y-R,2*R,2*R); }
+      for(let i=0;i<5000;i++){ c.fillStyle=`rgba(255,255,255,${r()*.25})`; c.fillRect(r()*w,r()*h,1.5,1.5); } }, false);
+    const peel=new THREE.MeshPhysicalMaterial({ color:C('#f0c632'), roughness:.5, bumpMap:bump, bumpScale:4, clearcoat:.35, clearcoatRoughness:.4 });
+    const whole=new THREE.SphereGeometry(.78,72,48); whole.scale(1,.82,1); displace(whole,.045,2.4,3,7); displace(whole,.015,9,2,8);
+    const wm=new THREE.Mesh(whole,peel); wm.position.set(-.55,-.2,-.35); g.add(wm);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.035,.06,.14,10), M.stem('#6a6a2a')); stem.position.set(-.55,.46,-.35); g.add(stem);
+    // 葉：柚子的葉柄有一片小翼（像兩片葉子接在一起）
+    const lf=leafGeo({ len:1.0, wid:.36, base:'#2c4a1c', tip:'#3c6024', vein:'#7a9a4a', veins:8, veinDepth:.01, droop:.12 });
+    const wing=leafGeo({ len:.36, wid:.2, base:'#2c4a1c', tip:'#34521f', veins:3, veinDepth:.006 });
+    const lm=vcMat({ roughness:.35, clearcoat:.5, clearcoatRoughness:.3 });
+    const lg=new THREE.Group(); lg.position.set(-.5,.5,-.3); lg.rotation.set(.2,.6,.35); const w1=new THREE.Mesh(wing,lm); lg.add(w1); const l1=new THREE.Mesh(lf,lm); l1.position.x=.34; lg.add(l1); g.add(lg);
+    // 剖半：切面朝前
+    const half=new THREE.SphereGeometry(.7,64,32,0,Math.PI*2,0,Math.PI/2); half.scale(1,.82,1); displace(half,.04,2.4,3,9,(v)=>v.y>.05?1:0);
+    const hg=new THREE.Group(); hg.add(new THREE.Mesh(half,peel));
+    const face=new THREE.Mesh(new THREE.CircleGeometry(.7,64), new THREE.MeshPhysicalMaterial({ map:citrusFace(512,{rind:'#e8b828',pith:'#fbf0c8',flesh:'#f2dc78',flesh2:'#fbefb0',seg:10,seeds:9,seed:12}), roughness:.28, clearcoat:.9, clearcoatRoughness:.12 }));
+    face.rotation.x=Math.PI/2; face.position.y=.001; hg.add(face); hg.rotation.x=-Math.PI*.6; hg.position.set(.45,-.1,.25); g.add(hg);
+    return g;
+  },
+  // 鼠尾草（藥用鼠尾草 Salvia officinalis）：方形的莖上一對對灰綠的長橢圓葉，葉面滿是細皺的網脈、有一層絨毛的柔光；
+  // 頂上抽出一支花穗，一輪輪淡紫的唇形花
+  sage(){
+    const g=new THREE.Group(); const r=rng(621);
+    const pebble=canvasTex(512,512,(c,w)=>{ c.fillStyle='#808080'; c.fillRect(0,0,w,w); for(let i=0;i<3800;i++){ const x=r()*w, y=r()*w, R=3+r()*5; const gr=c.createRadialGradient(x,y,0,x,y,R); gr.addColorStop(0,'rgba(255,255,255,.35)'); gr.addColorStop(.7,'rgba(255,255,255,0)'); gr.addColorStop(1,'rgba(0,0,0,.25)'); c.fillStyle=gr; c.fillRect(x-R,y-R,2*R,2*R); } }, false);
+    const lm=new THREE.MeshPhysicalMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.8, bumpMap:pebble, bumpScale:2.2, sheen:1, sheenRoughness:.55, sheenColor:C('#e4ecdc') });
+    const sm=M.stem('#8a9070');
+    const leaf=(len,seed)=>{ const lg=leafGeo({ len, wid:len*.5, serr:26, serrAmp:.02, veins:9, veinDepth:.02, mid:.03, cup:.18, droop:.08, wave:.012, base:'#748a6c', tip:'#93a488', edge:'#a9b6a0', vein:'#a2ae94', seed });
+      const uv=new Float32Array(lg.attributes.position.count*2); const p=lg.attributes.position; for(let i=0;i<p.count;i++){ uv[i*2]=p.getX(i)*2; uv[i*2+1]=p.getZ(i)*2; } lg.setAttribute('uv',new THREE.BufferAttribute(uv,2)); return lg; };
+    // 一小叢：木質化的短莖基部，長出一根開花的主莖與兩根只長葉的側枝；葉子成對、上下兩對互相垂直（十字對生），越往上越小
+    const wood=M.stem('#7a6a56');
+    g.add(tube(stemCurve([[0,-1.55,0],[.02,-1.45,.01],[-.01,-1.32,0]]),.05,wood));
+    const main=stemCurve([[-.01,-1.35,0],[.05,-.6,.02],[-.02,.2,0],[.03,1.0,.02]]); g.add(tube(main,.03,sm));
+    const shoots=[ stemCurve([[0,-1.3,0],[.28,-.95,.12],[.55,-.45,.22],[.7,.15,.26]]), stemCurve([[0,-1.3,0],[-.25,-1.0,-.2],[-.5,-.55,-.36],[-.62,-.05,-.44]]) ];
+    shoots.forEach(c=>g.add(tube(c,.022,sm)));
+    const node=(curve,t,s,i,seedB)=>{ const p=curve.getPointAt(t); const a=i*Math.PI/2+seedB;
+      for(const sd of [0,Math.PI]) g.add(leafStalk(leaf(.9*s, seedB*10+i*2+(sd?1:0)), lm, sm, p, { yaw:a+sd, elev:.38+t*.3, roll:(r()-.5)*.35, s:1, pet:.12+.08*s })); };
+    [.1,.25,.4,.55].forEach((t,i)=>node(main,t,1-i*.13,i,.2));
+    shoots.forEach((c,j)=>[.3,.55,.78,.97].forEach((t,i)=>node(c,t,.85-i*.17,i,1.3+j)));
+    // 花穗：一輪輪淡紫的唇形花
+    const fm=petalMat({ roughness:.55, sheenColor:C('#efe4ff') });
+    const lip=petalGeometry({ len:.11, wid:.075, cup:.3, curl:.25, base:'#9a86c8', tip:'#c4b2ea', segL:4, segW:3 });
+    const hood=petalGeometry({ len:.1, wid:.05, cup:.5, curl:-.3, base:'#8a74bc', tip:'#b29ee0', segL:4, segW:3 });
+    const cal=new THREE.MeshStandardMaterial({ color:C('#6a5a6e'), roughness:.7 });
+    for(let w=0;w<5;w++){ const t=.55+w*.1; const p=main.getPointAt(Math.min(1,t)); const yy=1.0+w*.16;
+      for(let k=0;k<4;k++){ const a=k*Math.PI/2+w*.5; const f=new THREE.Group(); f.position.set(p.x, yy, p.z); f.rotation.y=a; g.add(f);
+        const cx=new THREE.Mesh(new THREE.ConeGeometry(.025,.08,6), cal); cx.rotation.z=-1.1; cx.position.x=.04; f.add(cx);
+        const l=new THREE.Mesh(lip,fm); l.position.set(.09,-.01,0); l.rotation.z=-.4; f.add(l);
+        const h=new THREE.Mesh(hood,fm); h.position.set(.08,.02,0); h.rotation.z=.5; f.add(h); } }
+    g.add(tube(stemCurve([[.03,1.0,.02],[.03,1.4,.02],[.02,1.75,.01]]),.016,sm));
+    return g;
+  },
+  // 紅茶：一小堆條索緊結的紅茶，深褐色裡夾著金黃的芽尖；旁邊幾片泡開的茶葉，舒展成帶鋸齒的完整葉片
+  blackTea(){
+    const g=new THREE.Group(); const r=rng(631);
+    const lm=vcMat({ roughness:.55, sheen:.6, sheenRoughness:.4, sheenColor:C('#a07a52') });
+    const leaves=[];
+    for(let i=0;i<170;i++){ const tip=r()<.18; const geo=petalGeometry({ len:.2+r()*.17, wid:.045+r()*.02, cup:1.5+r()*.8, curl:(r()-.5)*.5, twist:4+r()*5,
+        base:tip?'#a8742a':['#2a180e','#341e10','#2e1a0c'][(r()*3)|0], tip:tip?'#e0b050':['#46301c','#523620','#3e2816'][(r()*3)|0], segL:10, segW:4, seed:i });
+      geo.deleteAttribute('uv'); const a=r()*6.28, d=Math.pow(r(),.7)*.8; const h=.55*Math.pow(Math.max(0,1-d/.82),1.3)+r()*.05;
+      const mm=new THREE.Matrix4().compose(new THREE.Vector3(Math.cos(a)*d-.15, -.8+h, Math.sin(a)*d*.85), new THREE.Quaternion().setFromEuler(new THREE.Euler((r()-.5)*.8, r()*6.28, (r()-.5)*.8)), new THREE.Vector3(1,1,1));
+      geo.applyMatrix4(mm); leaves.push(geo.index?geo.toNonIndexed():geo); }
+    g.add(new THREE.Mesh(mergeGeometries(leaves), lm));
+    // 泡開的茶葉：深棕綠、鋸齒葉緣
+    const wl=vcMat({ roughness:.4, clearcoat:.4 });
+    [[.75,-.55,.35,.3,.9],[-.15,-.62,.75,-.9,.8],[.55,-.5,-.45,2.2,.75]].forEach(([x,y,z,yaw,s],k)=>{ const lg=leafGeo({ len:.85*s, wid:.34*s, serr:26, serrAmp:.05, veins:8, veinDepth:.012, cup:.05, droop:.02, wave:.015, base:'#4a3a1c', tip:'#5e4a24', vein:'#7a6234', seed:k });
+      const m=new THREE.Mesh(lg,wl); const h=place(m,{ yaw, elev:-.08 }); h.position.set(x,y,z); g.add(h); });
+    // 一顆茶芽：一芽兩葉
+    const bud=new THREE.Group(); bud.position.set(-.55,-.2,-.35); bud.rotation.z=.3; g.add(bud);
+    bud.add(tube(stemCurve([[0,-.5,0],[.02,-.1,0],[0,.3,0]]),.02,M.stem('#7a8a4a')));
+    const bl=vcMat({ roughness:.45, sheen:.6, sheenColor:C('#e8f0d8') });
+    bud.add(leafAt(leafGeo({ len:.55, wid:.22, serr:20, serrAmp:.04, veins:6, veinDepth:.01, base:'#5a7a30', tip:'#7a9a40', seed:5 }), bl, new THREE.Vector3(0,-.15,0), { yaw:.3, elev:.7 }));
+    bud.add(leafAt(leafGeo({ len:.45, wid:.18, serr:18, serrAmp:.04, veins:5, veinDepth:.01, base:'#64843a', tip:'#86a44a', seed:6 }), bl, new THREE.Vector3(0,.05,0), { yaw:3.4, elev:.8 }));
+    bud.add(leafAt(petalGeometry({ len:.32, wid:.07, cup:.8, curl:.1, base:'#9ab45a', tip:'#c8d890', segL:6, segW:3 }), petalMat({ roughness:.5, sheenColor:C('#ffffff') }), new THREE.Vector3(0,.28,0), { yaw:0, elev:1.45 }));
+    return g;
+  },
+};
+const BUILD = Object.assign({
+  chamomile(){
+    const g=new THREE.Group();
+    const mk=(s,seed)=>{ const f=new THREE.Group();
+      const pg=petalGeometry({ len:.44, wid:.115, profile:t=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.85+.15)),.5), cup:.12, curl:-.06, base:'#eef0d6', tip:'#ffffff', seed });
+      const pm=petalMat({ roughness:.5, sheenColor:C('#ffffff') });
+      for(let i=0;i<22;i++) f.add(place(new THREE.Mesh(pg,pm),{ yaw:i/22*Math.PI*2, elev:-.12+((i*7)%5)*.03, x:.12 }));
+      const cg=new THREE.SphereGeometry(.17,48,24,0,Math.PI*2,0,Math.PI/2); cg.scale(1,1.05,1); displace(cg,.012,22,2,seed);
+      const cb=canvasTex(256,128,noiseCanvas(256,128,{base:'#777',dots:1400,dotCol:'#fff',dotR:[1,2],alpha:.7,seed}),false);
+      const disk=new THREE.Mesh(cg,new THREE.MeshStandardMaterial({ color:C('#efb21a'), roughness:.75, bumpMap:cb, bumpScale:4 })); f.add(disk);
+      f.scale.setScalar(s); return f; };
+    const a=mk(1,3); a.rotation.x=.75; g.add(a);
+    const b=mk(.75,7); b.position.set(.62,-.45,-.3); b.rotation.set(1.0,.3,-.45); g.add(b);
+    const sm=M.stem('#7e9a55'); g.add(tube(stemCurve([[0,-.05,-.1],[.05,-.8,-.25],[.15,-1.5,-.3]]),.025,sm)); g.add(tube(stemCurve([[.62,-.55,-.3],[.5,-1.1,-.35],[.25,-1.5,-.3]]),.02,sm));
+    return g;
+  },
+  thyme(){
+    const g=new THREE.Group(); const sm=M.stem('#6d6a3e');
+    const lg=petalGeometry({ len:.24, wid:.12, cup:.08, curl:.03, base:'#6f8f55', tip:'#9bb47f', segL:6, segW:5 });
+    const lm=M.leaf('#ffffff',{vertexColors:true, roughness:.75});
+    [[[0,-1.2,0],[.05,-.4,.05],[-.05,.4,0],[.1,1.2,.05]],[[.02,-.5,0],[.3,0,.05],[.55,.6,.1],[.62,1,.12]],[[0,-.2,0],[-.3,.3,0],[-.5,.75,-.05]],[[.02,-.8,0],[-.25,-.4,.1],[-.45,.05,.2]]]
+      .forEach((pts,k)=>{ const cv=stemCurve(pts); g.add(tube(cv,.018,sm)); g.add(leavesAlong(cv,lg,lm,{count:k?10:16,perNode:2,elev:.95,yawStep:Math.PI/2,from:.15,scale:t=>.7+.6*Math.sin(Math.PI*t),seed:11+k})); });
+    return g;
+  },
+  bergamot(){
+    const g=new THREE.Group();
+    const peelBump=canvasTex(512,256,noiseCanvas(512,256,{base:'#888',dots:2600,dotCol:'#000',dotR:[1,2.6],alpha:.55,seed:4}),false);
+    const peel=new THREE.MeshPhysicalMaterial({ color:C('#a8c63b'), roughness:.42, bumpMap:peelBump, bumpScale:3, clearcoat:.5, clearcoatRoughness:.35 });
+    const half=new THREE.SphereGeometry(.85,64,32,0,Math.PI*2,0,Math.PI/2); half.scale(1,.92,1);
+    displace(half,.02,3.2,3,2,(v)=>v.y>.04?1:0);
+    const shell=new THREE.Mesh(half,peel); g.add(shell);
+    const face=new THREE.Mesh(new THREE.CircleGeometry(.85,64), new THREE.MeshPhysicalMaterial({ map:citrusFace(512,{rind:'#86b22c',pith:'#eef1cf',flesh:'#c9df6d',flesh2:'#e6f0a6',seg:11,seeds:4,seed:5}), roughness:.28, clearcoat:.9, clearcoatRoughness:.12 }));
+    face.rotation.x=Math.PI/2; face.position.y=.001; g.add(face);
+    g.rotation.x=-Math.PI*.62; // 切面朝前
+    const whole=new THREE.Mesh(displace(new THREE.SphereGeometry(.62,64,48),.018,3.5,3,9), peel); whole.position.set(-.9,-.55,-.55);
+    const nub=new THREE.Mesh(new THREE.CylinderGeometry(.04,.06,.12,10), M.stem('#5b6b2a')); nub.position.set(-.9,.08,-.55);
+    const out=new THREE.Group(); out.add(g, whole, nub); return out;
+  },
+  lavender(){
+    const g=new THREE.Group(); const r=rng(71); const sm=M.stem('#7f8c63');
+    const calyx=colorGeo(new THREE.CylinderGeometry(.026,.015,.1,7), [.5,.44,.66]); calyx.translate(0,.05,0);
+    const lobes=[]; for(let i=0;i<4;i++){ const p=petalGeometry({ len:.055, wid:.045, cup:.1, curl:.06, segL:3, segW:2, base:'#7e58bd', tip:'#a184de' }); p.deleteAttribute('uv'); p.rotateZ(.7); p.rotateY(i*Math.PI/2+.3); p.translate(0,.1,0); lobes.push(p.toNonIndexed()); }
+    const floret=mergeGeometries([calyx, ...lobes]);
+    const fm=new THREE.MeshPhysicalMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.6, sheen:1, sheenRoughness:.5, sheenColor:C('#d9cdf2') });
+    const tops=[[0,1.25,0],[.32,1.05,.12],[-.3,1.0,.1],[.14,.95,-.3],[-.12,1.1,-.22],[.42,.8,-.1]];
+    const N=tops.length*11*8, im=new THREE.InstancedMesh(floret,fm,N); const m=new THREE.Matrix4(), q=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0), s=new THREE.Vector3(); let k=0;
+    const pal=['#ffffff','#ece4ff','#dccff5','#f4efff','#cdbdeb'].map(C);
+    tops.forEach((tp,si)=>{ const cv=stemCurve([[0,-1.35,0],[tp[0]*.25,-.3,tp[2]*.25],[tp[0]*.75,.5,tp[2]*.75],tp]); g.add(tube(cv,.017,sm,40));
+      for(let w=0;w<11;w++){ const t=.66+.34*Math.pow(w/10,.8); const p=cv.getPointAt(t), tg=cv.getTangentAt(t);
+        const per = w>8?5:8; for(let j=0;j<per;j++){ const a=j/per*6.28+w*.7+r()*.3;
+          const side=new THREE.Vector3(Math.cos(a),0,Math.sin(a)); const dir=side.clone().multiplyScalar(w>8?.4:.75).add(tg.clone().multiplyScalar(w>8?1:.65)).normalize();
+          q.setFromUnitVectors(up,dir); const sc=(w>8?.8:1)*(.85+r()*.3); s.set(sc,sc,sc); m.compose(p.clone().addScaledVector(side,.022),q,s); im.setMatrixAt(k,m); im.setColorAt(k,pal[(r()*pal.length)|0]); k++; } } });
+    im.count=k; g.add(im);
+    const lg=petalGeometry({ len:.7, wid:.06, profile:t=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.9+.1)),.5)*(1-.4*t), cup:-.3, curl:.05, base:'#7d917a', tip:'#a3b39e', segL:6, segW:2 });
+    const lm=M.leaf('#ffffff',{vertexColors:true, roughness:.7, sheen:1, sheenColor:C('#e2e8dc')});
+    for(let i=0;i<7;i++) g.add(leafAt(lg,lm,new THREE.Vector3(0,-1.2+i*.05,0),{ yaw:i*2.4, elev:.9+r()*.35, s:.9+r()*.3 }));
+    return g;
+  },
+  patchouli(){
+    const g=new THREE.Group(); const r=rng(95);
+    const stem=stemCurve([[0,-1.1,0],[.04,-.5,.02],[-.02,.1,0],[.02,.6,0]]); g.add(tube(stem,.035,M.stem('#6f7445')));
+    const prof=(t)=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.93+.07)),.55)*(1-.25*t)*(1+.06*Math.abs(Math.sin(t*46)));
+    const lg=petalGeometry({ len:1, wid:.8, profile:prof, cup:-.12, curl:-.04, droop:.12, frill:.016, frillFreq:9, base:'#3d6b2e', tip:'#55803a', edge:'#6a9346', segL:30, segW:12, seed:3 });
+    { const p=lg.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i); const u=z/(.8*prof(x)+1e-3); p.setY(i,p.getY(i)-Math.exp(-Math.pow(u*16,2))*.018-Math.pow(Math.max(0,Math.sin((x*7-Math.abs(u)*2.6)*Math.PI)),10)*.009); } lg.computeVertexNormals(); }
+    const lm=new THREE.MeshPhysicalMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.66, sheen:1, sheenRoughness:.4, sheenColor:C('#d6e6bc') });
+    const pm=M.stem('#76804c');
+    [[.08,1.05],[.28,1],[.48,.88],[.66,.7],[.82,.5]].forEach(([t,s],i)=>{ const p=stem.getPointAt(t); for(const side of [0,Math.PI]) g.add(leafStalk(lg,lm,pm,p,{ yaw:(i%2?Math.PI/2:0)+side+(r()-.5)*.25, elev:.12+i*.12, roll:(r()-.5)*.3, s, pet:.18 })); });
+    const top=stem.getPointAt(.99); for(let i=0;i<4;i++) g.add(leafStalk(lg,lm,pm,top,{ yaw:i*Math.PI/2+.3, elev:1.0, s:.3, pet:.03 }));
+    // 乾燥後的廣藿香葉（香料用的部位）：捲曲、深褐
+    const dm=new THREE.MeshStandardMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.85 });
+    for(let i=0;i<4;i++){ const dg=petalGeometry({ len:.6, wid:.42, profile:prof, cup:.3+r()*.3, curl:.25, twist:(r()-.5)*1.4, base:'#4d3420', tip:'#6b4a2a', edge:'#3a2516', segL:16, segW:8, seed:i+9 });
+      displace(dg,.05,4,3,i*3); const d=new THREE.Mesh(dg,dm); d.position.set(.35+(r()-.5)*.9,-1.15+r()*.12,.45+(r()-.5)*.5); d.rotation.set(r()*.8,r()*6,r()*.8); g.add(d); }
+    return g;
+  },
+  cedar(){
+    const g=new THREE.Group(); const r=rng(87); const wood=M.stem('#5d4a36');
+    const twig=stemCurve([[-1.25,-.55,0],[-.45,-.25,.05],[.35,-.05,0],[1.2,.2,-.05]]); g.add(tube(twig,.05,wood));
+    const twig2=stemCurve([[-.2,-.22,.03],[-.05,-.45,.4],[.15,-.65,.75]]); g.add(tube(twig2,.03,wood));
+    const ng=colorGeo(new THREE.CylinderGeometry(.006,.011,.36,4)); ng.translate(0,.18,0);
+    const nm=new THREE.MeshPhysicalMaterial({ vertexColors:true, roughness:.5, sheen:.8, sheenColor:C('#c4d6d2') });
+    const pal=['#4b6b5c','#577a68','#3f5d50','#62806f','#6d8a7c'].map(C);
+    const im=new THREE.InstancedMesh(ng,nm,1200); const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), up=new THREE.Vector3(0,1,0); let k=0;
+    const spur=(p,dir)=>{ const end=p.clone().addScaledVector(dir,.08); const sp=new THREE.Mesh(new THREE.CylinderGeometry(.022,.028,.09,6),wood); sp.position.copy(p.clone().lerp(end,.5)); sp.quaternion.setFromUnitVectors(up,dir); g.add(sp);
+      for(let j=0;j<36 && k<1200;j++){ const a=r()*6.28, cone=.25+r()*.75; const perp=new THREE.Vector3(Math.cos(a),0,Math.sin(a)); const qq=new THREE.Quaternion().setFromUnitVectors(up,dir); perp.applyQuaternion(qq);
+        const d=dir.clone().multiplyScalar(Math.cos(cone)).addScaledVector(perp,Math.sin(cone)).normalize(); q.setFromUnitVectors(up,d); const sc=.8+r()*.4; s.set(1,sc,1); m.compose(end,q,s); im.setMatrixAt(k,m); im.setColorAt(k,pal[(r()*pal.length)|0]); k++; } };
+    for(let i=0;i<13;i++){ const t=.06+.9*(i/12); const p=twig.getPointAt(t); const a=i*2.2; spur(p,new THREE.Vector3(Math.cos(a)*.7,.55,Math.sin(a)*.7).normalize()); }
+    for(let i=0;i<4;i++){ const p=twig2.getPointAt(.3+.7*i/3); const a=i*2.5+1; spur(p,new THREE.Vector3(Math.cos(a)*.7,.5,Math.sin(a)*.7).normalize()); }
+    im.count=k; g.add(im);
+    // 雪松毬果：直立的桶狀，鱗片層層疊起
+    const pts=[]; for(let i=0;i<=48;i++){ const t=i/48; pts.push(new THREE.Vector2(Math.max(.001,.3*Math.pow(Math.max(0,1-Math.pow(2*t-1,4)),.5)*(1-.08*t)), t*.88)); }
+    const cg=new THREE.LatheGeometry(pts,72); const cp=cg.attributes.position, cc=[]; const cA=C('#86664a'), cB=C('#4a3423'), cL=C('#9c8a80'), tc=new THREE.Color();
+    for(let i=0;i<cp.count;i++){ const x=cp.getX(i), y=cp.getY(i), z=cp.getZ(i); const a=Math.atan2(x,z); const rr=Math.hypot(x,z);
+      const band=Math.abs(Math.sin(y*42 + a*1.5)); const seam=Math.pow(Math.abs(Math.sin(a*9 + y*5)),.25);
+      const ridge=Math.pow(band,.7)*(.75+.25*seam); const k2=rr>.01?(1+ridge*.022):1; cp.setXYZ(i,x*k2,y,z*k2);
+      tc.copy(cB).lerp(cA,ridge).lerp(cL,Math.max(0,noise3(x*6,y*6,z*6))*.35); cc.push(tc.r,tc.g,tc.b); }
+    cg.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); cg.computeVertexNormals();
+    const cone=new THREE.Mesh(cg,new THREE.MeshPhysicalMaterial({ vertexColors:true, roughness:.55, clearcoat:.35, clearcoatRoughness:.35, sheen:.5, sheenColor:C('#b8a8a8') }));
+    cone.position.copy(twig.getPointAt(.55)).add(new THREE.Vector3(0,.03,0)); g.add(cone);
+    const cb=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,.08,10),wood); cb.position.copy(twig.getPointAt(.55)); g.add(cb);
+    return g;
+  },
+  musk(){
+    const g=new THREE.Group(); const r=rng(251);
+    const mat=new THREE.MeshPhysicalMaterial({ color:C('#eee6da'), roughness:1, sheen:1, sheenRoughness:.35, sheenColor:C('#fff2dc') });
+    // 雲：大量小團塊鋪在積雲形狀的表面上（像棉花的纖維感），外圍再罩一層柔邊的霧粒讓輪廓變軟
+    const parts=[]; const core=[[0,0,0,.55],[.5,-.12,.05,.42],[-.5,-.14,0,.4],[.22,.28,-.04,.4],[-.24,.26,.08,.38],[.85,-.26,-.08,.28],[-.84,-.28,.1,.27],[0,.55,0,.26]];
+    core.forEach(([x,y,z,rr],ci)=>{ const n=Math.round(rr*60); for(let k=0;k<n;k++){ const u=r()*6.28, v=Math.acos(1-2*r()); const d=new THREE.Vector3(Math.sin(v)*Math.cos(u),Math.cos(v)*.85,Math.sin(v)*Math.sin(u));
+        if(d.y<-.45 && r()<.7) continue; const sz=rr*(.32+r()*.3); const b=mergeVertices(new THREE.IcosahedronGeometry(sz,2)); b.deleteAttribute('normal'); b.deleteAttribute('uv'); displace(b,sz*.22,5/sz,3,ci*13+k);
+        b.translate(x+d.x*rr*.8, y+d.y*rr*.8, z+d.z*rr*.8); b.deleteAttribute('normal'); parts.push(b); } });
+    const cloud=new THREE.Mesh(mergeGeometries(parts), mat); cloud.geometry.computeVertexNormals(); g.add(cloud);
+    const haze=canvasTex(128,128,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,252,246,.9)'); gr.addColorStop(.5,'rgba(255,250,240,.4)'); gr.addColorStop(1,'rgba(255,250,240,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
+    const hm=new THREE.SpriteMaterial({ map:haze, transparent:true, depthWrite:false, opacity:.55, color:C('#fbf6ee') });
+    for(let k=0;k<26;k++){ const [x,y,z,rr]=core[(r()*core.length)|0]; const u=r()*6.28; const sp=new THREE.Sprite(hm); sp.position.set(x+Math.cos(u)*rr*1.05, y+(r()-.3)*rr, z+Math.sin(u)*rr*1.05); sp.scale.setScalar(rr*(1.1+r()*.8)); g.add(sp); }
+    const glow=canvasTex(64,64,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,246,220,1)'); gr.addColorStop(.4,'rgba(255,240,210,.35)'); gr.addColorStop(1,'rgba(255,240,210,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
+    const sm=new THREE.SpriteMaterial({ map:glow, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, color:C('#ffe8b8') });
+    for(let i=0;i<14;i++){ const s=new THREE.Sprite(sm); const a=r()*6.28, d=.9+r()*.5; s.position.set(Math.cos(a)*d, -.3+r()*1.2, Math.sin(a)*d*.6); s.scale.setScalar(.12+r()*.12); g.add(s); }
+    return g;
+  },
+}, BUILD_WT);
+
+// 香材依 Fragrantica 的前中後調（與品牌公布的金字塔一致）
+const NOTES = [
+  { tier:0, key:'chamomile', zh:'洋甘菊', en:'Chamomile', d:'白瓣黃心的小花，曬乾後泡茶有蘋果與蜂蜜般的甜香；在希臘被稱為「土地的蘋果」，是這杯賢者茶的兩位主角之一。' },
+  { tier:0, key:'yuzu', zh:'柚子', en:'Yuzu', d:'表皮凹凸不平的黃色小柑橘，香氣比檸檬圓潤，帶一點柚花與青澀的苦；讓開場的茶香亮起來。' },
+  { tier:0, key:'bergamot', zh:'佛手柑', en:'Bergamot', d:'微苦的柑橘皮，帶一點花香，是伯爵茶裡那一抹清亮。' },
+  { tier:1, key:'blackTea', zh:'紅茶', en:'Black Tea', d:'全發酵的茶葉，深褐的條索裡夾著金黃的芽尖；麥芽、乾果與一點煙燻的醇厚，為香草茶加上茶湯的溫度。' },
+  { tier:1, key:'sage', zh:'鼠尾草', en:'Sage', d:'原生於地中海沿岸、灰綠帶絨毛的香草；古希臘人相信它有守護與療癒的力量，泡成茶有煙燻、薄荷般的大地氣息，讓心靜下來——「賢者茶」的「賢者」。' },
+  { tier:1, key:'lavender', zh:'薰衣草', en:'Lavender', d:'地中海的紫色花穗，乾淨的草本花香，帶一點樟腦的涼，是放鬆與睡眠的香氣。' },
+  { tier:1, key:'thyme', zh:'百里香', en:'Thyme', d:'希臘山坡上一墊墊開著粉紫小花的香草，溫暖、帶點藥草與胡椒的辛香，是希臘人茶壺裡的常客。' },
+  { tier:2, key:'musk', zh:'麝香', en:'Musk', d:'柔軟、乾淨的白麝香，像曬過太陽的棉布，讓整支香水安靜地貼著皮膚。' },
+  { tier:2, key:'patchouli', zh:'廣藿香', en:'Patchouli', d:'取自葉片的大地香氣，潮濕泥土與木質的深度，是尾調的根。' },
+  { tier:2, key:'cedar', zh:'雪松', en:'Cedar', d:'乾燥、筆直的木質香，像鉛筆木屑，替溫和的茶香撐起骨架。' },
+];
+const TIERS = [
+  { zh:'前調', en:'TOP', y:12.4, r:8.4, speed:.10, color:'#e8cf72' },
+  { zh:'中調', en:'HEART', y:7.6, r:9.2, speed:-.075, color:'#b7c9a4' },
+  { zh:'後調', en:'BASE', y:2.9, r:8.9, speed:.06, color:'#c9a57e' },
+];
+
+const rings = TIERS.map(()=>{ const g=new THREE.Group(); scene.add(g); return g; });
+const items = [];
+NOTES.forEach((n)=>{
+  const tierNotes = NOTES.filter(x=>x.tier===n.tier); const idx = tierNotes.indexOf(n); const T = TIERS[n.tier];
+  const model = fitTo(BUILD[n.key](), 2.5);
+  model.traverse(o=>{ if(o.isMesh){ o.userData.note=n; o.castShadow=!o.userData.noShadow; } });
+  const holder = new THREE.Group(); const spin = new THREE.Group(); spin.add(model); holder.add(spin);
+  const a = idx/tierNotes.length*Math.PI*2 + n.tier*.45; holder.userData.a=a;
+  const el=document.createElement('div'); el.className='lbl'; el.innerHTML=`<div class="z">${n.zh}</div><div class="e">${n.en}</div>`;
+  el.setAttribute('role','button'); el.tabIndex=0; el.addEventListener('click',(ev)=>{ ev.stopPropagation(); show(n); }); el.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter') show(n); });
+  const lbl=new CSS2DObject(el); lbl.position.set(0,-1.55,0); holder.add(lbl);
+  rings[n.tier].add(holder);
+  items.push({ n, holder, spin, el, phase:Math.random()*6.28, focus:1 });
+});
+TIERS.forEach((T)=>{
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(T.r, .014, 6, 220), new THREE.MeshBasicMaterial({ color:C(T.color), transparent:true, opacity:.35, depthWrite:true, fog:false }));
+  ring.rotation.x=Math.PI/2; ring.position.y=T.y; scene.add(ring); T.ringMesh=ring;
+});
+// 材質的環境反射強度微調
+scene.traverse(o=>{ if(!o.isMesh) return; (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(m.isMeshStandardMaterial && m.envMapIntensity===1) m.envMapIntensity=.85; }); });
+
+// ---------- 相機與互動 ----------
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=.06; controls.enablePan=false;
+controls.minDistance=14; controls.maxDistance=80; controls.minPolarAngle=.95; controls.maxPolarAngle=1.52;
+controls.autoRotate=!matchMedia('(prefers-reduced-motion: reduce)').matches; controls.autoRotateSpeed=.4;
+const TGT_Y=5.6; const target=new THREE.Vector3(0,TGT_Y,0), targetGoal=target.clone(); controls.target.copy(target);
+
+function layout(k){
+  items.forEach(it=>{ const T=TIERS[it.n.tier], a=it.holder.userData.a; it.holder.position.set(Math.cos(a)*T.r*k, T.y, Math.sin(a)*T.r*k); });
+  TIERS.forEach(T=>T.ringMesh.scale.setScalar(k));
+}
+const RUNWAY = matchMedia('(pointer:coarse)').matches ? {t:110, b:150} : {t:0, b:0};   // 狀態列、網址列底下多畫的高度
+function frame(){
+  const w=innerWidth, h=innerHeight, H=h+RUNWAY.t+RUNWAY.b, rs=document.documentElement.style;
+  rs.setProperty('--vh',h+'px'); rs.setProperty('--bt',RUNWAY.t+'px'); rs.setProperty('--bb',RUNWAY.b+'px');
+  renderer.setSize(w,H); labelRenderer.setSize(w,H); camera.aspect=w/h;
+  if(RUNWAY.t||RUNWAY.b) camera.setViewOffset(w,h,0,-RUNWAY.t,w,H); else camera.clearViewOffset();
+  const dp=renderer.getPixelRatio(); sceneRT.setSize(Math.floor(w*dp), Math.floor(H*dp)); outRT.setSize(Math.floor(w*dp), Math.floor(H*dp)); outQuad.material.uniforms.uRes.value.set(Math.floor(w*dp), Math.floor(H*dp)); dofRT.setSize(Math.floor(w*dp), Math.floor(H*dp)); dofQuad.material.uniforms.uRes.value.set(Math.floor(w*dp), Math.floor(H*dp)); dofQuad.material.uniforms.uMaxR.value=DOF.maxR*dp;
+  const k=THREE.MathUtils.clamp(camera.aspect*1.25,.6,1); layout(k);
+  const vf=THREE.MathUtils.degToRad(camera.fov)/2, hf=Math.atan(Math.tan(vf)*camera.aspect);
+  const dist=Math.max(9.8/Math.tan(vf), (8.7*k+1.3)/Math.tan(hf));
+  camera.position.set(dist*.18, target.y+dist*.1, dist); camera.updateProjectionMatrix(); window.scrollTo(0,RUNWAY.t); controls.maxDistance=Math.max(56,dist*1.08); controls.minDistance=16;
+}
+frame(); addEventListener('resize', frame);
+window.__dbg={camera,controls,target,targetGoal,THREE,items,bottle,rings,renderer,scene,glass,envScene,fx,world};
+
+// 香調圖例
+const tiersEl=document.getElementById('tiers'); let focusTier=-1;
+TIERS.forEach((T,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='tier'; b.style.setProperty('--c',T.color);
+  b.innerHTML=`<span class="dot"></span><b>${T.zh}</b><span>${NOTES.filter(n=>n.tier===i).map(n=>n.zh).join('・')}</span>`;
+  b.addEventListener('click',()=>{ focusTier = focusTier===i?-1:i; [...tiersEl.children].forEach((c,k)=>c.classList.toggle('on',k===focusTier)); targetGoal.y = focusTier<0?TGT_Y:TIERS[i].y; });
+  tiersEl.appendChild(b); });
+
+// 點選香材
+const card=document.getElementById('card'), ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let down=null, picked=null;
+renderer.domElement.addEventListener('pointerdown',e=>{ down=[e.clientX,e.clientY]; });
+renderer.domElement.addEventListener('pointerup',e=>{ if(!down) return; const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]); down=null; if(moved>6) return;
+  const cr=renderer.domElement.getBoundingClientRect(); ptr.set((e.clientX-cr.left)/cr.width*2-1, -((e.clientY-cr.top)/cr.height)*2+1); ray.setFromCamera(ptr,camera);
+  const hit=ray.intersectObjects(rings,true).find(h=>h.object.userData.note);
+  if(hit) show(hit.object.userData.note); else hide(); });
+function show(n){ picked=n; const T=TIERS[n.tier]; card.style.setProperty('--c',T.color);
+  document.getElementById('card-k').textContent=`${T.zh} ${T.en}`;
+  document.getElementById('card-n').innerHTML=`${n.zh}<span>${n.en}</span>`;
+  document.getElementById('card-p').textContent=n.d; card.classList.add('show'); }
+function hide(){ picked=null; card.classList.remove('show'); }
+document.getElementById('card-x').addEventListener('click',hide);
+
+// ---------- 動畫與合成 ----------
+const clock=new THREE.Clock(); const tmpV=new THREE.Vector3(), camDir=new THREE.Vector3();
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pp = pollen.geometry.attributes.position; const pBase = pp.array.slice();
+let first=true;
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime;
+  clockU.value=t; windU.value = still?0:t;
+  rings.forEach((g,i)=>{ if(!still) g.rotation.y += TIERS[i].speed*dt; });
+  if(!still){ for(let i=0;i<pp.count;i++){ const wx=((pBase[i*3]+t*(.9+(i%7)*.12)+26)%52+52)%52-26; pp.array[i*3]=wx; pp.array[i*3+1]=pBase[i*3+1]+Math.sin(t*.7+i)*.5; pp.array[i*3+2]=pBase[i*3+2]+Math.cos(t*.4+i*1.3)*.8-wx*.15; } pp.needsUpdate=true; }
+  if(!still) shafts.forEach(s=>{ s.m.opacity = s.base*(.7+.3*Math.sin(t*.35+s.ph)); });
+  if(!still) fx.update(t,dt);
+  target.lerp(targetGoal, .05); controls.target.copy(target);
+  camera.getWorldDirection(camDir);
+  items.forEach(it=>{
+    if(!still){ it.spin.rotation.y += dt*.35; it.spin.position.y = Math.sin(t*.9+it.phase)*.18; }
+    const on = (focusTier<0 || it.n.tier===focusTier) && (!picked || picked===it.n);
+    it.focus += ((on?1:.55) - it.focus)*.08; it.spin.scale.setScalar(.75+.25*it.focus + (picked===it.n?.15:0));
+    it.holder.getWorldPosition(tmpV); const behind = tmpV.clone().sub(target).dot(camDir) > 1.5;
+    it.el.style.opacity = (behind?.2:1) * (on?1:.35);
+  });
+  TIERS.forEach((T,i)=>{ T.ringMesh.material.opacity = (focusTier<0||focusTier===i)?.35:.08; });
+  controls.update();
+  { const gy=terrainH(camera.position.x,camera.position.z)+2.5; if(camera.position.y<gy) camera.position.y=gy; }   // camera below terrain：轉到低角度時別鑽進地面
+  camera.updateMatrixWorld(); uViewProj.value.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); uInvVP.value.copy(uViewProj.value).invert();
+  // 1) 不含玻璃的畫面 → 貼圖（香水水體在這一步已自行折射背景）
+  renderer.shadowMap.needsUpdate = true; camera.layers.set(0); renderer.setRenderTarget(sceneRT); renderer.render(scene,camera);
+  // 2) 貼回螢幕（含深度）  3) 玻璃取樣第 1 步的畫面做第二層折射
+  renderer.setRenderTarget(outRT); renderer.render(blitScene, blitCam);
+  renderer.autoClear=false; camera.layers.set(1); renderer.render(scene,camera); renderer.autoClear=true; camera.layers.set(0);
+  // 4) 多重取樣畫布 → 螢幕（色調映射 + FXAA 在這一步）
+  // 5) 景深：焦點 = 鏡頭到注視點的距離
+  dofQuad.material.uniforms.uFocus.value = tmpV.copy(controls.target).sub(camera.position).dot(camDir);
+  renderer.setRenderTarget(dofRT); renderer.render(dofScene, blitCam);
+  renderer.setRenderTarget(null); renderer.render(outScene, blitCam);
+  labelRenderer.render(scene,camera);
+  if(first){ first=false; const L=document.getElementById('loading'); setTimeout(()=>{ L.style.opacity=0; setTimeout(()=>L.remove(),700); },250); }
+});
+
+</script>
+</body>
+</html>

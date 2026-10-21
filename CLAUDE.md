@@ -11,6 +11,7 @@
 - `fischersund-23-3d.html`：Fischersund No. 23（50ml）的香境；原始碼 `src/fischersund-23-3d.src.html`，印字遮罩 `src/tex_fs23_print.png`（`tools/fs23_print.py`，Inter SemiBold）。香材分層依品牌公布的金字塔（Fragrantica 只列平的 10 種），菸草放中調、海藻放後調
 - `oolang-infini-3d.html`：Atelier Cologne 無極烏龍（新版 Cologne Absolue 淡香精 100ml）的香境；原始碼 `src/oolang-infini-3d.src.html`，金屬標白字遮罩 `src/tex_oi_logo.png`、名牌字遮罩 `src/tex_oi_band.png`（`tools/oi_label.py`：標誌從官方照 `src/ref_oi_label.jpg` 取遮罩、PARIS 與 OOLANG INFINI 用 Carlito Bold 重排）；背面浮雕的字母遮罩 `src/tex_oi_letters.png`（`tools/oi_relief.py`：「Atelier」七個字母錯落的位置照 Yoyo 拍的背面照量測）。瓶身的圓角：正面、背面四周那一圈是小圓角（0.15），兩個窄側面的上緣下緣（從正面看是肩與瓶底的四個角）是大圓角（上 0.78、下 0.46）。玻璃壁厚照 Yoyo 的背光實拍（看得到水體）：側壁約 0.32、瓶底約 0.46、肩部（吸管座穿過的實心玻璃）約 0.74（`CAV`）。名牌與瓶蓋上段是藍綠色（名牌紙 #1a8bae、金屬瓶蓋 #2389a8，取自 Yoyo 給的官方參考照；她覺得照實拍調的深海軍藍太深）。主頁商品照換成新版瓶身 `photos/oolang-infini.jpg`（取自 LOOKFANTASTIC 官方去背照）；香材仍用 Fragrantica 的 8 種（Yoyo 決定），新版官方只列烏龍茶、佛手柑、愈創木。場景主題是台灣官方詩篇裡的「千年茶母樹」（溪對岸林間的老茶樹，預設視角在瓶子右邊）；左邊崖腳是大紅袍母樹的石砌茶台（崖壁不刻字，Yoyo 決定拿掉）。硯台四周的紅砂岩岩盤與兩岸溪灘鋪滿苔：地面著色器依世界座標雜訊鋪一塊塊苔（只露出幾處紅砂岩，溪灘越高越多、水邊留一道深色濕卵石），再加苔墊、圓葉小草、細草、蕨與石菖蒲（獨立亂數 rng(808)，不動竹叢與樹）；硯台、筆山、墨條、茶杯四周留一圈空地，越靠近硯台越矮
 - `morning-star-3d.html`：Liquides Imaginaires 晨曉之星 Morning Star（100ml 淡香精）的香境；原始碼 `src/morning-star-3d.src.html`（以無極烏龍的頁面為底組裝）。瓶身不透明：靛藍霧面漆、喇叭形金屬瓶蓋（頂面是淺凹碗，Yoyo 的俯拍照）、蓋底一圈 72 顆凸起的菱格紋、瓶底斜切角；比例依官方去背照量測、Yoyo 的實拍核對。正面印字遮罩 `src/tex_ms_print.png`（`tools/ms_print.py`：字形取自台灣官方故事頁的標題、依量到的弧長排兩行，淡香檳色）；背面浮凸徽記高度圖 `src/tex_ms_emblem.png`（`tools/ms_emblem.py`，照 Yoyo 的背面照量測）。場景依品牌故事（Éosphoros／Hesperos 兩兄弟合為晨星；破曉與黃昏的雙重性、古代神話與未來感）：日出前的高山湖，東邊曙光與低懸的金星、西邊星空銀河與金星帶；湖面是鏡像相機畫的真實倒影（`renderReflection`，只畫第 2 層 `REFL_LAYER`）。台座是青金石圓盤：金線鑲金星八年的五瓣玫瑰軌跡（兩道光反向流動、在正面花瓣尖相遇），盤緣刻 ΕΣΠΕΡΟΣ（朝西、預設視角的正面）與 ΕΩΣΦΟΡΟΣ（朝東）（`src/tex_ms_rim.png`，`tools/ms_disc.py`，GFS Porson）；右前方青銅香爐架燃乳香（Phosphoros 的火炬，暖色點光源）。香材 15 種依 Fragrantica（Georgywood、Akigalawood 是 Givaudan 的香材）
+- `wise-tea-3d.html`：OrDioLab 希臘山丘賢者茶 Sage and Camomile Wise Tea（50ml 淡香精）的香境；原始碼 `src/wise-tea-3d.src.html`（以無極烏龍的頁面為底組裝）。場景依品牌故事（食色 Fifi 的希臘香草茶「釋放焦慮的暫停鍵」）與 Fragrantica 的春夏秋、日間：午後愛琴海岬角的石灰岩地形，岬頂獻給雅典娜的多立克神殿，鼠尾草／百里香／薰衣草／洋甘菊灌叢、橄欖與絲柏；台座是倒下的大理石多立克柱頭，正面刻 ΓΝΩΘΙ ΣΑΥΤΟΝ、右側刻 ΜΗΔΕΝ ΑΓΑΝ（`src/tex_wt_inscr.png`，`tools/wt_inscr.py`），旁邊一只紅繪貓頭鷹杯盛著冒熱氣的茶。瓶身照 Yoyo 的實拍（官方照是舊版粉紅香水、瓶蓋的頸比較長，不採用）：幾乎是正方柱（深 0.98W、高 1.76W），四條直角邊 45° 切角，四個面各一塊拱門形平面＋往內斜下的弧形斜面（距離場 `sdPanel`：兩側筆直、上角橢圓弧收到瓶肩），前後各一塊凸起的菱形玻璃台，標籤貼在台上；香水是背光照取色的鼠尾草綠。標籤的千鳥格紙在頁面上用 canvas 畫，燙箔（玫瑰銀）遮罩 `src/tex_wt_label.png`（`tools/wt_label.py`：R 正面 Sage / Camomile / Wise Tea（Lora Medium）、G 背面 OrDiO 字母組合（Playfair Display Medium，字型放在 `tools/fonts/`）），頁面再合成顏色、金屬度、粗糙度貼圖。香材 10 種依 Fragrantica
 - 建置：`python3 tools/build3d.py all`（把 `__TEX_*__` 換成 data URI、輸出根目錄的 `*-3d.html`）
 
 ## 3D 香水詳細頁標準（Yoyo 逐輪要求，之後每支香水比照）
@@ -47,6 +48,11 @@
 
 - 不透明瓶身（晨曉之星）：不用玻璃著色器，瓶身放第 0 層；印字依圓柱的角度與高度取樣遮罩、背面浮凸用高度圖算法向。夜景裡要給瓶身專用的環境貼圖（夜空＋幾道柔和的長條光，PMREM），霧面漆才照得出官方照那道直直的高光，不然整支是黑的；拋光的凹面（瓶蓋頂碗）粗糙度調高、鏡面強度調低，免得反成一片淡紫。
 - 車削（LatheGeometry）輪廓的轉角要放真正的圓角弧：晨曉之星瓶底斜切角與瓶身之間原本只放兩三個點，反光到稜線就被截斷（Yoyo 的回饋，實拍是一道柔和的小圓角）。用 `fil(A,P,B,半徑,段數)` 產生與兩邊相切的圓弧（斜切角↔瓶身 0.16／14 段、平底↔斜切角 0.05／6 段）；LatheGeometry 的頂點法向是相鄰兩段（依長度加權）的平均，弧上每段轉角要小（約 4°），也不能有重複點（零長度線段會算出 NaN 法向）。
+- 玻璃外形用距離場＋凸包網格（OrDioLab 的瓶子）：形狀不是全凸時（凸起的菱形玻璃台），凸包在台緣多出一圈空氣，著色器要先沿視線往內找到真正的表面，找不到就 discard。
+- 厚瓶底裡全反射出去的光如果直接查環境貼圖（從瓶子中央拍的），往下、往水平的方向會看到遠處的海，瓶底多一道藍線；這些方向要混入台座的顏色（`uFloor`）。
+- LatheGeometry 的輪廓點要由下往上排，反了面會朝內（看起來像半透明的裙子）；mergeGeometries 的屬性要一致（圓片要先刪掉 uv）；`addI` 的 key 每種幾何要唯一，不然會共用到別的幾何。
+- 減少動態效果（prefers-reduced-motion）時動畫不更新：會動的物件（海鷗、蒸氣）建立時就要先擺好一次，不然會停在原點（瓶子裡）。
+- 石灰岩地面（`karst()`）：岩面反照率約 0.4～0.55，不能更亮；瓶子附近也以紅土、乾草、碎石為主、岩盤一塊塊露出來；溶蝕裂溝要稀疏、斷斷續續，不然像乾裂的泥地或雪地。
 - 湖面倒影：鏡像相機＋斜切近平面（同 three.js Reflector），只畫第 2 層；相機繞行的那一圈（離瓶子約 24～62）不要放大石或樹，會擋在鏡頭前。
 - 景深不處理天空（深度 = 1）：星點會被糊掉。
 - 夜景裡的模型整個偏藍：淺色木頭、乳香這類暖色的材質要用暖色 color 乘上去，不然看起來像灰色的石頭。
