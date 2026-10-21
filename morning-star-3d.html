@@ -838,7 +838,10 @@ const rose=(()=>{ const N=7000, a=.7233, Pv=.61519, Y=8; const pts=[]; let maxR=
   m.customProgramCacheKey=()=>'rose';
   const mesh=new THREE.Mesh(g,m); mesh.receiveShadow=true; pedestal.add(mesh); refl(mesh);
   const tip=new THREE.Vector3(P[best][0],.02,P[best][1]);
-  return { U, L, tip, T0:lens[best]/L };
+  // 依弧長參數（0–1，和 aT 一樣）找出金線上的位置：讓真的光源跟著光點走
+  const posAt=(p,v)=>{ const sL=(((p%1)+1)%1)*L; let lo=0, hi=lens.length-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(lens[m]<=sL) lo=m; else hi=m; }
+    const k=(sL-lens[lo])/Math.max(1e-9,lens[hi]-lens[lo]); return v.set(P[lo][0]+(P[hi][0]-P[lo][0])*k, 0, P[lo][1]+(P[hi][1]-P[lo][1])*k); };
+  return { U, L, tip, T0:lens[best]/L, posAt };
 })();
 
 // 青銅香爐架（thymiaterion）：三隻獅爪腳、細長的柱上一節節線腳與一顆圓球，頂上一只淺碗燃著乳香
@@ -868,6 +871,10 @@ const thym=new THREE.Group(); { const tx=5.6, tz=2.9; thym.position.set(tx, terr
 }
 // 火光：碗口一小簇搖曳的火焰（火炬），暖色的點光源照亮瓶身右前方
 const fireLight=new THREE.PointLight(C('#ff9450'), 14, 26, 1.7); fireLight.position.set(0,5.6,0); thym.add(fireLight);
+// 金線裡的兩道光也是真的光源：跟著光點在盤面上走，照亮瓶身下半、盤面與金線（鑽到瓶底下時熄掉）
+const PULSE = { I:[8,5.2], y:.62, foot:1.9 };                                                // 金光打在靛藍上會被吃掉一些，所以給亮一點
+// 衰減放緩一點（1.6），光才爬得上瓶身
+const pulseLights=['#ffbe48','#a596ff'].map(c=>{ const l=new THREE.PointLight(C(c), 0, 12, 1.6); l.layers.enable(1); l.layers.enable(REFL_LAYER); pedestal.add(l); return l; });
 const flames=(()=>{ const m=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, fog:false, uniforms:{ uT:clockU },
     vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
     fragmentShader:`uniform float uT; varying vec2 vUv;
@@ -910,22 +917,29 @@ const fx=(()=>{
   const SAT_P=95, t0=13;                                                     // 兩道光第一次在正面相遇：開場後約 12 秒
   const tmp=new THREE.Vector3(), flash=new THREE.Sprite(new THREE.SpriteMaterial({ map:canvasTex(64,64,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,250,235,1)'); gr.addColorStop(.3,'rgba(255,230,190,.35)'); gr.addColorStop(1,'rgba(255,230,190,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); }), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:0 }));
   flash.position.copy(rose.tip); flash.scale.setScalar(1.6); pedestal.add(flash);
-  const update=(t,dt)=>{
-    smoke.forEach(o=>{ const k=(t*.09+o.ph)%1; o.s.position.set(Math.sin(t*.4+o.ph*9)*.35*k + k*k*1.6, 5.3+k*6.5, Math.cos(t*.33+o.ph*7)*.3*k - k*.6); o.s.scale.setScalar(.3+k*1.9); o.s.material.opacity=Math.sin(Math.min(1,k*1.15)*Math.PI)*.085;
-      o.s.material.color.setRGB(.85+.15*(1-k), .82+.05*(1-k), .86-.12*(1-k)); });
-    const fl=.8+.2*Math.sin(t*9.1)*Math.sin(t*5.3+1)+.08*Math.sin(t*23.); fireLight.intensity=14*fl; flames.scale.set(1,.9+.2*fl,1);
-    // 金線裡的兩道光
+  // 金線裡的兩道光
+  const pulses=(t)=>{
     const P=48, tau=(t+t0)/P; const U=rose.U; U.uTA.value=((rose.T0+.5+tau)%1+1)%1; U.uTB.value=((rose.T0+.5-tau)%1+1)%1;
     const dm=Math.abs(((U.uTA.value-U.uTB.value)%1+1.5)%1-.5); const meetFront=Math.abs(((U.uTA.value-rose.T0)%1+1.5)%1-.5)<.25;
     const fk=Math.exp(-Math.pow(dm/.012,2)); U.uFlash.value=meetFront?fk:0; flash.material.opacity=meetFront?fk*.9:0;
     if(world.venus) world.venus.material.uniforms.uPulse.value=meetFront?0:fk;                 // 背面那次相遇（在瓶子底下，昏星變成晨星）：天上的金星亮一下
+    const boost=1+(meetFront?fk*2.2:0);
+    pulseLights.forEach((l,i)=>{ rose.posAt(i?U.uTB.value:U.uTA.value, l.position); const r=Math.hypot(l.position.x,l.position.z);
+      l.position.y=PULSE.y; l.intensity=PULSE.I[i]*sstep(PULSE.foot-.1,PULSE.foot+.5,r)*boost; });
+  };
+  pulses(0);
+  const update=(t,dt)=>{
+    smoke.forEach(o=>{ const k=(t*.09+o.ph)%1; o.s.position.set(Math.sin(t*.4+o.ph*9)*.35*k + k*k*1.6, 5.3+k*6.5, Math.cos(t*.33+o.ph*7)*.3*k - k*.6); o.s.scale.setScalar(.3+k*1.9); o.s.material.opacity=Math.sin(Math.min(1,k*1.15)*Math.PI)*.085;
+      o.s.material.color.setRGB(.85+.15*(1-k), .82+.05*(1-k), .86-.12*(1-k)); });
+    const fl=.8+.2*Math.sin(t*9.1)*Math.sin(t*5.3+1)+.08*Math.sin(t*23.); fireLight.intensity=14*fl; flames.scale.set(1,.9+.2*fl,1);
+    pulses(t);
     // 流星
     if(metT<0){ metNext-=dt; if(metNext<0) spawn(); } else { metT+=dt/.75; met.material.uniforms.uK.value=Math.min(1.25,metT); if(metT>1.25){ metT=-1; met.visible=false; metNext=18+Math.random()*24; } }
     // 衛星：沿著一道大圓從西北往東南走，靠近曙光時漸漸淡出（進入地影）
     { const k=((t+20)%SAT_P)/SAT_P; const az=250-k*120, alt=9+16*Math.sin(k*Math.PI); tmp.copy(dirAzAlt(az,alt)).multiplyScalar(1300); sat.geometry.attributes.position.setXYZ(0,tmp.x,tmp.y,tmp.z); sat.geometry.attributes.position.needsUpdate=true;
       sat.material.uniforms.uA.value=sstep(0,.06,k)*sstep(.82,.62,k); }
   };
-  return { update, spawn, sat, met };
+  return { update, spawn, sat, met, pulses, pulseLights };
 })();
 // ---------- 燈光：日出前沒有直射的陽光。主光是東邊天際的曙光（偏冷的粉紫、低低地從左後方來，影子很柔），
 // 天光是深藍的夜空；右前方香爐架的火光是唯一的暖色，迎面一道很淡的星光讓香材看得清楚 ----------
@@ -1012,10 +1026,10 @@ const embTex = tex(TEX.emblem, false);
   // 讓霧面漆照出官方照那種直直一道的藍紫高光，夜裡也看得出瓶身的形狀
   const bottleEnv=(()=>{ const sc=new THREE.Scene(); sc.add(new THREE.Mesh(new THREE.SphereGeometry(500,32,16), skyMaterial()));
     const panel=(az,alt,w,h,col,k)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({ color:C(col).multiplyScalar(k), side:THREE.DoubleSide })); m.position.copy(dirAzAlt(az,alt)).multiplyScalar(60); m.lookAt(0,0,0); sc.add(m); };
-    panel(128,10,12,80,'#8c98ff',1.6); panel(252,8,9,70,'#ffb27a',.8); panel(20,6,46,14,'#ff9c70',.9);
+    panel(128,10,12,80,'#8c98ff',2.0); panel(252,8,9,70,'#ffb27a',1.0); panel(20,6,46,14,'#ff9c70',1.05);
     return pmrem.fromScene(sc,0,.1,1000).texture; })();
-  const bodyMat=satin(new THREE.MeshPhysicalMaterial({ color:C('#232b68'), metalness:.55, roughness:.42, clearcoat:.06, clearcoatRoughness:.55, specularIntensity:.5, envMap:bottleEnv, envMapIntensity:1.1 }),'body');
-  const capMat=satin(new THREE.MeshPhysicalMaterial({ color:C('#1e2250'), metalness:.62, roughness:.38, clearcoat:.06, clearcoatRoughness:.5, specularIntensity:.45, envMap:bottleEnv, envMapIntensity:1.1 }),'cap');
+  const bodyMat=satin(new THREE.MeshPhysicalMaterial({ color:C('#29327a'), metalness:.55, roughness:.42, clearcoat:.22, clearcoatRoughness:.5, specularIntensity:.5, envMap:bottleEnv, envMapIntensity:1.3 }),'body');
+  const capMat=satin(new THREE.MeshPhysicalMaterial({ color:C('#23285e'), metalness:.62, roughness:.38, clearcoat:.06, clearcoatRoughness:.5, specularIntensity:.45, envMap:bottleEnv, envMapIntensity:1.3 }),'cap');
   const body=new THREE.Mesh(bodyG,bodyMat), cap=new THREE.Mesh(capG,capMat);
   [body,cap].forEach(m=>{ m.castShadow=true; m.receiveShadow=true; bottle.add(m); });
   refl(bottle);
