@@ -122,10 +122,35 @@ const capeCX=(z)=> -4 - 10*sstep(40,-170,z) + 3*Math.sin(z*.021+.8);
 const capeHW=(z)=>{ const w = z>50 ? 96+(z-50)*1.1 : 96 - 20*sstep(50,-60,z) - 10*sstep(-60,-150,z); return w; };
 function landSD(x,z){
   let s = capeHW(z) - Math.abs(x-capeCX(z));
+  if(s<-60) return mainSD(x,z);
   s += 7*Math.sin(z*.043+x*.006+1.1) + 4.5*Math.sin(z*.11+2.3) + 3*fbm(x*.03,4.4,z*.03,3)*2;      // 小灣與小岬
   const tip = (-z-150);                                                                         // 尖端：圓頭
   if(tip>0) s = Math.min(s, Math.sqrt(Math.max(0,capeHW(-150)**2 - tip*tip*9)) - Math.abs(x-capeCX(z)) + 2*Math.sin(x*.2));
-  return s; }   // >0 陸地、<0 海
+  return Math.max(s, mainSD(x,z)); }   // >0 陸地、<0 海
+// 岬灣海岸：大陸的海岸線從岬角根部往兩側一路向前（-Z）延伸，一個個岬角伸進海裡、中間是深深的海灣，越遠越高、越淡
+const HEADS=[[420,300,68],[800,380,88],[1240,430,118],[1760,380,160],[-560,330,78],[-960,420,98],[-1400,400,128],[-1920,420,170]];   // [中心 x, 往海裡伸出的長度, 寬]
+function coastZ(x){ const ax=Math.abs(x); let z = 58 - .4*Math.max(0,ax-170) - .0001*Math.max(0,ax-170)**2;
+  for(const [hx,A,w] of HEADS){ const u=(x-hx)/w; z -= A*Math.exp(-u*u)*(1+.15*Math.sin(hx*.01+x*.02)); }
+  return z + 22*fbm(x*.009,7.7,0,3) + 8*Math.sin(x*.031+1.3); }
+// 海岸線離得遠、又彎彎曲曲，用網格算真正的距離（Felzenszwalb 距離轉換，每格 4 單位），坡度才會處處一樣緩
+let MAING=null;
+function mainGrid(){ const L=2600, N=1300, h=2*L/N, INF=1e10, A=N*N;
+  const cz=new Float32Array(N); for(let i=0;i<N;i++) cz[i]=coastZ(-L+(i+.5)*h);
+  const fI=new Float32Array(A), fO=new Float32Array(A);
+  for(let j=0;j<N;j++){ const z=-L+(j+.5)*h; for(let i=0;i<N;i++){ const land=z>cz[i]; fI[j*N+i]=land?0:INF; fO[j*N+i]=land?INF:0; } }
+  const f=new Float32Array(N), d=new Float32Array(N), v=new Int32Array(N), zz=new Float32Array(N+1);
+  const e1=()=>{ let k=0; v[0]=0; zz[0]=-INF; zz[1]=INF;
+    for(let q=1;q<N;q++){ let s=((f[q]+q*q)-(f[v[k]]+v[k]*v[k]))/(2*q-2*v[k]); while(s<=zz[k]){ k--; s=((f[q]+q*q)-(f[v[k]]+v[k]*v[k]))/(2*q-2*v[k]); } k++; v[k]=q; zz[k]=s; zz[k+1]=INF; }
+    k=0; for(let q=0;q<N;q++){ while(zz[k+1]<q) k++; d[q]=(q-v[k])*(q-v[k])+f[v[k]]; } };
+  const e2=(g)=>{ for(let j=0;j<N;j++){ for(let i=0;i<N;i++) f[i]=g[j*N+i]; e1(); for(let i=0;i<N;i++) g[j*N+i]=d[i]; }
+    for(let i=0;i<N;i++){ for(let j=0;j<N;j++) f[j]=g[j*N+i]; e1(); for(let j=0;j<N;j++) g[j*N+i]=d[j]; } };
+  e2(fI); e2(fO);
+  const sd=new Float32Array(A); for(let k=0;k<A;k++) sd[k] = fI[k]===0 ? (Math.sqrt(fO[k])-.5)*h : -(Math.sqrt(fI[k])-.5)*h;
+  return {L,N,h,sd}; }
+function mainSD(x,z){ if(!MAING) MAING=mainGrid(); const {L,N,h,sd}=MAING; const fx=(x+L)/h-.5, fz=(z+L)/h-.5;
+  if(fx<0||fz<0||fx>=N-1||fz>=N-1) return z-coastZ(x);
+  const i=Math.floor(fx), j=Math.floor(fz), u=fx-i, w=fz-j, k=j*N+i;
+  return (sd[k]*(1-u)+sd[k+1]*u)*(1-w)+(sd[k+N]*(1-u)+sd[k+N+1]*u)*w; }
 const TEMPLE = { x:-36, z:-116, a:.38, top:7.2 };          // 神殿：岬頂的小丘上，從預設視角看在瓶子左後方
 const sstep=(a,b,x)=>{ const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
 // ---------- 基礎 ----------
@@ -268,7 +293,7 @@ function skyMaterial(){
   });
 }
 // 岸線距離圖：海面著色器用它決定淺灘的藍綠、崖腳的白浪（範圍 ±SHORE.L，存 landSD 的值）
-const SHORE = { L:420, N:384 };
+const SHORE = { L:1100, N:640 };
 const shoreTex=(()=>{ const N=SHORE.N, a=new Uint16Array(N*N);                // 半精度：手機也能線性內插
   for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const x=(i/(N-1)*2-1)*SHORE.L, z=(j/(N-1)*2-1)*SHORE.L; a[j*N+i]=THREE.DataUtils.toHalfFloat(landSD(x,z)); }
   const t=new THREE.DataTexture(a,N,N,THREE.RedFormat,THREE.HalfFloatType); t.minFilter=t.magFilter=THREE.LinearFilter; t.needsUpdate=true; return t; })();
@@ -281,24 +306,34 @@ function seaMaterial(){
       tShore:{value:shoreTex}, uShoreL:{value:SHORE.L} }),
     vertexShader:`varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
     fragmentShader: SKY_GLSL + `uniform vec3 uDeep, uMid, uShallow, uHaze; uniform sampler2D tShore; uniform float uShoreL; varying vec3 vW;
-      // 波：幾道方向不同的長浪＋細碎的風浪（只算法向）
-      vec2 wave(vec2 p, float t){
-        vec2 g=vec2(0.);
-        vec2 D1=normalize(vec2(.8,-.6)), D2=normalize(vec2(.55,-.84)), D3=normalize(vec2(.95,-.3)), D4=normalize(vec2(.3,-.95));
-        float k1=.11, k2=.19, k3=.33, k4=.6;
-        g += D1*k1*.55*cos(dot(D1,p)*k1 - t*1.05);
-        g += D2*k2*.32*cos(dot(D2,p)*k2 - t*1.38+1.3);
-        g += D3*k3*.18*cos(dot(D3,p)*k3 - t*1.8+2.1);
-        g += D4*k4*.09*cos(dot(D4,p)*k4 - t*2.4+.7);
+      // 波：16 道方向、波長、相位都不同的波疊起來（波長 110 → 1.6，方向散在風向 ±70° 裡，依深水色散各走各的速度），
+      // 再加一片片隨風移動的陣風區（貓爪紋：有的地方細浪密、有的地方平），細波在螢幕上小於約 3 像素就淡掉，不閃爍、也不會排成整齊的條紋
+      float hh1(float n){ return fract(sin(n*127.1)*43758.5453); }
+      vec2 wave(vec2 p, float t, float pw, float gust){
+        vec2 g=vec2(0.); float k=.057, A=.55; const float WD=-.62;
+        for(int i=0;i<16;i++){ float fi=float(i);
+          float ang = WD + (hh1(fi+1.)-.5)*2.4*(.35+.65*fi/15.);
+          vec2 D=vec2(cos(ang), sin(ang));
+          float om=sqrt(9.8*k)*.55, ph=hh1(fi*3.7+2.)*6.2832;
+          float aa=smoothstep(2.5, 6., 6.2832/k/max(pw,1e-4));   // 一個波長在螢幕上不到約 3 像素就淡掉
+          float gk = mix(1., gust, smoothstep(2.,9.,fi));
+          float sw = dot(D,p)*k - t*om + ph + .8*sin(dot(vec2(-D.y,D.x),p)*k*.37 + fi);   // 波峰線微微彎曲，不是一條條直線
+          g += D*k*A*cos(sw)*aa*gk;
+          k*=1.29; A*=.76; }
         return g; }
       void main(){
         vec2 p = vW.xz; float t=uSkyT;
         float dist = length(vW.xz - cameraPosition.xz);
-        float fade = 1.-smoothstep(120.,900.,dist);                                    // 遠處的細波看不清，平滑成一片
-        vec2 g = wave(p,t)*fade;
-        float e=.6; vec3 q=vec3(p*.35, t*.25);
-        vec2 gd = vec2(fbm3(q+vec3(e,0.,0.)+vec3(t*.3,0.,-t*.2))-fbm3(q-vec3(e,0.,0.)+vec3(t*.3,0.,-t*.2)), fbm3(q+vec3(0.,e,0.)+vec3(t*.3,0.,-t*.2))-fbm3(q-vec3(0.,e,0.)+vec3(t*.3,0.,-t*.2)))*.55;
-        g += gd*(1.-smoothstep(40.,320.,dist));
+        float pw = length(fwidth(p));                                                     // 一個像素在海面上多寬
+        float gust = .45 + 1.1*smoothstep(.3,.75, fbm3(vec3(p*.012 + vec2(t*.04,-t*.03), t*.02)));
+        vec2 g = wave(p,t,pw,gust);
+        // 最細的漣漪：兩層移動的雜訊（近處才看得到）
+        float e=.5; float rk=1.-smoothstep(.15,.6,pw);
+        vec3 q=vec3(p*.9, t*.6); vec3 q2=vec3(p*2.1+vec2(t*.5,-t*.3), t*.9);
+        vec2 gd = vec2(fbm3(q+vec3(e,0.,0.))-fbm3(q-vec3(e,0.,0.)), fbm3(q+vec3(0.,e,0.))-fbm3(q-vec3(0.,e,0.)))*.22
+                + vec2(fbm3(q2+vec3(e,0.,0.))-fbm3(q2-vec3(e,0.,0.)), fbm3(q2+vec3(0.,e,0.))-fbm3(q2-vec3(0.,e,0.)))*.12;
+        g += gd*rk*gust;
+        float fade = 1.-smoothstep(120.,900.,dist);
         vec3 n = normalize(vec3(-g.x, 1., -g.y));
         vec3 v = normalize(cameraPosition - vW);
         float fres = .02 + .98*pow(1.-max(dot(n,v),0.),5.);
@@ -413,7 +448,7 @@ function farLand(target, detail){
   const tc=new THREE.Color(), cA=C('#55623d'), cB=C('#7d7a50'), cDry=C('#a18d5e'), cRock=C('#9b9384'), cCoast=C('#b9ad94');
   const mat=new THREE.MeshLambertMaterial({ vertexColors:true });
   // 島：[方位角（從 -Z 往 -X 量，度）, 距離, 寬（度）, 高, 種子]
-  const ISL=[[-20,820,9,46,1],[8,1150,14,70,2],[34,700,5,26,3],[-48,980,12,58,4],[62,1300,16,64,5],[-78,620,4,18,6],[95,1050,8,40,7],[-100,1250,18,80,8],[20,460,3,10,9]];
+  const ISL=[[-20,820,9,46,1],[8,1150,14,70,2],[34,700,5,26,3],[-48,980,12,58,4],[20,460,3,10,9],[-4,1700,10,60,10]];   // 海灣裡的幾座島（兩側是大陸一個個伸進海裡的岬角）
   ISL.forEach(([az0,D,wd,H,sd])=>{ const az=THREE.MathUtils.degToRad(az0); const cx=-Math.sin(az)*D, cz=-Math.cos(az)*D;
     const tx=Math.cos(az), tz=-Math.sin(az), rx=-Math.sin(az), rz=-Math.cos(az);                 // 切向（島的長軸）與徑向
     const Lh=D*THREE.MathUtils.degToRad(wd)*.5, Sh=Lh*(.42+.18*Math.abs(Math.sin(sd*7.1)));
@@ -582,9 +617,9 @@ function buildWorld(target, detailed){
   // 地面：同心環網格（近處密、遠處疏），貼著地形
   const ringIn = new THREE.RingGeometry(.8, 430, detailed?420:80, detailed?300:40); ringIn.rotateX(-Math.PI/2);
   { const p=ringIn.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i); const d=Math.hypot(x,z); const k=Math.pow(d/430,1.45)*430/Math.max(d,1e-3); p.setX(i,x*k); p.setZ(i,z*k); } }
-  // 外圈：430 → 1450（大陸的丘陵、遠處的岬角），同樣的角度分段，交界的頂點和內圈完全重合
-  const ringOut = new THREE.RingGeometry(430, 1450, detailed?420:80, detailed?70:16); ringOut.rotateX(-Math.PI/2);
-  { const p=ringOut.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i); const d=Math.hypot(x,z); const dn=430*Math.pow(1450/430,(d-430)/1020), k=dn/d; p.setX(i,x*k); p.setZ(i,z*k); } }
+  // 外圈：430 → 2600（大陸的丘陵、兩側一個個伸進海裡的岬角），同樣的角度分段，交界的頂點和內圈完全重合
+  const ringOut = new THREE.RingGeometry(430, 2600, detailed?420:80, detailed?110:20); ringOut.rotateX(-Math.PI/2);
+  { const p=ringOut.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), z=p.getZ(i); const d=Math.hypot(x,z); const dn=430*Math.pow(2600/430,(d-430)/2170), k=dn/d; p.setX(i,x*k); p.setZ(i,z*k); } }
   ringIn.deleteAttribute('uv'); ringOut.deleteAttribute('uv'); ringIn.deleteAttribute('normal'); ringOut.deleteAttribute('normal');
   const ring = mergeVertices(mergeGeometries([ringIn, ringOut]), 1e-3);
   const rp=ring.attributes.position, col=[], soilA=[]; const tmp=new THREE.Color();
@@ -687,11 +722,54 @@ function buildWorld(target, detailed){
   const vr=rng(808);
   const yaw=()=>{ e.set(0,vr()*6.28,0); return q.setFromEuler(e); };
   const keep=(x,z,pad=0)=>Math.hypot(x,z)<6.2+pad || Math.hypot(x+5.6,z-3.1)<1.3+pad;           // 台座與茶杯四周留空
+
+  // ---------- 葉片卡：一張張帶透明的小卡片（canvas 畫的針葉、細枝、小葉與花），組成看得到枝葉輪廓的樹冠與灌叢，不用一團團的球 ----------
+  const cardTex=(w,h,draw)=>canvasTex(w,h,(g,W,H)=>{ g.clearRect(0,0,W,H); draw(g,W,H); });
+  const needleTex=cardTex(256,256,(g)=>{ const r=rng(301);                                          // 阿勒坡松：細枝末端一簇簇細長的針葉
+    g.strokeStyle='#5a4a36'; g.lineWidth=4; g.beginPath(); g.moveTo(128,252); g.quadraticCurveTo(120,180,130,104); g.stroke();
+    for(let k=0;k<10;k++){ const t=k/9, x=128+(r()-.5)*34*t, y=236-t*136;
+      for(let i=0;i<40;i++){ const a=(r()-.5)*(1.5+t*.9)+(x-128)*.01, l=(48+r()*44)*(.6+.4*t); g.strokeStyle=['#2c4420','#3b5628','#4a6630','#58763c'][(r()*4)|0]; g.lineWidth=1.5+r()*1.6;
+        g.beginPath(); g.moveTo(x,y); g.quadraticCurveTo(x+Math.sin(a)*l*.5+(r()-.5)*6, y-Math.cos(a)*l*.5, x+Math.sin(a)*l, y-Math.cos(a)*l); g.stroke(); } } });
+  const shrubTex=cardTex(256,256,(g)=>{ const r=rng(311);                                           // 灌叢（鼠尾草、岩薔薇一類）：灰褐的細枝分岔，枝上一片片灰綠的小葉
+    const leaf=(x,y,a)=>{ g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=['#6f7d5e','#859377','#96a389','#5e6c4e','#a4ae96'][(r()*5)|0]; g.beginPath(); g.ellipse(0,-5,2.3,6,0,0,6.283); g.fill(); g.restore(); };
+    const twig=(x,y,a,len,w,lvl)=>{ const x2=x+Math.sin(a)*len, y2=y-Math.cos(a)*len; g.strokeStyle='#6a5e4c'; g.lineWidth=w; g.beginPath(); g.moveTo(x,y); g.lineTo(x2,y2); g.stroke();
+      for(let i=0;i<(lvl>1?7:3);i++){ const t=.3+r()*.7; leaf(x+(x2-x)*t, y+(y2-y)*t, a+(r()<.5?-1:1)*(.6+r()*.6)); }
+      if(lvl<4){ const n=2+(r()*2|0); for(let i=0;i<n;i++) twig(x2,y2,a+(r()-.5)*1.3,len*(.62+r()*.2),w*.68,lvl+1); } else for(let i=0;i<4;i++) leaf(x2,y2,a+(r()-.5)*2); };
+    for(let i=0;i<4;i++) twig(128+(r()-.5)*30, 254, (r()-.5)*1.4, 52+r()*18, 4, 1); });
+  const thymeTex=cardTex(128,128,(g)=>{ const r=rng(321);                                           // 百里香：細細的莖上密密的小葉，頂上一團團粉紫的小花
+    for(let i=0;i<16;i++){ const x=64+(r()-.5)*70, y=128, a=(r()-.5)*1.5, L=55+r()*50, x2=x+Math.sin(a)*L, y2=y-Math.cos(a)*L;
+      g.strokeStyle='#5a5040'; g.lineWidth=1.3; g.beginPath(); g.moveTo(x,y); g.lineTo(x2,y2); g.stroke();
+      for(let k=0;k<13;k++){ const t=k/13; g.fillStyle=['#4a5a36','#5a6a42','#3e4c2e','#66764c'][(r()*4)|0]; g.beginPath(); g.ellipse(x+(x2-x)*t+(r()-.5)*5, y+(y2-y)*t, 1.6,2.7,r()*3,0,6.283); g.fill(); }
+      if(r()<.75){ for(let k=0;k<10;k++){ g.fillStyle=['#c890c0','#d6a4cc','#b67cae'][(r()*3)|0]; g.beginPath(); g.arc(x2+(r()-.5)*8,y2+(r()-.5)*7,1.9,0,6.283); g.fill(); } } } });
+  const cypTex=cardTex(128,256,(g)=>{ const r=rng(331);                                             // 絲柏：鱗片狀的小枝一層層分岔成羽狀
+    const spray=(x,y,a,L,w)=>{ const x2=x+Math.sin(a)*L, y2=y-Math.cos(a)*L; g.strokeStyle=['#21351c','#2b4223','#34502a','#3d5a30'][(r()*4)|0]; g.lineWidth=w; g.beginPath(); g.moveTo(x,y); g.lineTo(x2,y2); g.stroke();
+      if(L>9) for(let i=0;i<6;i++){ const t=.18+i*.13; spray(x+(x2-x)*t, y+(y2-y)*t, a+(i%2?.7:-.7)*(.6+r()*.4), L*.42, Math.max(1,w*.7)); } };
+    for(let i=0;i<5;i++) spray(64+(r()-.5)*44, 256, (r()-.5)*.45, 150+r()*80, 3); });
+  // 卡片的材質：帶透明的貼圖（MSAA 的 alpha to coverage，遠處不會縮成一根根細線），雙面但法向不翻面（法向朝樹冠外，整叢有體積的明暗），輕輕隨風擺
+  const cardMat=(tex, amp, opts={})=>{ const m=new THREE.MeshStandardMaterial(Object.assign({ map:tex, alphaTest:.42, alphaToCoverage:true, side:THREE.DoubleSide, vertexColors:true, roughness:.82 }, opts));
+    m.onBeforeCompile=(sh)=>{ sh.uniforms.uWind=windU;
+      sh.vertexShader='uniform float uWind;\n'+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+        vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+        float sway = (sin(uWind*1.3 + ip.x*.35 + ip.z*.22 + position.y*.6)*.6 + sin(uWind*2.7 + ip.z*.7 + position.x*1.3)*.3) * ${amp.toFixed(3)};
+        transformed.x += sway*max(position.y,0.)*.05; transformed.z += sway*max(position.y,0.)*.03;`);
+      sh.fragmentShader=sh.fragmentShader.replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('normal *= faceDirection;','')); };
+    m.customProgramCacheKey=()=>'card'+amp; return m; };
+  // 一叢卡片：每張卡的法向和「從叢中心往外」混合，再上一點顏色變化
+  const buildCards=(list, center, cols, rr)=>{ const parts=[]; const tc=new THREE.Color(), o=new V(), fn=new V();
+    list.forEach(({pos,quat,w,h})=>{ const g=new THREE.PlaneGeometry(w,h); g.applyQuaternion(quat); g.translate(pos.x,pos.y,pos.z);
+      const p=g.attributes.position, nr=g.attributes.normal, c=new Float32Array(p.count*3); tc.copy(cols[(rr()*cols.length)|0]);
+      for(let k=0;k<p.count;k++){ o.set(p.getX(k),p.getY(k),p.getZ(k)).sub(center).normalize(); fn.set(nr.getX(k),nr.getY(k),nr.getZ(k)); if(fn.dot(o)<0) fn.negate(); fn.lerp(o,.7).normalize(); nr.setXYZ(k,fn.x,fn.y,fn.z);
+        const sh=.78+.22*sstep(-1,1,o.y); c[k*3]=tc.r*sh; c[k*3+1]=tc.g*sh; c[k*3+2]=tc.b*sh; }
+      g.setAttribute('color',new THREE.BufferAttribute(c,3)); parts.push(g); });
+    return mergeGeometries(parts); };
+  const Q=(x,y,z)=>new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z));
+  const wc=[C('#ffffff'),C('#eef2e4'),C('#e2e8d4'),C('#f4f0e2')];
   // 希臘鼠尾草：灰綠、絨毛的長橢圓葉一對對長在木質的莖上，堆成半球形的灌叢，頂上抽出幾支淡紫的花穗
   const sageLeaf=(()=>{ const g=petalGeometry({ len:.22, wid:.08, segL:3, segW:1, cup:.18, curl:-.08, profile:t=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.95+.05)),.7)*(1-.25*t), base:'#ffffff', tip:'#ffffff' }); g.deleteAttribute('uv'); return g.index?g.toNonIndexed():g; })();
   const sageBush=(()=>{ const parts=[]; const sr=rng(61); const tc=new THREE.Color(); const dk=C('#58664c'), lt=C('#9fae96'), sil=C('#b8c2ae');
-    const core=new THREE.SphereGeometry(1,14,7,0,Math.PI*2,0,Math.PI*.55); core.scale(.78,.62,.74); parts.push(withCol(core,[.28,.32,.24]));
-    for(let i=0;i<120;i++){ const u=sr()*6.28, v=Math.acos(1-sr()*1.15); const p=new V(Math.sin(v)*Math.cos(u)*.84, Math.cos(v)*.68, Math.sin(v)*Math.sin(u)*.8); if(p.y<-.02) continue;
+    const core=new THREE.SphereGeometry(1,10,5,0,Math.PI*2,0,Math.PI*.55); core.scale(.5,.4,.48); parts.push(withCol(core,[.16,.18,.13]));   // 藏在葉子裡的暗部，只是不讓葉縫透光
+    for(let i=0;i<10;i++){ const a=sr()*6.28, el=.4+sr()*.8; const tp=new V(Math.sin(el)*Math.cos(a)*.75, Math.cos(el)*.6+.05, Math.sin(el)*Math.sin(a)*.72); const st=new THREE.CylinderGeometry(.006,.016,tp.length(),4); st.translate(0,tp.length()/2,0); st.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new V(0,1,0), tp.clone().normalize())); parts.push(withCol(st,[.36,.32,.26])); }   // 木質的細莖
+    for(let i=0;i<190;i++){ const u=sr()*6.28, v=Math.acos(1-sr()*1.15); const p=new V(Math.sin(v)*Math.cos(u)*.84, Math.cos(v)*.68, Math.sin(v)*Math.sin(u)*.8); if(p.y<-.02) continue;
       const n=p.clone().normalize(); const qq=new THREE.Quaternion().setFromUnitVectors(new V(0,1,0), n.clone().lerp(new V(0,1,0),.35).normalize()); qq.premultiply(new THREE.Quaternion().setFromAxisAngle(n, sr()*6.28));
       for(const sd of [0,Math.PI]){ const l=sageLeaf.clone(); const q2=qq.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,sd,.5))); l.applyMatrix4(new THREE.Matrix4().compose(p,q2,new V(1,1,1).multiplyScalar(.9+sr()*.5)));
         tc.copy(dk).lerp(lt, sstep(-.1,.6,p.y)*.8+sr()*.2); if(sr()<.25) tc.lerp(sil,.5); parts.push(withCol(l,[tc.r,tc.g,tc.b])); } }
@@ -699,6 +777,10 @@ function buildWorld(target, detailed){
       const st=new THREE.CylinderGeometry(.008,.012,top.y-b.y,4); st.translate(0,(top.y-b.y)/2,0); st.applyMatrix4(new THREE.Matrix4().makeTranslation(b.x,b.y,b.z)); parts.push(withCol(st,[.42,.44,.32]));
       for(let k=0;k<6;k++){ const fp=b.clone().lerp(top,.3+k*.12); const fl=new THREE.OctahedronGeometry(.02,0); fl.scale(1.6,.7,1.2); fl.rotateY(k*1.7); fl.translate(fp.x,fp.y,fp.z); parts.push(withCol(fl,[.7,.62,.84])); } }
     return mergeGeometries(parts); })();
+  const shrubVar=(seed,n,R0,H0,w0)=>{ const rr=rng(seed); const L=[]; for(let i=0;i<n;i++){ const a=rr()*6.283, rad=Math.sqrt(rr())*R0; const w=w0*(.75+rr()*.5); L.push({ pos:new V(Math.cos(a)*rad, H0*(.45+rr()*.35)-(rad/R0)*H0*.25, Math.sin(a)*rad), quat:Q((rr()-.5)*.6, rr()*6.283, (rr()-.5)*.6), w, h:w*.85 }); }
+    return buildCards(L, new V(0,-.2,0), wc, rr); };
+  const shrubF=[shrubVar(401,13,.5,.9,1.05), shrubVar(402,15,.6,.8,1.0)];
+  const thymeC=[shrubVar(411,20,.45,.36,.62), shrubVar(412,18,.5,.32,.6)];
   const sageFar=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,1)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position; const v=new V();
     for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); if(v.y<0) v.y*=.15; const k=1+fbm(v.x*2.6,v.y*2.6,v.z*2.6,3)*.45; p.setXYZ(i,v.x*k*.82,v.y*k*.6,v.z*k*.78); } g.computeVertexNormals();
     const c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const k=.62+.38*sstep(-.1,.5,v.y); c[i*3]=.5*k; c[i*3+1]=.56*k; c[i*3+2]=.44*k; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
@@ -743,7 +825,7 @@ function buildWorld(target, detailed){
   for(let i=0;i<360;i++){ const [x,z]=sample(7,38); const s=.9+vr()*1.0; if(!ok(x,z,s)) continue; const d=Math.hypot(x,z); const kk=s*(d<11?.7:1);
     addI('sage', sageBush, m4().compose(new V(x, terrainH(x,z)-.08, z), yaw(), sc.set(kk,kk*(.8+vr()*.4),kk)), sageCols[(vr()*5)|0]); }
   for(let i=0;i<800;i++){ const [x,z]=sample(6.5,48); const s=.7+vr()*.9; if(!ok(x,z,s)) continue;
-    addI('thyme', thyme, m4().compose(new V(x, terrainH(x,z)-.05, z), yaw(), sc.set(s,s*(.8+vr()*.5),s)), thymeCols[(vr()*4)|0]); }
+    addI('thymeC'+(i&1), thymeC[i&1], m4().compose(new V(x, terrainH(x,z)-.05, z), yaw(), sc.set(s,s*(.8+vr()*.5),s)), thymeCols[(vr()*4)|0]); }
   for(let i=0;i<300;i++){ const [x,z]=sample(7,44); const s=1.1+vr()*.7; if(!ok(x,z,.5)) continue;
     addI('lav', lavender, m4().compose(new V(x, terrainH(x,z)-.03, z), yaw(), sc.set(s,s*(.85+vr()*.3),s)), C('#ffffff')); }
   for(let i=0;i<900;i++){ const [x,z]=sample(6.3,36); if(!ok(x,z,.1)) continue; const s=1.1+vr()*.7;
@@ -752,7 +834,7 @@ function buildWorld(target, detailed){
   // 遠處（低模的灌叢，填滿整片岬角與大陸的坡地）
   { const fCols=['#ffffff','#e8ecd8','#d8dcc6','#c8ccb0','#f0eadc','#b8bc9c','#a8b090'].map(C);
     for(let i=0;i<7000;i++){ const x=(vr()-.5)*520, z=-200+vr()*460; const d=Math.hypot(x,z); if(d<34) continue; if(!ok(x,z,0)) continue;
-      const s=(1.1+vr()*1.4)*(d>140?1.5:1); addI('sageFar', sageFar, m4().compose(new V(x, terrainH(x,z)-.15, z), yaw(), sc.set(s,s*(.7+vr()*.5),s)), fCols[(vr()*7)|0]); }
+      const s=(1.1+vr()*1.4)*(d>140?1.5:1); addI('shrubF'+(i&1), shrubF[i&1], m4().compose(new V(x, terrainH(x,z)-.12, z), yaw(), sc.set(s,s*(.7+vr()*.5),s)), fCols[(vr()*7)|0]); }
     for(let i=0;i<2600;i++){ const x=(vr()-.5)*300, z=-180+vr()*300; const d=Math.hypot(x,z); if(d<44) continue; if(!ok(x,z,0)) continue; putTuft(x,z,1.4); } }
 
   // ---------- 橄欖樹：岬頂神殿旁與大陸的坡地上，扭曲多瘤的灰色樹幹，樹冠是一叢叢正面灰綠、背面銀白的細長葉 ----------
@@ -774,24 +856,37 @@ function buildWorld(target, detailed){
       else { const a=orr()*6.28, d=66+orr()*150; x=Math.cos(a)*d; z=Math.sin(a)*d; }
       if(landSD(x,z)<8 || templeSD(x,z)<5 || Math.hypot(x,z)<64) continue; OLIVES.push([x,z]); olive(new V(x,terrainH(x,z)-.3,z), 7+orr()*4, 100+i); } }
   // ---------- 絲柏：神殿後方與大陸坡地上，又高又窄的深綠火焰 ----------
-  const cypress=(()=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,3)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); const p=g.attributes.position; const v=new V();
-    for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const t=(v.y+1)/2; const w=Math.pow(Math.sin(Math.PI*Math.min(1,t*.9+.1)),.7)*(1-.55*t); const k=1+fbm(v.x*3,v.y*6,v.z*3,3)*.28;
-      p.setXYZ(i, v.x*w*k*.9, t*1-.04, v.z*w*k*.9); } g.computeVertexNormals();
-    const c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); const k=.6+.4*sstep(0,1,v.y); c[i*3]=.11*k; c[i*3+1]=.2*k; c[i*3+2]=.1*k; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g; })();
+  const cypVar=(seed)=>{ const rr=rng(seed); const H=14, Rm=1.25, bark=[], L=[];
+    const env=(t)=>Rm*Math.pow(Math.sin(Math.PI*Math.min(1,t*.9+.1)),.7)*(1-.55*t);
+    tubeTaper([new V(0,-.3,0), new V(.05,H*.5,0), new V(0,H*.93,.04)], .22, .25, 6, 6, bark);
+    { const pr=[]; for(let i=0;i<=16;i++){ const t=i/16; pr.push(new THREE.Vector2(Math.max(.02,env(t)*.55), .6+t*(H-1.2))); } bark.push(new THREE.LatheGeometry(pr,10)); }   // 暗心：由下往上排
+    for(let i=0;i<190;i++){ const t=Math.pow(rr(),.85), a=rr()*6.283, rad=env(t)*(.5+.5*rr()); const w=.7+rr()*.45;
+      L.push({ pos:new V(Math.cos(a)*rad, .7+t*(H-1), Math.sin(a)*rad), quat:Q((rr()-.5)*.3, -a+Math.PI/2+(rr()-.5)*.9, (rr()-.5)*.3), w, h:w*2 }); }
+    return { bark: mergeGeometries(bark.map(g=>withCol(g,[.1,.14,.08]))), cards: buildCards(L, new V(0,H*.4,0), wc, rr) }; };
+  const cypV=[cypVar(421), cypVar(422)];
   { const crr=rng(41); const pts=[];
     for(let i=0;i<10;i++){ const u=(crr()-.2)*TMP.L*1.1, w=-(TMP.Wd/2+14+crr()*20); pts.push([TEMPLE.x+u*Math.cos(TEMPLE.a)-w*Math.sin(TEMPLE.a), TEMPLE.z+u*Math.sin(TEMPLE.a)+w*Math.cos(TEMPLE.a)]); }
     for(let i=0;i<70;i++){ const a=crr()*6.28, d=80+crr()*200; pts.push([Math.cos(a)*d, Math.sin(a)*d]); }
     pts.forEach(([x,z])=>{ if(landSD(x,z)<6 || templeSD(x,z)<4 || Math.hypot(x,z)<66) return; const H=11+crr()*9, W=1.1+crr()*.7;
-      addI('cyp', cypress, m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,crr()*6.28,0)), sc.set(W*H*.075, H, W*H*.075)), C(['#ffffff','#e8eedd','#dfe6d2'][(crr()*3)|0])); }); }
+      const v=(crr()*2)|0, m=m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,crr()*6.28,0)), sc.set(W*.85*H/14, H/14, W*.85*H/14)), cc=C(['#ffffff','#e8eedd','#dfe6d2'][(crr()*3)|0]);
+      addI('cypB'+v, cypV[v].bark, m, cc); addI('cypC'+v, cypV[v].cards, m, cc); }); }
   // ---------- 大陸坡地上的阿勒坡松：傘形的樹冠 ----------
-  const pine=(()=>{ const parts=[]; const rr=rng(77); const trunkC=[.36,.3,.24], nd=C('#3a5228'), nl=C('#6a8446'), tc=new THREE.Color();
-    const tg=new THREE.CylinderGeometry(.12,.24,4.2,6,4); tg.translate(0,2.1,0); { const p=tg.attributes.position; for(let i=0;i<p.count;i++){ const y=p.getY(i); p.setX(i,p.getX(i)+Math.sin(y*.9)*.25); } } tg.computeVertexNormals(); parts.push(withCol(tg,trunkC));
-    const pad=(x,y,z,s)=>{ const g=mergeVertices(new THREE.IcosahedronGeometry(1,1)); g.deleteAttribute('normal'); g.deleteAttribute('uv'); displace(g,.22,2.6,3,(rr()*99)|0); g.scale(s,s*.42,s*.9); g.computeVertexNormals(); g.translate(x,y,z);
-      const p=g.attributes.position, c=new Float32Array(p.count*3); for(let i=0;i<p.count;i++){ const k=sstep(y-s*.4,y+s*.4,p.getY(i)); tc.copy(nd).lerp(nl, k*.8+rr()*.15); c[i*3]=tc.r; c[i*3+1]=tc.g; c[i*3+2]=tc.b; } g.setAttribute('color',new THREE.BufferAttribute(c,3)); return g.index?g.toNonIndexed():g; };
-    for(let i=0;i<9;i++){ const a=i*2.4+rr()*.6, rad=i===0?0:.6+rr()*1.3, y=4+rr()*1.0-rad*.25; parts.push(pad(Math.cos(a)*rad,y,Math.sin(a)*rad,1.1+rr()*.6)); }
-    return mergeGeometries(parts); })();
+  const pineVar=(seed)=>{ const rr=rng(seed); const bark=[], L=[], tips=[]; const H=4+rr()*1.2;
+    const lean=new V((rr()-.5)*.9,0,(rr()-.5)*.9), top=new V(lean.x,H,lean.z);
+    tubeTaper([new V(0,-.3,0), new V(lean.x*.3+(rr()-.5)*.25,H*.4,lean.z*.3), new V(lean.x*.72,H*.76,lean.z*.72), top], .24, .55, 10, 7, bark);
+    const nL=4+(rr()*2|0);
+    for(let i=0;i<nL;i++){ const a=i/nL*6.283+rr()*.8, el=.8+rr()*.35, Ln=2.3+rr()*1.4; const d=new V(Math.cos(a)*Math.sin(el), Math.cos(el), Math.sin(a)*Math.sin(el));
+      const p0=top.clone().add(new V(0,-rr()*.7,0)), p1=p0.clone().addScaledVector(d,Ln*.5).add(new V(0,.25,0)), p2=p0.clone().addScaledVector(d,Ln).add(new V(0,.45+rr()*.4,0));
+      tubeTaper([p0,p1,p2], .11, .4, 5, 5, bark); tips.push(p2);
+      const nT=2+(rr()*2|0); for(let k=0;k<nT;k++){ const b=new V(Math.cos(a+(rr()-.5)*1.7), .45+rr()*.5, Math.sin(a+(rr()-.5)*1.7)).normalize(); const q0=p1.clone().lerp(p2,.25+rr()*.6), q1=q0.clone().addScaledVector(b,1+rr()*.9);
+        tubeTaper([q0, q0.clone().lerp(q1,.5).add(new V(0,.1,0)), q1], .05, .4, 3, 4, bark); tips.push(q1); } }
+    const cen=new V(); tips.forEach(t=>cen.add(t)); cen.multiplyScalar(1/tips.length).add(new V(0,-.6,0));
+    tips.forEach(tp=>{ const n=10+(rr()*4|0); for(let k=0;k<n;k++){ const w=1.8+rr()*.9; L.push({ pos:tp.clone().add(new V((rr()-.5)*1.4,(rr()-.3)*.55,(rr()-.5)*1.4)), quat:Q((rr()-.5)*1.5, rr()*6.283, (rr()-.5)*1.5), w, h:w }); } });
+    return { bark: mergeGeometries(bark.map(g=>withCol(g,[.2,.16,.13]))), cards: buildCards(L, cen, wc, rr) }; };
+  const pineV=[pineVar(431), pineVar(432), pineVar(433)];
   { const prr=rng(51); for(let i=0;i<260;i++){ const x=(prr()-.5)*480, z=60+prr()*240; if(landSD(x,z)<8 || Math.hypot(x,z)<75) continue; const s=1.3+prr()*1.2;
-      addI('pine', pine, m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,prr()*6.28,0)), sc.set(s,s,s)), C(['#ffffff','#e8efe0','#d8e2cc'][(prr()*3)|0])); } }
+      const v=i%3, m=m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,prr()*6.28,0)), sc.set(s,s,s)), cc=C(['#ffffff','#e8efe0','#d8e2cc'][(prr()*3)|0]);
+      addI('pineB'+v, pineV[v].bark, m, cc); addI('pineC'+v, pineV[v].cards, m, cc); } }
 
   // 統一建立
   const trunkTex=canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#8a8478'; g.fillRect(0,0,w,h); const rr=rng(13);
@@ -802,7 +897,10 @@ function buildWorld(target, detailed){
   const limeMat=karst(new THREE.MeshStandardMaterial({ roughness:.85 }),'rock',1.6);
   const mats={ lime:limeMat, limeFar:limeMat, gravel:limeMat,
     sage:windMaterial({ roughness:.7 },.08), sageFar:makeFoliageMat(1.3), thyme:makeFoliageMat(3.2), lav:windMaterial({ roughness:.7 },.35), cham:windMaterial({ roughness:.6 },.5),
-    blade:windMaterial({ roughness:.8 },.7), oleaf:windMaterial({ roughness:.55 },.06), cyp:makeFoliageMat(1.1), pine:makeFoliageMat(.9) };
+    blade:windMaterial({ roughness:.8 },.7), oleaf:windMaterial({ roughness:.55 },.06) };
+  { const barkM=new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.92 }), needleM=cardMat(needleTex,.25), cypM=cardMat(cypTex,.15), shrubM=cardMat(shrubTex,.6), thymeM=cardMat(thymeTex,.4);
+    for(const v of [0,1,2]){ mats['pineB'+v]=barkM; mats['pineC'+v]=needleM; }
+    for(const v of [0,1]){ mats['cypB'+v]=barkM; mats['cypC'+v]=cypM; mats['shrubF'+v]=shrubM; mats['thymeC'+v]=thymeM; } }
   Object.entries(inst).forEach(([k,v])=>{ const im=new THREE.InstancedMesh(v.geo, mats[k], v.xf.length); v.xf.forEach((m,i)=>{ im.setMatrixAt(i,m); im.setColorAt(i,v.cl[i]); });
     im.castShadow=['sage','lime','lav','oleaf'].includes(k); im.receiveShadow=true; target.add(im); });
   return { sky, ground, sea };
@@ -962,7 +1060,7 @@ const fillL=new THREE.DirectionalLight(C('#eef4fa'), .75); fillL.position.set(-1
 // 標籤：玫瑰銀的金屬框、薰衣草藍／薄荷綠／米白的千鳥格紙；正面燙 Sage Camomile Wise Tea、背面燙 OrDiO 字母組合。
 // 瓶蓋（霧面暖銀）：瓶口一圈套環、細一點的頸（上端微微外擴接到圓盤）、一片寬圓盤，最上面是削去底部的大圓球。
 const W=4.0, D=3.92, GH=7.05;
-const SHAPE={ ch:.42, pa:1.36, pz:1.33, rx:.55, ry:1.0, sl:.9, round:.05, top:.24, bot:.16, sh:.42, sd:.3 };  // 切角、拱門半寬（正面／側面）、拱門上角的橢圓半徑、斜面的斜率、稜的（sh／sd：瓶肩斜面的高與深）圓角、瓶肩圓角、瓶底切角
+const SHAPE={ ch:.42, pa:1.36, pz:1.33, apex:.38, sl:.9, round:.05, top:.14, bot:.16, wall:.42 };   // 切角、拱門半寬（正面／側面）、拱頂離瓶頂、斜拱的斜率、稜的圓角、瓶肩圓角、瓶底切角、內腔離外形的最小壁厚
 const BOSS={ m:.1, h:.07 };                                            // 菱形玻璃台：比標籤外框多出的寬度、凸起的高度
 const CAV={ x:1.42, z:1.40, y0:1.2, y1:6.55, rc:.5, rt:.35, rb:.45 };
 const LIQ_TOP=6.33;
@@ -976,9 +1074,9 @@ const sceneRT = new THREE.WebGLRenderTarget(2,2,{ type:THREE.HalfFloatType, samp
 const uViewProj = { value:new THREE.Matrix4() }, uInvVP = { value:new THREE.Matrix4() };
 // JS 版的外形距離場（與著色器一致），用來取樣出凸包網格
 const smax=(a,b,k)=>{ const h=Math.max(k-Math.abs(a-b),0)/k; return Math.max(a,b)+h*h*k*.25; };
-const PCY = GH-SHAPE.sh-SHAPE.ry, KS = 1/Math.sqrt(1+SHAPE.sl*SHAPE.sl), KSH = 1/Math.hypot(SHAPE.sh,SHAPE.sd);   // 拱門的頂剛好在瓶肩斜面的下緣
-function sdPanelJS(s,y,pa){ if(y<=PCY) return Math.max(Math.abs(s)-pa,0);
-  const qx=Math.abs(s)-(pa-SHAPE.rx), qy=(y-PCY)*SHAPE.rx/SHAPE.ry; return Math.max(Math.hypot(Math.max(qx,0),Math.max(qy,0))-SHAPE.rx,0); }
+const KS = 1/Math.sqrt(1+SHAPE.sl*SHAPE.sl);
+// 拱門：兩側筆直，上緣是半徑 = 拱門半寬的完整半圓（100% 半徑，沒有直線段）；半圓外面是往後斜下去的斜拱，一路斜到瓶肩
+function sdPanelJS(s,y,pa){ const yc=GH-SHAPE.apex-pa; if(y<=yc) return Math.max(Math.abs(s)-pa,0); return Math.max(Math.hypot(s,y-yc)-pa,0); }
 function sdRhombusJS(px,py,bx,by){ px=Math.abs(px); py=Math.abs(py); const h=Math.min(Math.max(((bx-2*px)*bx-(by-2*py)*by)/(bx*bx+by*by),-1),1);
   const d=Math.hypot(px-.5*bx*(1-h), py-.5*by*(1+h)); return d*Math.sign(px*by+py*bx-bx*by); }
 function sdOutJS(x,y,z){ const ax=Math.abs(x), az=Math.abs(z);
@@ -986,7 +1084,6 @@ function sdOutJS(x,y,z){ const ax=Math.abs(x), az=Math.abs(z);
   const dF=(az + SHAPE.sl*sdPanelJS(x,y,SHAPE.pa) - D/2)*KS, dS=(ax + SHAPE.sl*sdPanelJS(z,y,SHAPE.pz) - W/2)*KS;
   let d=smax(smax(dCh,dF,SHAPE.round),dS,SHAPE.round);
   d=Math.max(d, (d+SHAPE.bot-y)*.7071, -y);
-  d=smax(smax(d, ((az-D/2)*SHAPE.sh+(y-GH+SHAPE.sh)*SHAPE.sd)*KSH, .07), ((ax-W/2)*SHAPE.sh+(y-GH+SHAPE.sh)*SHAPE.sd)*KSH, .07);
   d=smax(d, y-GH, SHAPE.top);
   const dR=sdRhombusJS(x,y-LABEL.cy,LABEL.w/2,LABEL.h/2);
   const dB=Math.max((az-(D/2+BOSS.h)+Math.max(dR-(BOSS.m-BOSS.h),0))*.7071, dR-BOSS.m);
@@ -1009,9 +1106,9 @@ const glassMat = new THREE.ShaderMaterial({
     float smax(float a, float b, float k){ float h=max(k-abs(a-b),0.)/k; return max(a,b)+h*h*k*.25; }
     // 拱門形：兩側筆直、上方兩角是橢圓弧（p = 面上的橫向座標與高度）
     float sdPanel(vec2 p, float pa){
-      if(p.y<=${f3(PCY)}) return max(abs(p.x)-pa,0.);
-      vec2 q=vec2(abs(p.x)-(pa-${f3(SHAPE.rx)}), (p.y-${f3(PCY)})*${f3(SHAPE.rx/SHAPE.ry)});
-      return max(length(max(q,0.))-${f3(SHAPE.rx)},0.); }
+      float yc=${f3(GH-SHAPE.apex)}-pa;
+      if(p.y<=yc) return max(abs(p.x)-pa,0.);
+      return max(length(vec2(p.x,p.y-yc))-pa,0.); }
     float ndot(vec2 a, vec2 b){ return a.x*b.x-a.y*b.y; }
     float sdRhombus(vec2 p, vec2 b){ p=abs(p); float h=clamp(ndot(b-2.*p,b)/dot(b,b),-1.,1.); float d=length(p-.5*b*vec2(1.-h,1.+h)); return d*sign(p.x*b.y+p.y*b.x-b.x*b.y); }
     // 外形：四條直角邊的 45° 切角 ∩ 四個面的弧形斜面（面 ≤ 半寬 − 斜率 × 到拱門形的距離）∩ 瓶底（小切角）∩ 圓潤的瓶肩；再聯集前後的菱形玻璃台
@@ -1021,8 +1118,6 @@ const glassMat = new THREE.ShaderMaterial({
       float dS=(a.x + ${f3(SHAPE.sl)}*sdPanel(p.zy, ${f3(SHAPE.pz)}) - ${f3(W/2)})*${f3(KS)};
       float d=smax(smax(dCh,dF,${f3(SHAPE.round)}),dS,${f3(SHAPE.round)});
       d=max(max(d,(d+${f3(SHAPE.bot)}-p.y)*.7071),-p.y);
-      // 瓶肩：四個面的上緣各一道往後斜的斜面（拱門的頂；拱門外的弧形斜面已經往內退，斜面在那裡就變矮，瓶肩上看得到「⌐ ¬」的折角）
-      d=smax(smax(d, ((a.z-${f3(D/2)})*${f3(SHAPE.sh)}+(p.y-${f3(GH-SHAPE.sh)})*${f3(SHAPE.sd)})*${f3(KSH)}, .07), ((a.x-${f3(W/2)})*${f3(SHAPE.sh)}+(p.y-${f3(GH-SHAPE.sh)})*${f3(SHAPE.sd)})*${f3(KSH)}, .07);
       d=smax(d,p.y-${f3(GH)},${f3(SHAPE.top)});
       float dR=sdRhombus(vec2(p.x,p.y-${f3(LABEL.cy)}), vec2(${f3(LABEL.w/2)},${f3(LABEL.h/2)}));
       float dB=max((a.z-${f3(D/2+BOSS.h)}+max(dR-${f3(BOSS.m-BOSS.h)},0.))*.7071, dR-${f3(BOSS.m)});
@@ -1031,7 +1126,8 @@ const glassMat = new THREE.ShaderMaterial({
     float sdCav(vec3 p){
       vec2 q=abs(p.xz)-vec2(${f3(CAV.x-CAV.rc)},${f3(CAV.z-CAV.rc)}); float dxz=min(max(q.x,q.y),0.)+length(max(q,0.))-${f3(CAV.rc)};
       float r = p.y>${f3((CAV.y0+CAV.y1)/2)} ? ${f3(CAV.rt)} : ${f3(CAV.rb)};
-      vec2 w=vec2(dxz+r, abs(p.y-${f3((CAV.y0+CAV.y1)/2)})-${f3((CAV.y1-CAV.y0)/2)}+r); return min(max(w.x,w.y),0.)+length(max(w,0.))-r; }
+      vec2 w=vec2(dxz+r, abs(p.y-${f3((CAV.y0+CAV.y1)/2)})-${f3((CAV.y1-CAV.y0)/2)}+r); float dB=min(max(w.x,w.y),0.)+length(max(w,0.))-r;
+      return smax(dB, sdOut(p)+${f3(SHAPE.wall)}, .18); }   // 再和「外形往內縮一個壁厚」取交集：內腔的上緣跟著斜拱往下收，壁厚處處至少 0.42
     vec3 nOut(vec3 p){ vec2 k=vec2(1.,-1.)*.0015; return normalize(k.xyy*sdOut(p+k.xyy)+k.yyx*sdOut(p+k.yyx)+k.yxy*sdOut(p+k.yxy)+k.xxx*sdOut(p+k.xxx)); }
     vec3 nCav(vec3 p){ vec2 k=vec2(1.,-1.)*.002; return normalize(k.xyy*sdCav(p+k.xyy)+k.yyx*sdCav(p+k.yyx)+k.yxy*sdCav(p+k.yxy)+k.xxx*sdCav(p+k.xxx)); }
     float exitOut(vec3 p, vec3 d){ float t=.01; for(int i=0;i<64;i++){ float s=-sdOut(p+d*t); if(s<1e-3 && t>.03) break; t+=max(s,.006); } return t; }
