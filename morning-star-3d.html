@@ -871,10 +871,10 @@ const thym=new THREE.Group(); { const tx=5.6, tz=2.9; thym.position.set(tx, terr
 }
 // 火光：碗口一小簇搖曳的火焰（火炬），暖色的點光源照亮瓶身右前方
 const fireLight=new THREE.PointLight(C('#ff9450'), 14, 26, 1.7); fireLight.position.set(0,5.6,0); thym.add(fireLight);
-// 金線裡的兩道光也是真的光源：跟著光點在盤面上走，照亮瓶身下半、盤面與金線（鑽到瓶底下時熄掉）
-const PULSE = { I:[8,5.2], y:.62, foot:1.9 };                                                // 金光打在靛藍上會被吃掉一些，所以給亮一點
-// 衰減放緩一點（1.6），光才爬得上瓶身
-const pulseLights=['#ffbe48','#a596ff'].map(c=>{ const l=new THREE.PointLight(C(c), 0, 12, 1.6); l.layers.enable(1); l.layers.enable(REFL_LAYER); pedestal.add(l); return l; });
+// 金線裡的兩道光也照亮瓶身：光從金線的溝槽裡透出來，只照到瓶身，不在不透明的青金石盤面上留下光暈
+// （所以不用 PointLight——它會照到盤面、金線與香爐；改在瓶身的著色器裡多算兩盞點光源，衰減 1.6、截止 12，光才爬得上瓶身）
+const PULSE = { I:[8,5.2], y:.62, foot:1.9, col:[C('#ffbe48'),C('#a596ff')] };            // 金光打在靛藍上會被吃掉一些，所以給亮一點
+const pulseU = { uPP:{ value:[new THREE.Vector3(), new THREE.Vector3()] }, uPC:{ value:[new THREE.Vector3(), new THREE.Vector3()] } };
 const flames=(()=>{ const m=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, fog:false, uniforms:{ uT:clockU },
     vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
     fragmentShader:`uniform float uT; varying vec2 vUv;
@@ -924,8 +924,8 @@ const fx=(()=>{
     const fk=Math.exp(-Math.pow(dm/.012,2)); U.uFlash.value=meetFront?fk:0; flash.material.opacity=meetFront?fk*.9:0;
     if(world.venus) world.venus.material.uniforms.uPulse.value=meetFront?0:fk;                 // 背面那次相遇（在瓶子底下，昏星變成晨星）：天上的金星亮一下
     const boost=1+(meetFront?fk*2.2:0);
-    pulseLights.forEach((l,i)=>{ rose.posAt(i?U.uTB.value:U.uTA.value, l.position); const r=Math.hypot(l.position.x,l.position.z);
-      l.position.y=PULSE.y; l.intensity=PULSE.I[i]*sstep(PULSE.foot-.1,PULSE.foot+.5,r)*boost; });
+    for(let i=0;i<2;i++){ const p=pulseU.uPP.value[i]; rose.posAt(i?U.uTB.value:U.uTA.value, p); const r=Math.hypot(p.x,p.z); p.y=PULSE.y;   // 鑽到瓶底下時熄掉
+      const k=PULSE.I[i]*sstep(PULSE.foot-.1,PULSE.foot+.5,r)*boost, c=PULSE.col[i]; pulseU.uPC.value[i].set(c.r*k, c.g*k, c.b*k); }
   };
   pulses(0);
   const update=(t,dt)=>{
@@ -939,7 +939,7 @@ const fx=(()=>{
     { const k=((t+20)%SAT_P)/SAT_P; const az=250-k*120, alt=9+16*Math.sin(k*Math.PI); tmp.copy(dirAzAlt(az,alt)).multiplyScalar(1300); sat.geometry.attributes.position.setXYZ(0,tmp.x,tmp.y,tmp.z); sat.geometry.attributes.position.needsUpdate=true;
       sat.material.uniforms.uA.value=sstep(0,.06,k)*sstep(.82,.62,k); }
   };
-  return { update, spawn, sat, met, pulses, pulseLights };
+  return { update, spawn, sat, met, pulses, pulseU };
 })();
 // ---------- 燈光：日出前沒有直射的陽光。主光是東邊天際的曙光（偏冷的粉紫、低低地從左後方來，影子很柔），
 // 天光是深藍的夜空；右前方香爐架的火光是唯一的暖色，迎面一道很淡的星光讓香材看得清楚 ----------
@@ -984,10 +984,10 @@ const embTex = tex(TEX.emblem, false);
   const bodyG=new THREE.LatheGeometry(bodyP,256), capG=new THREE.LatheGeometry(capP,256);
   // 靛藍的霧面漆：細細的噴漆顆粒；瓶身另有正面的印字與背面的浮凸徽記，瓶蓋有菱格紋飾環
   const satin=(m,part)=>{ m.onBeforeCompile=(sh)=>{
-      Object.assign(sh.uniforms,{ tPrint:{value:printTex}, tEmb:{value:embTex}, uInk:{value:C('#ddd5bc')} });
+      Object.assign(sh.uniforms,{ tPrint:{value:printTex}, tEmb:{value:embTex}, uInk:{value:C('#ddd5bc')} }, pulseU);
       sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vOP; varying vec3 vON;').replace('#include <begin_vertex>','#include <begin_vertex>\nvOP=position; vON=normal;');
       sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-        varying vec3 vOP; varying vec3 vON; uniform sampler2D tPrint, tEmb; uniform vec3 uInk; uniform mat3 normalMatrix;
+        varying vec3 vOP; varying vec3 vON; uniform sampler2D tPrint, tEmb; uniform vec3 uInk; uniform mat3 normalMatrix; uniform vec3 uPP[2], uPC[2];
         float sH(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
         float sN(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f); return mix(mix(mix(sH(i),sH(i+vec3(1,0,0)),f.x),mix(sH(i+vec3(0,1,0)),sH(i+vec3(1,1,0)),f.x),f.y),mix(mix(sH(i+vec3(0,0,1)),sH(i+vec3(1,0,1)),f.x),mix(sH(i+vec3(0,1,1)),sH(i+vec3(1,1,1)),f.x),f.y),f.z); }
         float inkK=0.;
@@ -1021,6 +1021,13 @@ const embTex = tex(TEX.emblem, false);
           float g=sN(vOP*90.)*.6+sN(vOP*230.)*.4; float fw=length(fwidth(vOP*230.)); g=mix(g,.5,smoothstep(.3,1.,fw));
           nO=normalize(nO + (vec3(sN(vOP*140.+3.),sN(vOP*140.+7.),sN(vOP*140.+11.))-.5)*.06*(1.-smoothstep(.3,1.,fw))*(1.-inkK));
           normal=normalize(normalMatrix*nO); }`);
+      // 台座金線的兩道光點：只照瓶身的點光源（位置是世界座標，用 viewMatrix 換到視空間，湖面倒影的鏡像相機也對）
+      sh.fragmentShader=sh.fragmentShader.replace('#include <lights_fragment_begin>',`#include <lights_fragment_begin>
+        #if defined( RE_Direct )
+        for(int k=0;k<2;k++){ vec3 lv=(viewMatrix*vec4(uPP[k],1.)).xyz-geometryPosition; float ld=max(length(lv),1e-3);
+          directLight.direction=lv/ld; directLight.color=uPC[k]*getDistanceAttenuation(ld,12.,1.6); directLight.visible=true;
+          RE_Direct(directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight); }
+        #endif`);
     }; m.customProgramCacheKey=()=>'ms-satin-'+part; return m; };
   // 瓶身專用的環境反射：夜空＋三道柔和的長條光（左前方偏冷的星光、右前方火光那側偏暖、背後的曙光），
   // 讓霧面漆照出官方照那種直直一道的藍紫高光，夜裡也看得出瓶身的形狀
