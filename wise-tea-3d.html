@@ -494,7 +494,7 @@ function karst(m, mode='ground', k=1){
         vKW=(modelMatrix*mw).xyz; vKN=normalize(mat3(modelMatrix)*mn); vKS=${mode==='ground'?'aSoil':'0.'}; }`);
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
       varying vec3 vKW; varying vec3 vKN; varying float vKS;`+KARST_GLSL+`
-      float kCrack, kDet, kRock, kPit, kDome;`)
+      float kCrack, kDet, kRock, kPit, kDome, kMq;`)
       .replace('#include <color_fragment>',`#include <color_fragment>
         { vec3 N=normalize(vKN); float up=smoothstep(.45,.85,N.y);
           vec2 xz=vKW.xz; float fw=length(fwidth(xz));
@@ -534,13 +534,18 @@ function karst(m, mode='ground', k=1){
           col=mix(col, vec3(.8,.56,.22), smoothstep(.8,.9,li)*up*kRock*.7*kDet);
           col=mix(col, vec3(.7,.7,.66), smoothstep(.78,.9,li2)*kRock*.3*kDet);
           ${mode==='ground'?`// 遠處的山坡（灌叢的模型只種到近處）：一片片橄欖綠的灌叢與黃褐的乾草，岩坡露在中間
-          { float farV=smoothstep(240.,560.,length(xz)); float mq=smoothstep(.22,.5,kF(xz*.011+1.3))*(.75+.25*smoothstep(.3,.7,kN(xz*.06)));
-            vec3 maq=mix(vec3(.06,.085,.045), vec3(.11,.13,.07), kN(xz*.04)); vec3 dry=vec3(.26,.22,.14);
-            col=mix(col, mix(dry, maq, mq), farV*.9*smoothstep(.2,.7,N.y)); }`:''}
+          // 一塊塊灌叢（每塊幾十單位）裡面再分成一團團的樹冠（約 3 單位）：團與團之間是暗的縫，遠處淡成平均色，不閃爍
+          { float farV=smoothstep(90.,240.,length(xz)); float mq=smoothstep(.2,.46,kF(xz*.02+1.3))*(.85+.15*smoothstep(.3,.7,kN(xz*.06)));
+            float d2=1.-smoothstep(.6,2.2,fw); float cl=mix(.5, smoothstep(.3,.7,kN(xz*.3+3.)), d2), cl2=mix(.5, kN(xz*.9+7.), 1.-smoothstep(.2,.8,fw));
+            vec3 maq=mix(vec3(.035,.05,.026), vec3(.1,.12,.062), cl*.75+cl2*.25)*mix(.85,1.15,kN(xz*.045));
+            vec3 dry=mix(vec3(.24,.22,.13), vec3(.17,.18,.1), kN(xz*.08));   // 灌叢之間是低矮的鼠尾草、百里香與乾草（橄欖黃褐），不是裸土
+            float up2=smoothstep(.25,.7,N.y); kMq=mq*farV*up2;
+            col=mix(col, mix(dry, maq, mq), farV*.92*up2); }`:'kMq=0.;'}
           diffuseColor.rgb = col*diffuseColor.rgb; }`)
       .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
         { vec2 xz=vKW.xz;
           float h = kRock*(kDome*.12 + kF(xz*1.1)*.09 + kN(xz*4.5+vKW.y)*.025)*kDet - kCrack*.08 - kPit*.03 + (1.-kRock)*kN(xz*7.)*.015*kDet;
+          { float fw2=length(fwidth(xz)); h += kMq*(kN(xz*.3+3.)*.45*(1.-smoothstep(.6,2.2,fw2)) + kN(xz*.9+7.)*.12*(1.-smoothstep(.2,.8,fw2))); }   // 遠處灌叢一團團樹冠的起伏
           vec2 dH=vec2(dFdx(h),dFdy(h)); vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition); vec3 R1=cross(sy,normal), R2=cross(normal,sx); float det=dot(sx,R1);
           normal=normalize(abs(det)*normal - sign(det)*(dH.x*R1+dH.y*R2)); }`);
   };
@@ -887,6 +892,29 @@ function buildWorld(target, detailed){
   { const prr=rng(51); for(let i=0;i<260;i++){ const x=(prr()-.5)*480, z=60+prr()*240; if(landSD(x,z)<8 || Math.hypot(x,z)<75) continue; const s=1.3+prr()*1.2;
       const v=i%3, m=m4().compose(new V(x, terrainH(x,z)-.3, z), q.setFromEuler(e.set(0,prr()*6.28,0)), sc.set(s,s,s)), cc=C(['#ffffff','#e8efe0','#d8e2cc'][(prr()*3)|0]);
       addI('pineB'+v, pineV[v].bark, m, cc); addI('pineC'+v, pineV[v].cards, m, cc); } }
+  // ---------- 遠處的山坡：灌叢、松與絲柏一路長到遠方（越遠越疏、單株越大），山坡不會是光禿禿的地形 ----------
+  if(detailed){ const fr=rng(909), fq=new THREE.Quaternion(), fe=new THREE.Euler(), fy=()=>fq.setFromEuler(fe.set(0,fr()*6.283,0));
+    const pineFar=(seed)=>{ const rr=rng(seed); const bark=[], L=[], tips=[]; const H=4+rr()*1.2, top=new V((rr()-.5)*.8,H,(rr()-.5)*.8);
+      tubeTaper([new V(0,-.3,0), new V(top.x*.4,H*.5,top.z*.4), top], .24, .5, 5, 5, bark);
+      for(let i=0;i<5;i++){ const a=i/5*6.283+rr()*.8, el=.85+rr()*.3, Ln=2.4+rr()*1.2; const d=new V(Math.cos(a)*Math.sin(el), Math.cos(el), Math.sin(a)*Math.sin(el));
+        const p2=top.clone().addScaledVector(d,Ln).add(new V(0,.5,0)); tubeTaper([top, top.clone().lerp(p2,.5).add(new V(0,.2,0)), p2], .1, .4, 3, 4, bark); tips.push(p2, top.clone().lerp(p2,.55).add(new V(0,.5,0))); }
+      const cen=new V(); tips.forEach(t=>cen.add(t)); cen.multiplyScalar(1/tips.length).add(new V(0,-.6,0));
+      tips.forEach(tp=>{ for(let k=0;k<5;k++){ const w=2.1+rr()*.9; L.push({ pos:tp.clone().add(new V((rr()-.5)*1.6,(rr()-.3)*.6,(rr()-.5)*1.6)), quat:Q((rr()-.5)*1.5, rr()*6.283, (rr()-.5)*1.5), w, h:w }); } });
+      return { bark: mergeGeometries(bark.map(g=>withCol(g,[.2,.16,.13]))), cards: buildCards(L, cen, wc, rr) }; };
+    const cypFar=(seed)=>{ const rr=rng(seed); const H=14, Rm=1.25, L=[]; const env=(t)=>Rm*Math.pow(Math.sin(Math.PI*Math.min(1,t*.9+.1)),.7)*(1-.55*t);
+      const pr=[]; for(let i=0;i<=10;i++){ const t=i/10; pr.push(new THREE.Vector2(Math.max(.02,env(t)*.6), .3+t*(H-.8))); }
+      for(let i=0;i<70;i++){ const t=Math.pow(rr(),.85), a=rr()*6.283, rad=env(t)*(.55+.45*rr()); const w=1+rr()*.5; L.push({ pos:new V(Math.cos(a)*rad, .7+t*(H-1), Math.sin(a)*rad), quat:Q((rr()-.5)*.3, -a+Math.PI/2+(rr()-.5)*.9, (rr()-.5)*.3), w, h:w*2 }); }
+      return { bark: withCol(new THREE.LatheGeometry(pr,8),[.08,.11,.06]), cards: buildCards(L, new V(0,H*.4,0), wc, rr) }; };
+    const pf=[pineFar(461), pineFar(462)], cf=cypFar(471);
+    const fCol=['#ffffff','#e2e6d2','#d0d6bc','#c0c8a8','#aeb894','#a0aa86'].map(C), tCol=['#ffffff','#e8efe0','#d8e2cc','#c8d4ba'].map(C);
+    const okFar=(x,z)=>{ if(landSD(x,z)<4 || templeSD(x,z)<4) return null; const y=terrainH(x,z); if(y<WATER_Y+1.2) return null;
+      const sl=Math.hypot(terrainH(x+1.5,z)-y, terrainH(x,z+1.5)-y)/1.5; return sl>1.1 ? null : y; };
+    for(let i=0;i<18000;i++){ const r=110*Math.pow(1400/110, fr()), a=fr()*6.283, x=Math.cos(a)*r, z=Math.sin(a)*r; const y=okFar(x,z); if(y===null) continue;
+      const sk=(1.2+fr()*1.3)*(1+r*.006); addI('shrubF'+(i&1), shrubF[i&1], m4().compose(new V(x,y-.12*sk,z), fy(), sc.set(sk,sk*(.6+fr()*.5),sk)), fCol[(fr()*6)|0]); }
+    for(let i=0;i<1800;i++){ const r=300*Math.pow(1400/300, Math.sqrt(fr())), a=fr()*6.283, x=Math.cos(a)*r, z=Math.sin(a)*r; const y=okFar(x,z); if(y===null) continue;   // 樹只長在遠處的山坡（岬角上是開闊的灌叢，留著看海與神殿的視野）
+      const cc=tCol[(fr()*4)|0];
+      if(fr()<.22){ const H=10+fr()*8, W=1+fr()*.6; const m=m4().compose(new V(x,y-.3,z), fy(), sc.set(W*.85*H/14, H/14, W*.85*H/14)); addI('cypFB', cf.bark, m, cc); addI('cypFC', cf.cards, m, cc); }
+      else { const v=i&1, s=1.4+fr()*1.3, m=m4().compose(new V(x,y-.3,z), fy(), sc.set(s,s,s)); addI('pineFB'+v, pf[v].bark, m, cc); addI('pineFC'+v, pf[v].cards, m, cc); } } }
 
   // 統一建立
   const trunkTex=canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#8a8478'; g.fillRect(0,0,w,h); const rr=rng(13);
@@ -900,7 +928,8 @@ function buildWorld(target, detailed){
     blade:windMaterial({ roughness:.8 },.7), oleaf:windMaterial({ roughness:.55 },.06) };
   { const barkM=new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.92 }), needleM=cardMat(needleTex,.25), cypM=cardMat(cypTex,.15), shrubM=cardMat(shrubTex,.6), thymeM=cardMat(thymeTex,.4);
     for(const v of [0,1,2]){ mats['pineB'+v]=barkM; mats['pineC'+v]=needleM; }
-    for(const v of [0,1]){ mats['cypB'+v]=barkM; mats['cypC'+v]=cypM; mats['shrubF'+v]=shrubM; mats['thymeC'+v]=thymeM; } }
+    for(const v of [0,1]){ mats['cypB'+v]=barkM; mats['cypC'+v]=cypM; mats['shrubF'+v]=shrubM; mats['thymeC'+v]=thymeM; mats['pineFB'+v]=barkM; mats['pineFC'+v]=needleM; }
+    mats.cypFB=barkM; mats.cypFC=cypM; }
   Object.entries(inst).forEach(([k,v])=>{ const im=new THREE.InstancedMesh(v.geo, mats[k], v.xf.length); v.xf.forEach((m,i)=>{ im.setMatrixAt(i,m); im.setColorAt(i,v.cl[i]); });
     im.castShadow=['sage','lime','lav','oleaf'].includes(k); im.receiveShadow=true; target.add(im); });
   return { sky, ground, sea };
