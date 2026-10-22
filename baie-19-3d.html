@@ -112,7 +112,7 @@ const TEX = { label:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACJgAAAU4CAAAA
 const dirAzAlt=(az,alt)=>{ const a=THREE.MathUtils.degToRad(az), e=THREE.MathUtils.degToRad(alt); return new THREE.Vector3(-Math.sin(a)*Math.cos(e), Math.sin(e), -Math.cos(a)*Math.cos(e)); };   // az：從 -Z 往 -X 量的方位角
 const SCENE_CFG = {
   sunDir: dirAzAlt(-155,27),                                 // 午後的太陽在鏡頭的右後方（雲縫裡），照亮草地與瓶身正面；彩虹就在瓶子背後偏左的積雨雲前
-  sunColor: C('#ffe0b2'), sunIntensity: 2.6,
+  sunColor: C('#ffdcaa'), sunIntensity: 2.9,                    // 雨幕前的陽光要比平常更暖、更亮，襯著灰黑的積雨雲
   zenith: C('#2f64a2'), horizon: C('#c4d2da'), sunGlow: C('#ffe2b8'), horizonWarm: C('#f2dcb6'),
   stormDark: C('#262b33'), stormLit: C('#d2cec6'),
   haze: C('#a9b6bc'),
@@ -301,11 +301,28 @@ vec3 skyColor(vec3 d){
   float n = fbmC(vec3(qq, 3.));
   float nL = fbmC(vec3(qq*.5 - sxz*.05, 7.));
   float cov = smoothstep(.5-side*.16, .72-side*.14, n);
+  // 太陽那側：太陽四周的雲被扯開一個不規則的雲縫（缺口的半徑依角度用雜訊打散，不是一個圓環）
+  float th = acos(clamp(dot(d,uSunDir),-1.,1.));
+  vec3 ax=normalize(cross(uSunDir, vec3(0.,1.,0.))), ay=normalize(cross(ax, uSunDir));
+  vec3 tg=d-uSunDir*dot(d,uSunDir); float tl=length(tg); vec2 cs=tl>1e-5 ? vec2(dot(tg,ax), dot(tg,ay))/tl : vec2(0.,1.);   // 繞太陽的角度（cos, sin）
+  float gapR=.06+.2*fbmC(vec3(qq*24., 11.));                                    // 雲縫的邊緣跟著雲的座標打散（不是圓，也不是星形）
+  cov = max(cov, smoothstep(.55,.66,n)*(1.-smoothstep(.3,1.1,th))*(1.-side)*.85);   // 太陽附近幾團逆光的積雲，襯出雲縫與光條
+  float cov0=cov; cov *= mix(1., smoothstep(gapR*.6, gapR*1.2, th), 1.-side);
   float lit = clamp(.55 + (n - fbmC(vec3(qq - sxz*.05, 3.)))*3. + (nL-.5)*.6, 0., 1.);
   vec3 cBase = mix(vec3(.5,.53,.58), uStormDark*1.1, side*.75);
   vec3 cTop = mix(vec3(1.,.97,.92), uStormLit, side*.45);
   vec3 cc = mix(cBase, cTop, lit*lit);
+  // 逆光：迎著太陽看，雲的本體是帶藍的灰（背光面），只有薄的雲邊透出亮光
+  float fwd = pow(s, 3.)*(1.-side);
+  cc = mix(cc, mix(vec3(.26,.29,.35), vec3(1.25,1.12,.94), pow(1.-cov, 2.5)), fwd*.9);
   c = mix(c, cc, cov*smoothstep(.02,.16,d.y)*.95);
+  c += uSunCol * smoothstep(.02,.2,cov0)*(1.-smoothstep(.22,.55,cov0)) * smoothstep(0.,.1,cov) * pow(s, 30.) * 1.6 * (1.-side);   // 雲邊的銀光：只在太陽附近、只在薄的雲邊（太寬會把整片天空洗白）
+  // 曙暮光條：從雲縫往下散開的一道道光芒與夾在中間的陰影（以太陽為中心的放射條紋，太陽下方最清楚），積雨雲那側沒有
+  { float r1=smoothstep(.25,.8, vn(vec3(cs*4., 3.+uSkyT*.01)))*.65 + smoothstep(.4,.9, vn(vec3(cs*11., 5.)))*.35;   // 寬窄不一的光條；依角度取樣用圓周上的 3D 雜訊，沒有 atan 的接縫
+    float down=smoothstep(.25,-.75, cs.y);
+    float zone=smoothstep(1.15,.12,th)*smoothstep(.06,.15,th)*(1.-side)*(.06+.94*down)*(1.-cov*.6);
+    c *= 1.-.25*(1.-r1)*zone;                                                    // 光條之間的陰影
+    c += uSunCol*r1*zone*.42; }
   // 太陽：雲縫裡的太陽
   c += uSunCol * smoothstep(.99955, .99975, s) * 14.;
   // 積雨雲與雨幕
@@ -911,6 +928,155 @@ const pollen=(()=>{ const N=260, g=new THREE.BufferGeometry(), p=new Float32Arra
   const spr=canvasTex(64,64,(c,w)=>{ const gr=c.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(255,255,255,.9)'); gr.addColorStop(.4,'rgba(240,244,248,.25)'); gr.addColorStop(1,'rgba(240,244,248,0)'); c.fillStyle=gr; c.fillRect(0,0,w,w); });
   const m=new THREE.PointsMaterial({ size:.07, map:spr, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, color:C('#e8eef2') });
   const pts=new THREE.Points(g,m); scene.add(pts); return pts; })();
+// ---------- 遇雨逃竄的野生動物：三隻狍子從積雨雲那側的林緣竄出、跳躍著越過草地奔進對面的林子；一隻野兔在草地前方左右閃躲；
+// 一群寒鴉從雨幕那邊飛向陽光那側的林子。動物都是程序化的模型（放樣的身體、會彎的關節腿、頭、耳、白色臀斑），
+// 步態依速度算出：狍子是跳躍式的奔馳（後腿一起蹬地、前腿接著落地，中間有騰空期），野兔是後腿同時蹬地的跳躍 ----------
+const fauna=(()=>{
+  const V=THREE.Vector3;
+  // 放樣：沿 x 軸的一串橢圓截面 {x, y, w（半寬，z 方向）, h（半高）, hb（下半部的半高倍率）}，頂點色由 colorAt(x,y,z) 決定
+  const loft=(secs, nA, colorAt)=>{ const pos=[], col=[], uv=[], idx=[]; const tc=new THREE.Color();
+    secs.forEach((s,i)=>{ for(let j=0;j<=nA;j++){ const a=j/nA*Math.PI*2; const sn=Math.sin(a), cs=Math.cos(a); const yy=s.y+sn*s.h*(sn<0?(s.hb||1):1), zz=cs*s.w;
+        pos.push(s.x, yy, zz); colorAt(tc, s.x, yy, zz, sn); col.push(tc.r,tc.g,tc.b); uv.push(i/(secs.length-1), j/nA); } });
+    for(let i=0;i<secs.length-1;i++) for(let j=0;j<nA;j++){ const a=i*(nA+1)+j, b=a+nA+1; idx.push(a,b,a+1, a+1,b,b+1); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); return g; };
+  // 腿、頸：沿曲線的管子，半徑依參數 t 變化
+  const limb=(pts, radAt, colorAt, seg=10, rs=8, flatZ=1)=>{ const cv=new THREE.CatmullRomCurve3(pts); const g=new THREE.TubeGeometry(cv,seg,1,rs,false); const p=g.attributes.position, col=[]; const tc=new THREE.Color();
+    for(let i=0;i<=seg;i++){ const t=i/seg, c=cv.getPointAt(t), r=radAt(t); for(let j=0;j<=rs;j++){ const k=i*(rs+1)+j; const x=c.x+(p.getX(k)-c.x)*r, y=c.y+(p.getY(k)-c.y)*r, z=c.z+(p.getZ(k)-c.z)*r*flatZ; p.setXYZ(k,x,y,z); colorAt(tc,x,y,z,t); col.push(tc.r,tc.g,tc.b); } }
+    g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.computeVertexNormals(); return g; };
+  // 毛：細短的筆觸做的凹凸
+  // 毛：一絲絲沿著身體往後順的毛（u 是身體的長軸），深淺交錯；同一張圖當顏色（乘在頂點色上）與凹凸
+  const furDraw=(g,w)=>{ g.fillStyle='#d6d6d6'; g.fillRect(0,0,w,w); const r=rng(61);
+    for(let i=0;i<5200;i++){ const x=r()*w, y=r()*w, a=(r()-.5)*.35, L=10+r()*18, v=r(); g.strokeStyle=v<.5?`rgba(255,255,255,${.25+r()*.3})`:`rgba(60,50,40,${.2+r()*.3})`; g.lineWidth=1+r()*1.2;
+      for(const dx of [0,-w,w]) for(const dy of [0,-w,w]){ g.beginPath(); g.moveTo(x+dx,y+dy); g.quadraticCurveTo(x+dx+Math.cos(a)*L*.5,y+dy+Math.sin(a)*L*.5+1.5,x+dx+Math.cos(a)*L,y+dy+Math.sin(a)*L); g.stroke(); } } };
+  const furC=canvasTex(256,256,furDraw), furT=canvasTex(256,256,furDraw,false);
+  for(const t of [furC,furT]){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(5,4); }
+  const furM=new THREE.MeshPhysicalMaterial({ vertexColors:true, map:furC, roughness:.9, bumpMap:furT, bumpScale:1.4, sheen:.35, sheenColor:C('#b09a80'), sheenRoughness:.5, side:THREE.DoubleSide });   // 毛：霧面、邊緣一層逆光的絨光（sheen）
+  // 肌肉塊（大腿、肩胛）：有頂點色的橢球
+  const blobGeo=(sx,sy,sz,colorAt)=>{ const g=new THREE.SphereGeometry(1,16,12); g.scale(sx,sy,sz); const p=g.attributes.position, col=[], tc=new THREE.Color(); for(let k=0;k<p.count;k++){ colorAt(tc,p.getX(k),p.getY(k),p.getZ(k)); col.push(tc.r,tc.g,tc.b); } g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); return g; };
+  const darkM=new THREE.MeshStandardMaterial({ color:C('#0c0a09'), roughness:.25 });
+  const shadowT=canvasTex(128,128,(g,w)=>{ const gr=g.createRadialGradient(w/2,w/2,0,w/2,w/2,w/2); gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,w,w); });
+  const blob=(sx,sz)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(sx,sz), new THREE.MeshBasicMaterial({ map:shadowT, transparent:true, depthWrite:false, opacity:.6 })); m.rotation.x=-Math.PI/2; m.renderOrder=1; scene.add(m); return m; };
+
+  // ---- 狍子（Capreolus capreolus，夏毛）：紅褐的背、淡一點的腹，屁股一大片白色的臀斑，黑鼻頭、白下巴，大耳朵；以肩高 = 1 建模。
+  // 狍子的後半身比肩高一點、胸深、腹部往後收；大腿與肩胛是另外的肌肉塊，跟著腿擺動
+  const dapple=(x,y,z)=>.95+.11*noise3(x*7+3,y*7,z*7);                     // noise3 是 -1～1
+  const deerColor=(tc,x,y,z)=>{ tc.set('#764830');
+    tc.lerp(C('#4a3022'), sstep(.94,1.04,y)*.7);                                        // 背脊深
+    tc.lerp(C('#a49482'), sstep(.7,.58,y)*.75);                                         // 腹部淡
+    tc.multiplyScalar(dapple(x,y,z));
+    const rump=sstep(-.64,-.76,x)*sstep(.15,.05,Math.abs(z))*sstep(.62,.7,y)*sstep(1.02,.94,y); tc.lerp(C('#efe6d8'), rump); };   // 臀斑
+  const legColor=(tc,x,y,z,t)=>{ tc.set('#74432a').lerp(C('#5e4434'), sstep(.3,.8,t)).lerp(C('#2e2620'), sstep(.88,1,t)); };
+  const makeDeer=(seed)=>{ const g=new THREE.Group();
+    const body=loft([
+      {x:-.8,y:.86,w:.02,h:.02},{x:-.785,y:.86,w:.09,h:.11,hb:1.2},{x:-.73,y:.86,w:.155,h:.165,hb:1.35},{x:-.6,y:.86,w:.19,h:.18,hb:1.45},{x:-.45,y:.85,w:.19,h:.18,hb:1.2},
+      {x:-.3,y:.84,w:.18,h:.17,hb:1.05},{x:-.12,y:.83,w:.19,h:.17,hb:1.3},{x:.08,y:.83,w:.2,h:.18,hb:1.5},{x:.26,y:.85,w:.2,h:.18,hb:1.65},{x:.42,y:.87,w:.18,h:.17,hb:1.6},
+      {x:.54,y:.9,w:.14,h:.14,hb:1.5},{x:.61,y:.93,w:.08,h:.09},{x:.635,y:.95,w:.02,h:.03}], 28, deerColor);
+    g.add(new THREE.Mesh(body, furM));
+    // 頸：從胸前往上、往前，上下深、左右窄
+    const neck=limb([new V(.34,.9,0),new V(.52,1.05,0),new V(.64,1.2,0),new V(.71,1.3,0)], t=>.17-.08*Math.pow(t,.8), (tc,x,y,z,t)=>{ tc.set('#704630').lerp(C('#9a7a5c'), sstep(.3,1,t)*.3); tc.multiplyScalar(dapple(x,y,z)); }, 12, 14, .66);
+    g.add(new THREE.Mesh(neck, furM));
+    // 頭：從頭頂往前下方收成口鼻；臉偏灰褐，黑鼻頭、白下巴
+    const head=new THREE.Group(); head.position.set(.72,1.33,0); head.rotation.z=-.5; head.scale.setScalar(1.12); g.add(head);
+    const hg=loft([{x:-.06,y:0,w:.02,h:.02},{x:-.04,y:0,w:.062,h:.075},{x:.02,y:0,w:.078,h:.088},{x:.09,y:-.006,w:.07,h:.074},{x:.16,y:-.012,w:.052,h:.056},{x:.22,y:-.015,w:.043,h:.042},{x:.26,y:-.016,w:.033,h:.033},{x:.28,y:-.016,w:.012,h:.012}], 18,
+      (tc,x,y,z,sn)=>{ tc.set('#6a5040').lerp(C('#4e3a2c'), sstep(.1,.2,x)*.6); if(x>.21) tc.lerp(C('#141010'), sstep(.22,.26,x)); if(x>.14 && y<-.04) tc.lerp(C('#ece4d8'), .85); tc.multiplyScalar(dapple(x,y,z)); });
+    head.add(new THREE.Mesh(hg, furM));
+    const nose=new THREE.Mesh(new THREE.SphereGeometry(.028,12,8), darkM); nose.position.set(.27,-.01,0); nose.scale.set(1,.85,1.3); head.add(nose);
+    for(const s of [-1,1]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(.019,10,8), darkM); eye.position.set(.05,.028,s*.066); head.add(eye);
+      const ear=petalGeometry({ len:.19, wid:.1, cup:-.5, curl:.04, profile:t=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.85+.15)),.7), base:'#6e4a34', tip:'#2a201a', edge:'#1e1814', segL:8, segW:5 });
+      const em=new THREE.Mesh(ear, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85, side:THREE.DoubleSide })); const eh=new THREE.Group(); eh.position.set(-.03,.07,s*.045); eh.rotation.set(s*.62, s*-.3, 2.2); eh.add(em); head.add(eh); }
+    // 腿：髖／肩是樞紐，上段與下段各一個群組（膝、跗關節可以彎），蹄是深色的小錐；大腿與肩胛的肌肉塊放在腿的樞紐裡
+    const legs=[];
+    const mkLeg=(x,y,z,L1,L2,r1a,r1b,front)=>{ const root=new THREE.Group(); root.position.set(x,y,z); g.add(root);
+      const mus=new THREE.Mesh(blobGeo(front?.1:.15, front?.18:.23, front?.068:.08, (tc,xx,yy,zz)=>{ deerColor(tc, x+xx, y+yy, z+zz); }), furM); mus.position.set(front?.01:-.03, front?-.05:-.08, 0); mus.rotation.z=front?.12:-.2; root.add(mus);
+      const up=limb([new V(0,.02,0),new V(front?.01:-.02,-L1*.5,0),new V(0,-L1,0)], t=>r1a+(r1b-r1a)*Math.pow(t,.7), legColor, 8, 8, .8); root.add(new THREE.Mesh(up, furM));
+      const knee=new THREE.Group(); knee.position.y=-L1; root.add(knee);
+      const lo=limb([new V(0,.01,0),new V(0,-L2*.5,0),new V(0,-L2,0)], t=>r1b*.62*(1-.25*t), (tc,x,y,z,t)=>legColor(tc,x,y,z,.4+.6*t), 6, 7, .85); knee.add(new THREE.Mesh(lo, furM));
+      const hoof=new THREE.Mesh(new THREE.ConeGeometry(.024,.05,8), darkM); hoof.position.y=-L2-.015; hoof.rotation.x=Math.PI; knee.add(hoof);
+      legs.push({ root, knee, front, side:z, mus, m0:mus.rotation.z }); };
+    mkLeg(.38,.8,.12,.36,.42,.065,.034,true); mkLeg(.38,.8,-.12,.36,.42,.065,.034,true);
+    mkLeg(-.56,.82,.13,.44,.42,.09,.038,false); mkLeg(-.56,.82,-.13,.44,.42,.09,.038,false);
+    // 尾：藏在臀斑裡的一小撮
+    const tail=new THREE.Mesh(new THREE.SphereGeometry(.032,8,6), new THREE.MeshStandardMaterial({ color:C('#efe8dc'), roughness:.9 })); tail.position.set(-.8,.92,0); g.add(tail);
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+    return { g, legs, head }; };
+  // 奔跑：每條腿依相位 p（0～1）：支撐期（腳往後掃）與擺動期（膝蓋彎起、腳往前送）
+  const ST=.25;
+  const gait=(an, ph, kind)=>{ const off = kind==='hare' ? [0,-.05,-.27,-.31] : [-.6,-.64,0,-.04];   // [前左, 前右, 後左, 後右]。狍子：後腿 0～.29 著地、蹬地後騰空（伸展期）、前腿 .6～.89 著地；野兔：前腳先落、後腳越過前腳落地再蹬出去
+    an.legs.forEach((L,i)=>{ const p=((ph+off[i])%1+1)%1; const stance=p<ST; const s=stance? p/ST : (p-ST)/(1-ST);
+      let a1 = stance ? .62-1.3*s : -.68+1.3*(s*s*(3-2*s)); let a2 = stance ? 0 : -Math.sin(Math.PI*s)*(L.front?1.5:-1.1);
+      if(!L.front){ a1-=.25; a2+=.3; }                                   // 後腿：跗關節往後凸
+      L.root.rotation.z=a1; L.knee.rotation.z=a2; if(L.mus) L.mus.rotation.z=L.m0-.6*a1; }); };   // 肌肉塊大半留在身體上，只跟著腿轉一點，免得在大步伐時突出來
+
+  // ---- 野兔（Lepus europaeus）：灰褐帶黃的毛、白腹，長耳朵尖端黑，後腿長；以「身長 = 1」建模
+  const hareColor=(tc,x,y,z)=>{ tc.set('#806a4e').lerp(C('#5e4a36'), sstep(.38,.46,y)*.6).multiplyScalar(.9+.18*noise3(x*22,y*22,z*22)).lerp(C('#e8dfd0'), sstep(.22,.14,y)*.85); };   // 背上黑褐的雜毛、白腹
+  const makeHare=()=>{ const g=new THREE.Group();
+    const body=loft([{x:-.46,y:.3,w:.02,h:.02},{x:-.42,y:.31,w:.12,h:.13},{x:-.3,y:.31,w:.17,h:.17},{x:-.1,y:.3,w:.15,h:.15},{x:.08,y:.31,w:.13,h:.14},{x:.2,y:.34,w:.11,h:.12},{x:.26,y:.37,w:.06,h:.07},{x:.28,y:.38,w:.02,h:.02}], 18, hareColor);
+    g.add(new THREE.Mesh(body, furM));
+    const head=new THREE.Group(); head.position.set(.28,.46,0); head.rotation.z=-.3; g.add(head);
+    head.add(new THREE.Mesh(loft([{x:-.07,y:0,w:.02,h:.02},{x:-.05,y:0,w:.07,h:.075},{x:.03,y:0,w:.07,h:.07},{x:.1,y:-.01,w:.05,h:.05},{x:.14,y:-.015,w:.03,h:.03},{x:.15,y:-.015,w:.01,h:.01}],16,(tc,x,y,z)=>{ hareColor(tc,x+.28,y+.5,z); if(y<-.03) tc.lerp(C('#e8dfd0'),.6); }), furM));   // 頭的座標換回身體座標，白腹的判斷才不會把整顆頭塗白
+    for(const s of [-1,1]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(.016,8,6), new THREE.MeshStandardMaterial({ color:C('#3a2410'), roughness:.2 })); eye.position.set(.02,.03,s*.06); head.add(eye);
+      const ear=petalGeometry({ len:.3, wid:.07, cup:-.6, curl:-.05, profile:t=>Math.pow(Math.sin(Math.PI*Math.min(1,t*.9+.1)),.6), base:'#8a7254', tip:'#1a1612', segL:10, segW:4 });
+      const eh=new THREE.Group(); eh.position.set(-.03,.06,s*.03); eh.rotation.set(s*.22, 0, 2.25); eh.add(new THREE.Mesh(ear, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.85, side:THREE.DoubleSide }))); head.add(eh); }
+    const legs=[];
+    const mkLeg=(x,y,z,L1,L2,r,front)=>{ const root=new THREE.Group(); root.position.set(x,y,z); g.add(root);
+      if(!front){ const mus=new THREE.Mesh(blobGeo(.12,.13,.06,(tc,xx,yy,zz)=>hareColor(tc,x+xx,y+yy,z+zz)), furM); mus.position.set(.02,-.03,0); root.add(mus); }   // 後腿的大腿
+      root.add(new THREE.Mesh(limb([new V(0,.02,0),new V(0,-L1,0)], t=>r*(1-.4*t), (tc)=>tc.set('#7e6a50'), 5, 6), furM));
+      const knee=new THREE.Group(); knee.position.y=-L1; root.add(knee);
+      knee.add(new THREE.Mesh(limb([new V(0,0,0),new V(front?.0:.08,-L2,0)], t=>r*.55, (tc)=>tc.set('#b8a88c'), 4, 6), furM));
+      legs.push({ root, knee, front, side:z }); };
+    mkLeg(.16,.26,.07,.14,.13,.035,true); mkLeg(.16,.26,-.07,.14,.13,.035,true); mkLeg(-.3,.28,.1,.16,.18,.07,false); mkLeg(-.3,.28,-.1,.16,.18,.07,false);
+    const tail=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6), new THREE.MeshStandardMaterial({ color:C('#f2eee6'), roughness:.9 })); tail.position.set(-.46,.36,0); g.add(tail);
+    g.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
+    return { g, legs, head }; };
+
+  // ---- 寒鴉：黑灰的身體、內外兩段的翅膀（拍翅時外段落後一點），扇形的尾
+  const birdM=new THREE.MeshStandardMaterial({ color:C('#1c1d22'), roughness:.55, side:THREE.DoubleSide });
+  const makeBird=()=>{ const b=new THREE.Group(); const body=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8), birdM); body.scale.set(1,.85,2.4); b.add(body);
+    const hd=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8), birdM); hd.position.set(0,.05,.38); b.add(hd);
+    const bk=new THREE.Mesh(new THREE.ConeGeometry(.035,.12,6), birdM); bk.rotation.x=Math.PI/2; bk.position.set(0,.04,.52); b.add(bk);
+    const tl=new THREE.Mesh(new THREE.CircleGeometry(.28,10,Math.PI*1.25,Math.PI*.5), birdM); tl.rotation.x=-Math.PI/2; tl.position.set(0,0,-.3); b.add(tl);
+    const wings=[]; for(const s of [1,-1]){ const inner=new THREE.Group(); b.add(inner); const sh1=new THREE.Shape(); sh1.moveTo(0,-.14); sh1.lineTo(.5,-.12); sh1.lineTo(.5,.14); sh1.lineTo(0,.16); sh1.closePath();
+      const g1=new THREE.ShapeGeometry(sh1); g1.rotateX(-Math.PI/2); if(s<0) g1.scale(-1,1,1); inner.add(new THREE.Mesh(g1,birdM));
+      const outer=new THREE.Group(); outer.position.x=s*.5; inner.add(outer); const sh2=new THREE.Shape(); sh2.moveTo(0,-.12); sh2.lineTo(.42,-.2); sh2.lineTo(.55,-.05); sh2.lineTo(.4,.08); sh2.lineTo(0,.14); sh2.closePath();
+      const g2=new THREE.ShapeGeometry(sh2); g2.rotateX(-Math.PI/2); if(s<0) g2.scale(-1,1,1); outer.add(new THREE.Mesh(g2,birdM)); wings.push({ inner, outer, s }); }
+    b.scale.setScalar(1.7); scene.add(b); return { b, wings }; };
+
+  // ---- 路徑與時間表：從積雨雲那側往陽光那側逃
+  const path=(pts)=>new THREE.CatmullRomCurve3(pts.map(([x,z])=>new V(x,0,z)));
+  const DEER_P=path([[-128,-6],[-82,-40],[-28,-58],[28,-57],[80,-37],[128,-4]]); const DEER_L=DEER_P.getLength();
+  // 野兔沿著土路逃（草太高，只有路上看得到牠）：從積雨雲那側的林子順著車轍路跑出來，經過樹樁右邊，朝鏡頭右側陽光那邊的林子跑去；在路面上左右閃躲
+  const HARE_P=(()=>{ const P=PATH.slice(0,8).reverse(), out=[]; for(let i=0;i<P.length-1;i++){ const [ax,az]=P[i], [bx,bz]=P[i+1]; const n=Math.max(2,Math.ceil(Math.hypot(bx-ax,bz-az)/4.5));
+      for(let k=0;k<n;k++){ const t=k/n; let z=az+(bz-az)*t; let x=ax+(bx-ax)*t-3.2*Math.sin(z*.045+1.3)-1.4*Math.sin(z*.13)+.7*Math.sin(z*.22);
+        const d=Math.hypot(x,z); if(d<13){ x*=13/d; z*=13/d; }                     // 路經過樹樁旁邊：繞到香材環外面
+        out.push([x, z]); } }
+    out.push([PATH[0][0]-3.2*Math.sin(PATH[0][1]*.045+1.3)-1.4*Math.sin(PATH[0][1]*.13), PATH[0][1]]); return path(out); })(); const HARE_L=HARE_P.getLength();
+  const BIRD_P=new THREE.CatmullRomCurve3([new V(-300,62,-300),new V(-120,36,-130),new V(-10,23,-52),new V(90,27,40),new V(260,46,210)]); const BIRD_L=BIRD_P.getLength();
+  const DEER_O=1.25;                                                                  // 狍子在 T0 那一刻剛好跳過瓶子右後方
+  const deer=[ {an:makeDeer(1), s:3.1, lag:0, lat:0, sp:21}, {an:makeDeer(2), s:2.85, lag:.55, lat:3.2, sp:21}, {an:makeDeer(3), s:2.7, lag:1.15, lat:-2.6, sp:21} ];
+  deer.forEach(d=>{ d.an.g.scale.setScalar(d.s); scene.add(d.an.g); d.sh=blob(3.4,1.7); });
+  const hare={ an:makeHare(), s:2.5, sp:16 }; hare.an.g.scale.setScalar(hare.s); scene.add(hare.an.g); hare.sh=blob(2.1,.9);
+  const br=rng(73); const birds=[]; for(let i=0;i<10;i++) birds.push({ ...makeBird(), off:new V((br()-.5)*14,(br()-.5)*6,(br()-.5)*14), lag:br()*2.5, fl:br()*6.28, sp:17+br()*2 });
+  const T0=9.3, DEER_T=44, HARE_T=34, HARE_O=T0-.64*HARE_L/16, BIRD_T=62, BIRD_O=T0-.45*BIRD_L/18;   // T0：減少動態效果時停住的那一刻，狍子、野兔、鴉群都在畫面裡
+  const tmp=new V(), tan=new V();
+  const place=(an, curve, L, u, lat, scaleY, gaitPh, kind, sh, sc)=>{ curve.getPointAt(u,tmp); curve.getTangentAt(u,tan); const nx=-tan.z, nz=tan.x;
+    const x=tmp.x+nx*lat, z=tmp.z+nz*lat; const y=terrainH(x,z);
+    const bounce = Math.pow(Math.max(0,Math.cos(Math.PI*2*(gaitPh-(kind==='deer'?.42:.76)))),2)*(kind==='deer'?.5:.25)*sc;   // 後腿蹬地之後的騰空期最高（前腿往前伸、後腿往後拖）
+    an.g.position.set(x, y+bounce-.04*sc, z); an.g.rotation.set(0, Math.atan2(-tan.z, tan.x), (kind==='deer'?.1:.13)*Math.sin(Math.PI*2*gaitPh));   // 後腿蹬地時抬頭、前腿落地時低頭
+    gait(an, gaitPh, kind); an.head.rotation.z=(kind==='deer'?-.5:-.3)+.06*Math.sin(Math.PI*2*gaitPh+2.);
+    sh.position.set(x, y+.06, z); sh.rotation.z=Math.atan2(-tan.z, tan.x); sh.material.opacity=.55*(1-bounce/(.5*sc)); };
+  const update=(t)=>{
+    // 狍子：每 44 秒一輪，從左邊的林緣竄出、跳躍著越過草地（約 17 秒），奔進右邊的林子
+    deer.forEach(d=>{ const k=((t-d.lag-DEER_O)%DEER_T+DEER_T)%DEER_T; const u=k*d.sp/DEER_L; const on=u>0 && u<1; d.an.g.visible=on; d.sh.visible=on; if(!on) return;
+      place(d.an, DEER_P, DEER_L, u, d.lat, d.s, (((t-d.lag)*2.1+.89)%1+1)%1, 'deer', d.sh, d.s); });
+    { const k=((t-HARE_O)%HARE_T+HARE_T)%HARE_T; const u=k*hare.sp/HARE_L; const on=u>0 && u<1; hare.an.g.visible=on; hare.sh.visible=on;
+      if(on) place(hare.an, HARE_P, HARE_L, u, 0, hare.s, (t*3.4%1+1)%1, 'hare', hare.sh, hare.s); }
+    birds.forEach(b=>{ const k=((t-BIRD_O-b.lag)%BIRD_T+BIRD_T)%BIRD_T; const u=k*b.sp/BIRD_L; const on=u>0 && u<1; b.b.visible=on; if(!on) return;
+      BIRD_P.getPointAt(u,tmp); BIRD_P.getTangentAt(u,tan); b.b.position.copy(tmp).add(b.off).add(new V(0,Math.sin(t*1.3+b.fl)*.8,0)); b.b.rotation.set(0, Math.atan2(tan.x,tan.z), Math.sin(t*.7+b.fl)*.15);
+      const fl=Math.sin(t*9+b.fl); b.wings.forEach(w=>{ w.inner.rotation.z=w.s*fl*.6; w.outer.rotation.z=w.s*Math.sin(t*9+b.fl-.6)*.5; }); }); };
+  update(T0);                                                       // 先擺好一次：減少動態效果時停在狍子正跳過草地中央的這一刻
+  return { update, deer, hare, birds };
+})();
+
 const fx=(()=>{
   // 雨絲：一條條細長的斜線往下落（在頂點著色器裡依時間算位置，CPU 不用更新）；逆著太陽看的雨滴亮
   const N=6500, base=new THREE.PlaneGeometry(1,1); base.translate(0,-.5,0);
@@ -960,6 +1126,29 @@ const fx=(()=>{
         #include <colorspace_fragment>
       }` });
   const spl=new THREE.Mesh(sg, splM); spl.frustumCulled=false; spl.renderOrder=6; scene.add(spl);
+  // 陽光灑落：太陽那側的雲縫透下一道道光柱（沿太陽方向斜斜落到草地與林子上），迎著太陽看最亮（前向散射），背著太陽看是淡淡的、往反日點收攏的光帶
+  { const NS=26, NB=NS+12;   /* 前 26 道在太陽那側，後 12 道在積雨雲那側（背著太陽看：往反日點收攏的淡光柱） */ const bg=new THREE.InstancedBufferGeometry(); const bq=new THREE.PlaneGeometry(1,1); bq.translate(0,.5,0); bg.index=bq.index; bg.setAttribute('position',bq.attributes.position); bg.setAttribute('uv',bq.attributes.uv);
+    const b0=new Float32Array(NB*4), b1=new Float32Array(NB*4); const br=rng(29); const sa=Math.atan2(SCENE_CFG.sunDir.z,SCENE_CFG.sunDir.x), ta=Math.atan2(STORM.z,STORM.x);
+    for(let i=0;i<NB;i++){ const st=i>=NS; const a=st ? ta+(br()-.5)*1.9 : sa+(br()-.5)*2.6, d=st ? 48+br()*80 : 30+Math.pow(br(),1.3)*200; const x=Math.cos(a)*d, z=Math.sin(a)*d;
+      b0[i*4]=x; b0[i*4+1]=terrainH(x,z)-1; b0[i*4+2]=z; b0[i*4+3]=br(); b1[i*4]=3+br()*8+d*.035; b1[i*4+1]=130+br()*90; b1[i*4+2]=st ? 1.+br()*.6 : .45+br()*.55; b1[i*4+3]=br()*6.28; }
+    bg.setAttribute('aG', new THREE.InstancedBufferAttribute(b0,4)); bg.setAttribute('aB', new THREE.InstancedBufferAttribute(b1,4)); bg.instanceCount=NB;
+    const beamM=new THREE.ShaderMaterial({ transparent:true, depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending,
+      uniforms:{ uSun:{value:SCENE_CFG.sunDir}, uSunC:{value:SCENE_CFG.sunColor}, uT:clockU },
+      vertexShader:`attribute vec4 aG, aB; uniform vec3 uSun; varying vec2 vUv; varying vec3 vW; varying float vI, vS;
+        void main(){ vec3 a=normalize(uSun); vec3 c=aG.xyz + a*position.y*aB.y; vec3 vd=normalize(cameraPosition-c); vec3 sd=normalize(cross(a,vd));
+          vec3 p=c+sd*position.x*aB.x; vUv=vec2(position.x+.5, position.y); vW=p; vI=aB.z; vS=aB.w; gl_Position=projectionMatrix*viewMatrix*vec4(p,1.); }`,
+      fragmentShader:`uniform vec3 uSun, uSunC; uniform float uT; varying vec2 vUv; varying vec3 vW; varying float vI, vS;
+        float bh(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+        float bn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(bh(i),bh(i+vec2(1,0)),f.x),mix(bh(i+vec2(0,1)),bh(i+vec2(1,1)),f.x),f.y); }
+        void main(){ float x=abs(vUv.x-.5)*2.; float prof=exp(-x*x*3.6)*smoothstep(0.,.22,vUv.y)*(1.-smoothstep(.5,1.,vUv.y));   // 貼地那一段淡掉，不會在草地上積成一團亮黃
+          float st=.3+.7*bn(vec2(vUv.x*3.+vS, vUv.y*3.5-uT*.03));                             // 光柱裡細細的明暗（雨與水氣）
+          float fl=.8+.2*sin(uT*.25+vS*3.);                                                   // 雲在動，光柱慢慢明滅
+          vec3 vd=normalize(vW-cameraPosition); float ph=mix(.3, 2.2, pow(max(dot(vd,normalize(uSun)),0.),3.));
+          float near=smoothstep(12.,45.,length(vW-cameraPosition));
+          gl_FragColor=vec4(uSunC*vec3(1.,.95,.84), prof*st*fl*ph*near*vI*.32);
+          #include <colorspace_fragment>
+        }` });
+    const beams=new THREE.Mesh(bg, beamM); beams.frustumCulled=false; beams.renderOrder=4; scene.add(beams); }
   // 水氣：雨打在曬熱的林子上，林冠冒出一縷縷白色的水氣；林緣低低地浮著一層薄霧
   const mistT=canvasTex(256,256,(g,w)=>{ g.clearRect(0,0,w,w); const rr=rng(9);
     for(let i=0;i<40;i++){ const x=w/2+(rr()-.5)*w*.5, y=w/2+(rr()-.5)*w*.35, R=w*(.12+rr()*.18); const gr=g.createRadialGradient(x,y,0,x,y,R); gr.addColorStop(0,'rgba(255,255,255,.18)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,w,w); } });
@@ -967,7 +1156,7 @@ const fx=(()=>{
   for(let i=0;i<22;i++){ const a=i<16 ? sa+(mr()-.5)*2.0 : mr()*6.283; const d=(i<30?130:120)+mr()*260; const x=Math.cos(a)*d, z=Math.sin(a)*d;
     const m=new THREE.SpriteMaterial({ map:mistT, transparent:true, depthWrite:false, opacity:.3, color:C('#e4e8ea'), fog:true });
     const s=new THREE.Sprite(m); const sz=40+mr()*60; s.scale.set(sz*1.6,sz,1); const y=terrainH(x,z)+18+mr()*22; s.position.set(x,y,z); scene.add(s); mists.push({ s, x, y, z, ph:mr()*6.28, sp:.2+mr()*.3 }); }
-  const update=(t,dt)=>{ rainU.value=t;
+  const update=(t,dt)=>{ rainU.value=t; fauna.update(t);
     mists.forEach(o=>{ o.s.position.set(o.x+Math.sin(t*.02*o.sp+o.ph)*8, o.y+((t*o.sp*.6+o.ph*10)%30), o.z+Math.cos(t*.015+o.ph)*6); o.s.material.opacity=.32*Math.sin(Math.PI*(((t*o.sp*.6+o.ph*10)%30)/30)); }); };
   update(23.7,0);
   return { update };
@@ -1009,12 +1198,43 @@ const f3=(v)=>v.toFixed(4);
 // 水珠往下微微拉長、下半部比較飽滿；回傳 (高度場的梯度 x, y, 水珠覆蓋度, 邊緣)。在螢幕上小於約 1.5 像素的水珠淡掉。
 const DROPS_GLSL=`
   float dH1(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+  // 滑落的水珠：每一欄（弧長寬 0.55）每隔幾秒有一顆雨滴打上來——撞擊的瞬間一圈小水花，停一下，然後越滑越快往下，
+  // 後面拖一道細細的水痕；滑過的地方，靜止的小水珠被帶走（依每顆靜止水珠的中心判斷，不會被切成半顆）
+  float gRunT=-1.; float gRunYmax=6.;
+  const float RCW=.55;
+  void runCol(float c, float t, out float x0, out float y0, out float R, out float s, out float tau, out float ac, out float ph, out float act){
+    act=step(dH1(vec2(c,11.)),.62);
+    float P=4.+dH1(vec2(c,1.))*5.; float tt=t+dH1(vec2(c,2.))*P; float cyc=floor(tt/P); tau=tt-cyc*P;
+    float r1=dH1(vec2(c,cyc+4.)), r2=dH1(vec2(c,cyc+5.3)), r3=dH1(vec2(c,cyc+6.7));
+    x0=(c+.25+.5*r1)*RCW; y0=1.3+r2*(gRunYmax-1.6); R=.075+.055*r3; ac=.55+.5*r3; ph=r1*6.2832;
+    s=max(tau-(.3+r3*1.1),0.); }
+  float runY(float y0, float ac, float s){ return y0-ac*s*s-.25*s; }
+  float runX(float x0, float s, float ph){ return x0+.035*sin(s*2.6+ph)*min(s,1.); }
+  float runS(float y0, float ac, float y){ return (-.25+sqrt(.0625+4.*ac*max(y0-y,0.)))/(2.*ac); }
+  bool cleared(vec2 p){ if(gRunT<0.) return false; float c=floor(p.x/RCW); float x0,y0,R,s,tau,ac,ph,act; runCol(c,gRunT,x0,y0,R,s,tau,ac,ph,act); if(act<.5||s<=0.) return false;
+    float y=runY(y0,ac,s); if(p.y>y0+R*.5||p.y<y) return false; float xt=runX(x0,runS(y0,ac,p.y),ph); return abs(p.x-xt)<R*1.15; }
+  vec4 runDrops(vec2 u, float fw){ vec4 acc=vec4(0.); if(gRunT<0.) return acc; float ci=floor(u.x/RCW);
+    for(int k=-1;k<=1;k++){ float c=ci+float(k); float x0,y0,R,s,tau,ac,ph,act; runCol(c,gRunT,x0,y0,R,s,tau,ac,ph,act); if(act<.5) continue;
+      float y=runY(y0,ac,s), x=runX(x0,s,ph);
+      // 水珠本體：撞上的瞬間很快長大，滑得越快越往下拉長
+      float Rb=R*min(1.,tau/.05); float sp=2.*ac*s+.25*step(.001,s);
+      vec2 q=u-vec2(x,y); q.y*= q.y<0. ? .72/(1.+min(sp*.12,.5)) : 1.3; float d=length(q)/max(Rb,1e-4);
+      if(d<1. && y>-R){ float hgt=sqrt(1.-d*d); vec2 gr=-q/(Rb*Rb)/max(hgt,.08)*.5; float cov=smoothstep(1.,.85,d)*smoothstep(.5,1.5,Rb/max(fw,1e-5));
+        acc.xy+=gr*cov; acc.z=max(acc.z,cov); acc.w=max(acc.w,smoothstep(.55,.95,d)*cov); }
+      // 水痕：從撞擊點一路到水珠現在的位置，細細一道、斷斷續續掛著小水珠
+      if(s>0. && u.y<y0 && u.y>y){ float st=runS(y0,ac,u.y); float xt=runX(x0,st,ph); float wt=R*.3*(1.-.35*clamp((y0-u.y)/3.,0.,1.));
+        float dx=u.x-xt; float tr=(1.-smoothstep(wt*.5,wt+fw,abs(dx)))*(.55+.45*step(.45,dH1(vec2(floor(u.y*9.),c))));
+        acc.x+=-dx/max(wt*wt,1e-4)*tr*.08; acc.z=max(acc.z,tr*.4); }
+      // 撞擊的水花：一圈往外擴的細環
+      if(tau<.22){ vec2 v=u-vec2(x0,y0); float rr=length(v); float R2=.04+tau*1.5; float ring=exp(-pow((rr-R2)/.022,2.))*(1.-tau/.22);
+        acc.xy+=(rr>1e-4 ? v/rr : vec2(0.))*ring*1.2; acc.z=max(acc.z,ring*.55); acc.w=max(acc.w,ring*.4); } }
+    return acc; }
   vec4 dropLayer(vec2 u, float cell, float dens, float rmin, float rmax, float seed, float fw){
     vec2 g=u/cell; vec2 i=floor(g); vec4 acc=vec4(0.);
     for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){ vec2 c=i+vec2(float(x),float(y));
       float h=dH1(c+seed); if(h>dens) continue;
       vec2 o=vec2(dH1(c+seed+7.1), dH1(c+seed+3.3)); float r=mix(rmin,rmax,pow(dH1(c+seed+5.7),2.))*cell;
-      vec2 ctr=(c+.15+.7*o)*cell; vec2 q=u-ctr; q.y*= q.y<0. ? .78 : 1.12;                  // 往下拉長、下半部飽滿（y 往上為正）
+      vec2 ctr=(c+.15+.7*o)*cell; if(cleared(ctr)) continue; vec2 q=u-ctr; q.y*= q.y<0. ? .78 : 1.12;                  // 往下拉長、下半部飽滿（y 往上為正）
       float d=length(q)/r; if(d>=1.) continue;
       float aa=smoothstep(.6,1.6, r/max(fw,1e-5));                                       // 太小的水珠淡掉
       float hgt=sqrt(1.-d*d);
@@ -1029,13 +1249,14 @@ const DROPS_GLSL=`
     vec2 g=u/vec2(.42,1.); vec2 i=floor(g); float tr=0.;
     float hx=dH1(vec2(i.x,7.)); if(hx<.35){ float cx=(i.x+.2+.6*dH1(vec2(i.x,3.)))*.42; float top=dH1(vec2(i.x,5.))*4.5+1.6, bot=top-1.2-dH1(vec2(i.x,9.))*1.6;
       tr=(1.-smoothstep(.006,.02+fw,abs(u.x-cx)))*smoothstep(bot,bot+.3,u.y)*(1.-smoothstep(top-.6,top,u.y))*.6; }
-    return vec4(a.xy+b.xy+c.xy, max(max(a.z,b.z),max(c.z,tr*.5)), max(max(a.w,b.w),c.w)); }`;
+    return vec4(a.xy+b.xy+c.xy, max(max(a.z,b.z),max(c.z,tr*.5)), max(max(a.w,b.w),c.w)); }
+  vec4 wetDrops(vec2 u, float fw){ vec4 r=runDrops(u,fw); vec4 s=drops(u,fw); return vec4(r.xy+s.xy, max(r.z,s.z), max(r.w,s.w)); }`;
 const glassMat = new THREE.ShaderMaterial({
   uniforms:{ tScene:{value:sceneRT.texture}, tDepth:{value:sceneRT.depthTexture}, tEnv:{value:null}, uViewProj,
     uSunDir:{value:SCENE_CFG.sunDir}, uSunCol:{value:SCENE_CFG.sunColor}, uLiqTop:{value:LIQ_TOP}, uLiqK:{value:LIQK}, uAbs:{value:SCENE_CFG.glassAbsorb},
-    uInvVP:uInvVP, uDbg:{value:0}, uFill:{value:new THREE.Vector3(-14,12,40).normalize()}, uFloor:{value:C('#6e6a62')}, uWet:{value:1} },
+    uInvVP:uInvVP, uDbg:{value:0}, uFill:{value:new THREE.Vector3(-14,12,40).normalize()}, uFloor:{value:C('#6e6a62')}, uWet:{value:1}, uT:rainU },
   vertexShader:`varying vec3 vW, vL; void main(){ vL=position; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
-  fragmentShader:`uniform sampler2D tScene, tDepth; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform mat4 modelMatrix; uniform vec3 uSunDir, uSunCol, uLiqK, uAbs, uFill, uFloor; uniform float uLiqTop, uWet; uniform mat4 uInvVP; uniform int uDbg;
+  fragmentShader:`uniform sampler2D tScene, tDepth; uniform samplerCube tEnv; uniform mat4 uViewProj; uniform mat4 modelMatrix; uniform vec3 uSunDir, uSunCol, uLiqK, uAbs, uFill, uFloor; uniform float uLiqTop, uWet, uT; uniform mat4 uInvVP; uniform int uDbg;
     varying vec3 vW, vL;
     float h3(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
     float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
@@ -1101,7 +1322,8 @@ const glassMat = new THREE.ShaderMaterial({
       vec3 n0 = nOutAt(L);
       // 雨滴：在 (弧長, 高度) 上取樣；瓶口平面不放
       float ang=atan(L.x,L.z); vec2 du=vec2(ang*${f3(R0)}, L.y); float fwd=length(fwidth(du));
-      vec4 dr = L.y<${f3(GT-.01)} ? drops(du, fwd)*uWet : vec4(0.);
+      gRunT=uT; gRunYmax=6.3;
+      vec4 dr = L.y<${f3(GT-.01)} ? wetDrops(du, fwd)*uWet : vec4(0.);
       vec3 tA=normalize(vec3(cos(ang),0.,-sin(ang))), tB=normalize(cross(n0,tA));
       // 表面：極輕微的起伏、指紋霧面與細刮痕
       vec3 q=L*1.2; float e=.08;
@@ -1223,12 +1445,12 @@ const capEnv=(()=>{ const c=document.createElement('canvas'); c.width=1024; c.he
   fer.position.y=GT-.14; bottle.add(fer); }
 
 // 瓶蓋：霧面噴砂鋁（細細的砂紋），上緣一道小倒角；表面掛著雨滴
-const capWet=(m)=>{ m.onBeforeCompile=(sh)=>{
+const capWet=(m)=>{ m.onBeforeCompile=(sh)=>{ sh.uniforms.uRT=rainU;
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vCL;').replace('#include <begin_vertex>','#include <begin_vertex>\nvCL=position;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vCL;'+DROPS_GLSL+'\nvec4 cDr;')
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float uRT; varying vec3 vCL;'+DROPS_GLSL+'\nvec4 cDr;')
       .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
         { float ang=atan(vCL.x,vCL.z); vec2 du=vec2(ang*${f3(CAP.r)}, vCL.y*1.); float side=step(.02, ${f3(CAP.r)}-length(vCL.xz)) < .5 ? 1. : 0.;
-          cDr = drops(du*1.6+vec2(3.1,0.), length(fwidth(du))*1.6)*side;
+          gRunT=uRT+7.3; gRunYmax=3.9; cDr = wetDrops(du*1.6+vec2(3.1,0.), length(fwidth(du))*1.6)*side;
           vec3 tA=normalize(vec3(cos(ang),0.,-sin(ang))); vec3 tAv=normalize((viewMatrix*vec4(tA,0.)).xyz), uAv=normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz);
           normal=normalize(normal - (tAv*cDr.x + uAv*cDr.y)*.8); }`)
       .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.04,cDr.z);')
@@ -1657,7 +1879,7 @@ function frame(){
   camera.position.set(dist*.18, target.y+dist*.1, dist); camera.updateProjectionMatrix(); window.scrollTo(0,RUNWAY.t); controls.maxDistance=Math.max(56,dist*1.08); controls.minDistance=16;
 }
 frame(); addEventListener('resize', frame);
-window.__dbg={camera,controls,target,targetGoal,THREE,items,bottle,rings,renderer,scene,glass,envScene,fx,world,pedestal};
+window.__dbg={camera,controls,target,targetGoal,THREE,items,bottle,rings,renderer,scene,glass,envScene,fx,world,pedestal,fauna};
 
 // 香調圖例
 const tiersEl=document.getElementById('tiers'); let focusTier=-1;
